@@ -62,3 +62,4 @@ Thumbs.db
 # Logs
 logs/
 *.log
+**/application-dev.yml

@@ -1,4 +1,6 @@
 # ==================== 开发环境配置 ====================
+# 使用说明：复制此文件为 application-dev.yml，然后填写你自己的配置
+# 命令：cp application-dev.yml.example application-dev.yml
 
 # 数据源配置（开发环境）
 spring:
@@ -6,11 +8,11 @@ spring:
     driver-class-name: com.mysql.cj.jdbc.Driver
     url: jdbc:mysql://localhost:3306/park_evaluation?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
     username: root
-    password: 123456
+    password: 你的数据库密码  # ← 改成你的MySQL密码
 
 # JWT 配置（开发环境）
 jwt:
-  secret: FYU+1V2eovhMArOLYhs02dolXLqU8GerdB4Db3Gyiio=
+  secret: 你的JWT密钥  # ← 使用命令生成: openssl rand -base64 32
   expiration: 86400000  # 24小时
   token-prefix: "Bearer "
   header: Authorization
