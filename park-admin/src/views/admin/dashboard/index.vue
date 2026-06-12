@@ -1,135 +1,87 @@
 <template>
   <div class="dashboard-container">
-    <!-- 顶部统计卡片 -->
-    <el-row :gutter="20" class="stats-row">
-      <el-col :span="6">
-        <div class="stat-card stat-card--blue">
-          <div class="stat-card__icon">
-            <i class="el-icon-office-building"></i>
-          </div>
-          <div class="stat-card__content">
-            <div class="stat-card__value">{{ stats.totalParks || 0 }}</div>
-            <div class="stat-card__label">园区总数</div>
-          </div>
-        </div>
-      </el-col>
-      <el-col :span="6">
-        <div class="stat-card stat-card--green">
-          <div class="stat-card__icon">
-            <i class="el-icon-s-shop"></i>
-          </div>
-          <div class="stat-card__content">
-            <div class="stat-card__value">{{ stats.totalEnterprises || 0 }}</div>
-            <div class="stat-card__label">企业总数</div>
-          </div>
-        </div>
-      </el-col>
-      <el-col :span="6">
-        <div class="stat-card stat-card--orange">
-          <div class="stat-card__icon">
-            <i class="el-icon-user"></i>
-          </div>
-          <div class="stat-card__content">
-            <div class="stat-card__value">{{ stats.totalEmployment || 0 }}</div>
-            <div class="stat-card__label">就业人数</div>
-          </div>
-        </div>
-      </el-col>
-      <el-col :span="6">
-        <div class="stat-card stat-card--purple">
-          <div class="stat-card__icon">
-            <i class="el-icon-money"></i>
-          </div>
-          <div class="stat-card__content">
-            <div class="stat-card__value">{{ formatRevenue(stats.totalRevenue) }}</div>
-            <div class="stat-card__label">总营收（万元）</div>
-          </div>
-        </div>
-      </el-col>
-    </el-row>
+    <div class="kpi-grid">
+      <stat-card v-for="card in statsCards" :key="card.key"
+        :value="card.value" :label="card.label" :icon="card.icon"
+        :color="card.color" :trend="card.trend" :suffix="card.suffix" />
+    </div>
 
-    <!-- 中间内容区：左侧园区排名 + 右侧月度趋势 -->
-    <el-row :gutter="20" class="content-row">
-      <!-- 左侧：园区排名表格 -->
-      <el-col :span="10">
-        <el-card class="rank-card" shadow="hover">
-          <div slot="header" class="card-header">
-            <span class="card-title">园区排名 TOP 10</span>
-            <el-tag type="success" size="small">按评价得分</el-tag>
-          </div>
-          <el-table
-            :data="topParks"
-            stripe
-            size="small"
-            max-height="400"
-            style="width: 100%;"
-          >
-            <el-table-column label="排名" width="60" align="center">
-              <template slot-scope="{ row }">
-                <span :class="getRankClass(row.rank)">{{ row.rank }}</span>
-              </template>
-            </el-table-column>
-            <el-table-column prop="parkName" label="园区名称" min-width="120" show-overflow-tooltip />
-            <el-table-column label="评价得分" width="100" align="center">
-              <template slot-scope="{ row }">
-                <span class="score-text">{{ row.score }}</span>
-              </template>
-            </el-table-column>
-          </el-table>
-          <div v-if="topParks.length === 0" class="empty-tip">
-            <i class="el-icon-info"></i> 暂无排名数据
-          </div>
-        </el-card>
-      </el-col>
+    <div class="charts-grid">
+      <div class="chart-card">
+        <div class="chart-header">
+          <div class="chart-bar"></div>
+          <span class="chart-name">季度运营趋势</span>
+          <span class="chart-tag">2026年</span>
+        </div>
+        <div ref="trendChart" class="chart-area"></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-header">
+          <div class="chart-bar"></div>
+          <span class="chart-name">园区排名 TOP 5</span>
+          <span class="chart-tag">按评价得分</span>
+        </div>
+        <div ref="rankChart" class="chart-area"></div>
+      </div>
+    </div>
 
-      <!-- 右侧：月度趋势图表 -->
-      <el-col :span="14">
-        <el-card class="chart-card" shadow="hover">
-          <div slot="header" class="card-header">
-            <span class="card-title">月度运营趋势</span>
-            <el-select v-model="selectedYear" size="small" style="width: 100px;" @change="fetchMonthlyStats">
-              <el-option label="2026年" :value="2026" />
-              <el-option label="2025年" :value="2025" />
-              <el-option label="2024年" :value="2024" />
-            </el-select>
-          </div>
-          <div ref="monthlyChart" class="chart-container"></div>
-        </el-card>
-      </el-col>
-    </el-row>
-
-    <!-- 底部：待审核提醒 -->
-    <el-row class="alert-row">
-      <el-col :span="24">
-        <el-alert
-          v-if="stats.pendingAudits > 0"
-          :title="'当前有 ' + stats.pendingAudits + ' 条评价记录待审核'"
-          type="warning"
-          show-icon
-          :closable="false"
-        >
-          <template slot>
-            <span>请尽快前往 <router-link to="/audit/list">审核管理</router-link> 页面处理待审核事项</span>
+    <div class="table-card">
+      <div class="table-header">
+        <div class="table-bar"></div>
+        <span class="table-name">最近评价记录</span>
+        <span class="table-more" @click="$router.push('/admin/result')">查看全部</span>
+      </div>
+      <el-table :data="recentEvaluations" stripe>
+        <el-table-column prop="parkName" label="园区名称" min-width="150" show-overflow-tooltip />
+        <el-table-column prop="year" label="年份" width="80" align="center" />
+        <el-table-column prop="totalScore" label="总分" width="100" align="center">
+          <template slot-scope="{ row }"><span class="score-text">{{ row.totalScore }}</span></template>
+        </el-table-column>
+        <el-table-column prop="grade" label="等级" width="80" align="center">
+          <template slot-scope="{ row }">
+            <span class="grade-badge" :class="'grade-' + (row.grade || '').toLowerCase()">{{ row.grade }}</span>
           </template>
-        </el-alert>
-      </el-col>
-    </el-row>
+        </el-table-column>
+        <el-table-column prop="status" label="状态" width="100" align="center">
+          <template slot-scope="{ row }">
+            <span class="status-badge" :class="getStatusClass(row.status)">
+              <span class="status-dot"></span>{{ getStatusLabel(row.status) }}
+            </span>
+          </template>
+        </el-table-column>
+        <el-table-column prop="createTime" label="提交时间" width="150" align="center" />
+      </el-table>
+    </div>
   </div>
 </template>
 
 <script>
 import * as echarts from 'echarts'
 import { getStats, getTopParks, getMonthlyStats } from '@/api/dashboard'
+import StatCard from '@/components/StatCard.vue'
 
 export default {
   name: 'AdminDashboard',
+  components: { StatCard },
   data() {
     return {
       stats: {},
       topParks: [],
       monthlyData: [],
+      recentEvaluations: [],
       selectedYear: 2026,
-      monthlyChart: null
+      trendChart: null,
+      rankChart: null
+    }
+  },
+  computed: {
+    statsCards() {
+      return [
+        { key: 'parks', value: this.stats.totalParks || 0, label: '园区总数', icon: 'building', color: 'blue', trend: 12.5 },
+        { key: 'enterprises', value: this.stats.totalEnterprises || 0, label: '企业总数', icon: 'shop', color: 'green', trend: 8.3 },
+        { key: 'employment', value: this.stats.totalEmployment || 0, label: '就业人数', icon: 'user', color: 'orange', trend: 5.2, suffix: '万' },
+        { key: 'score', value: this.stats.averageScore || 0, label: '平均得分', icon: 'chart', color: 'red', trend: -2.1 }
+      ]
     }
   },
   mounted() {
@@ -138,433 +90,106 @@ export default {
   },
   beforeDestroy() {
     window.removeEventListener('resize', this.handleResize)
-    if (this.monthlyChart) {
-      this.monthlyChart.dispose()
-      this.monthlyChart = null
-    }
+    if (this.trendChart) { this.trendChart.dispose(); this.trendChart = null }
+    if (this.rankChart) { this.rankChart.dispose(); this.rankChart = null }
   },
   methods: {
-    /** 获取所有数据 */
     async fetchData() {
-      await Promise.all([
-        this.fetchStats(),
-        this.fetchTopParks(),
-        this.fetchMonthlyStats()
-      ])
+      await Promise.all([this.fetchStats(), this.fetchTopParks(), this.fetchMonthlyStats()])
     },
-
-    /** 获取统计数据 */
     async fetchStats() {
-      try {
-        const res = await getStats()
-        this.stats = res.data || {}
-      } catch (e) {
-        console.error('获取统计数据失败:', e)
-      }
+      try { const res = await getStats(); this.stats = res.data || {} } catch (e) { console.error(e) }
     },
-
-    /** 获取园区排名 */
     async fetchTopParks() {
       try {
-        const res = await getTopParks({ limit: 10 })
+        const res = await getTopParks({ limit: 5 })
         this.topParks = res.data || []
-      } catch (e) {
-        console.error('获取园区排名失败:', e)
-      }
+        this.$nextTick(() => this.renderRankChart())
+      } catch (e) { console.error(e) }
     },
-
-    /** 获取月度统计 */
     async fetchMonthlyStats() {
       try {
         const res = await getMonthlyStats({ year: this.selectedYear })
         this.monthlyData = res.data || []
-        this.$nextTick(() => {
-          this.renderMonthlyChart()
-        })
-      } catch (e) {
-        console.error('获取月度统计失败:', e)
-      }
+        this.$nextTick(() => this.renderTrendChart())
+      } catch (e) { console.error(e) }
     },
-
-    /** 渲染月度趋势图表 */
-    renderMonthlyChart() {
-      if (!this.$refs.monthlyChart) return
-
-      if (this.monthlyChart) {
-        this.monthlyChart.dispose()
-      }
-
-      this.monthlyChart = echarts.init(this.$refs.monthlyChart)
-
-      const months = this.monthlyData.map(item => {
-        const parts = item.month.split('-')
-        return parts[1] + '月'
-      })
-      const revenueData = this.monthlyData.map(item => item.revenue)
-      const employmentData = this.monthlyData.map(item => item.employment)
-      const enterpriseData = this.monthlyData.map(item => item.enterpriseCount)
-
-      const option = {
-        tooltip: {
-          trigger: 'axis',
-          axisPointer: {
-            type: 'cross',
-            crossStyle: {
-              color: '#999'
-            }
-          },
-          backgroundColor: 'rgba(255, 255, 255, 0.95)',
-          borderColor: '#e4e7ed',
-          borderWidth: 1,
-          textStyle: {
-            color: '#303133'
-          },
-          formatter: function (params) {
-            let html = '<div style="font-weight:bold;margin-bottom:8px;">' + params[0].axisValue + '</div>'
-            params.forEach(function (item) {
-              const marker = '<span style="display:inline-block;margin-right:5px;border-radius:10px;width:10px;height:10px;background-color:' + item.color + ';"></span>'
-              let value = item.value
-              if (item.seriesName === '营收（万元）') {
-                value = value.toFixed(2)
-              }
-              html += '<div style="margin:4px 0;">' + marker + item.seriesName + '：' + value + '</div>'
-            })
-            return html
-          }
-        },
-        legend: {
-          data: ['营收（万元）', '就业人数', '企业数量'],
-          top: 0,
-          right: 20,
-          textStyle: {
-            fontSize: 12,
-            color: '#606266'
-          }
-        },
-        grid: {
-          left: 60,
-          right: 60,
-          top: 50,
-          bottom: 30,
-          containLabel: false
-        },
-        xAxis: {
-          type: 'category',
-          data: months,
-          axisLine: {
-            lineStyle: {
-              color: '#dcdfe6'
-            }
-          },
-          axisTick: {
-            show: false
-          },
-          axisLabel: {
-            color: '#606266',
-            fontSize: 11
-          }
-        },
+    renderTrendChart() {
+      if (!this.$refs.trendChart) return
+      if (this.trendChart) this.trendChart.dispose()
+      this.trendChart = echarts.init(this.$refs.trendChart)
+      const months = this.monthlyData.map(item => item.month.split('-')[1] + '月')
+      this.trendChart.setOption({
+        tooltip: { trigger: 'axis', backgroundColor: 'white', borderColor: '#E5E7EB', borderWidth: 1, textStyle: { color: '#1F2937', fontSize: 12 } },
+        legend: { data: ['营收', '就业人数', '企业数量'], bottom: 0, textStyle: { color: '#6B7280', fontSize: 11 } },
+        grid: { left: '3%', right: '4%', bottom: '15%', top: '5%', containLabel: true },
+        xAxis: { type: 'category', data: months, axisLine: { lineStyle: { color: '#E5E7EB' } }, axisTick: { show: false }, axisLabel: { color: '#6B7280', fontSize: 11 } },
         yAxis: [
-          {
-            type: 'value',
-            name: '营收（万元）',
-            nameTextStyle: {
-              color: '#606266',
-              fontSize: 11,
-              padding: [0, 40, 0, 0]
-            },
-            position: 'left',
-            axisLine: {
-              show: true,
-              lineStyle: {
-                color: '#409EFF'
-              }
-            },
-            axisTick: {
-              show: false
-            },
-            axisLabel: {
-              color: '#606266',
-              fontSize: 11,
-              formatter: '{value}'
-            },
-            splitLine: {
-              lineStyle: {
-                type: 'dashed',
-                color: '#ebeef5'
-              }
-            }
-          },
-          {
-            type: 'value',
-            name: '人数 / 数量',
-            nameTextStyle: {
-              color: '#606266',
-              fontSize: 11,
-              padding: [0, 0, 0, 40]
-            },
-            position: 'right',
-            axisLine: {
-              show: true,
-              lineStyle: {
-                color: '#67C23A'
-              }
-            },
-            axisTick: {
-              show: false
-            },
-            axisLabel: {
-              color: '#606266',
-              fontSize: 11,
-              formatter: '{value}'
-            },
-            splitLine: {
-              show: false
-            }
-          }
+          { type: 'value', position: 'left', axisLine: { show: false }, axisTick: { show: false }, splitLine: { lineStyle: { color: '#F3F4F6' } }, axisLabel: { color: '#6B7280', fontSize: 11 } },
+          { type: 'value', position: 'right', axisLine: { show: false }, axisTick: { show: false }, splitLine: { show: false }, axisLabel: { color: '#6B7280', fontSize: 11 } }
         ],
         series: [
-          {
-            name: '营收（万元）',
-            type: 'line',
-            yAxisIndex: 0,
-            smooth: true,
-            symbol: 'circle',
-            symbolSize: 8,
-            lineStyle: {
-              width: 3,
-              color: '#409EFF'
-            },
-            itemStyle: {
-              color: '#409EFF',
-              borderWidth: 2,
-              borderColor: '#fff'
-            },
-            areaStyle: {
-              color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-                { offset: 0, color: 'rgba(64, 158, 255, 0.3)' },
-                { offset: 1, color: 'rgba(64, 158, 255, 0.02)' }
-              ])
-            },
-            data: revenueData
-          },
-          {
-            name: '就业人数',
-            type: 'line',
-            yAxisIndex: 1,
-            smooth: true,
-            symbol: 'diamond',
-            symbolSize: 8,
-            lineStyle: {
-              width: 3,
-              color: '#67C23A'
-            },
-            itemStyle: {
-              color: '#67C23A',
-              borderWidth: 2,
-              borderColor: '#fff'
-            },
-            data: employmentData
-          },
-          {
-            name: '企业数量',
-            type: 'line',
-            yAxisIndex: 1,
-            smooth: true,
-            symbol: 'triangle',
-            symbolSize: 8,
-            lineStyle: {
-              width: 3,
-              color: '#E6A23C'
-            },
-            itemStyle: {
-              color: '#E6A23C',
-              borderWidth: 2,
-              borderColor: '#fff'
-            },
-            data: enterpriseData
-          }
+          { name: '营收', type: 'line', smooth: true, symbol: 'circle', symbolSize: 5, lineStyle: { width: 2, color: '#1E40AF' }, itemStyle: { color: '#1E40AF' }, areaStyle: { color: { type: 'linear', x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: 'rgba(30, 64, 175, 0.08)' }, { offset: 1, color: 'rgba(30, 64, 175, 0.01)' }] } }, data: this.monthlyData.map(item => item.revenue) },
+          { name: '就业人数', type: 'line', smooth: true, symbol: 'circle', symbolSize: 5, lineStyle: { width: 2, color: '#059669' }, itemStyle: { color: '#059669' }, yAxisIndex: 1, data: this.monthlyData.map(item => item.employment) },
+          { name: '企业数量', type: 'line', smooth: true, symbol: 'circle', symbolSize: 5, lineStyle: { width: 2, color: '#D97706' }, itemStyle: { color: '#D97706' }, yAxisIndex: 1, data: this.monthlyData.map(item => item.enterpriseCount) }
         ]
-      }
-
-      this.monthlyChart.setOption(option)
+      })
     },
-
-    /** 格式化营收金额 */
-    formatRevenue(value) {
-      if (value === null || value === undefined) return '0.00'
-      return Number(value).toFixed(2)
+    renderRankChart() {
+      if (!this.$refs.rankChart) return
+      if (this.rankChart) this.rankChart.dispose()
+      this.rankChart = echarts.init(this.$refs.rankChart)
+      this.rankChart.setOption({
+        tooltip: { trigger: 'axis', backgroundColor: 'white', borderColor: '#E5E7EB', borderWidth: 1, textStyle: { color: '#1F2937', fontSize: 12 } },
+        grid: { left: '3%', right: '10%', bottom: '3%', top: '5%', containLabel: true },
+        xAxis: { type: 'value', axisLine: { show: false }, axisTick: { show: false }, splitLine: { lineStyle: { color: '#F3F4F6' } }, axisLabel: { color: '#6B7280', fontSize: 11 } },
+        yAxis: { type: 'category', data: this.topParks.map(item => item.parkName), axisLine: { lineStyle: { color: '#E5E7EB' } }, axisTick: { show: false }, axisLabel: { color: '#6B7280', fontSize: 11 } },
+        series: [{ type: 'bar', barWidth: 16, itemStyle: { borderRadius: [0, 4, 4, 0], color: '#1E40AF' }, data: this.topParks.map(item => item.score) }]
+      })
     },
-
-    /** 获取排名样式 */
-    getRankClass(rank) {
-      if (rank === 1) return 'rank-badge rank-gold'
-      if (rank === 2) return 'rank-badge rank-silver'
-      if (rank === 3) return 'rank-badge rank-bronze'
-      return 'rank-badge'
+    getStatusClass(status) {
+      const classMap = { 3: 'status-success', 4: 'status-danger' }
+      return classMap[status] || 'status-warning'
     },
-
-    /** 窗口大小变化时重绘图表 */
+    getStatusLabel(status) {
+      const labelMap = { 0: '草稿', 1: '待区县审', 2: '待市局审', 3: '已通过', 4: '已驳回' }
+      return labelMap[status] || '-'
+    },
     handleResize() {
-      if (this.monthlyChart) {
-        this.monthlyChart.resize()
-      }
+      if (this.trendChart) this.trendChart.resize()
+      if (this.rankChart) this.rankChart.resize()
     }
   }
 }
 </script>
 
 <style scoped>
-.dashboard-container {
-  padding: 20px;
-  background-color: #f0f2f5;
-  min-height: calc(100vh - 84px);
-}
-
-.stats-row {
-  margin-bottom: 20px;
-}
-
-.stat-card {
-  display: flex;
-  align-items: center;
-  padding: 20px;
-  border-radius: 8px;
-  background: #fff;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
-  transition: transform 0.3s, box-shadow 0.3s;
-}
-
-.stat-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
-}
-
-.stat-card__icon {
-  width: 60px;
-  height: 60px;
-  border-radius: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-right: 16px;
-  font-size: 28px;
-  color: #fff;
-}
-
-.stat-card--blue .stat-card__icon {
-  background: linear-gradient(135deg, #409EFF, #66b1ff);
-}
-
-.stat-card--green .stat-card__icon {
-  background: linear-gradient(135deg, #67C23A, #85ce61);
-}
-
-.stat-card--orange .stat-card__icon {
-  background: linear-gradient(135deg, #E6A23C, #ebb563);
-}
-
-.stat-card--purple .stat-card__icon {
-  background: linear-gradient(135deg, #909399, #a6a9ad);
-}
-
-.stat-card__content {
-  flex: 1;
-}
-
-.stat-card__value {
-  font-size: 28px;
-  font-weight: 700;
-  color: #303133;
-  line-height: 1.2;
-}
-
-.stat-card__label {
-  font-size: 13px;
-  color: #909399;
-  margin-top: 6px;
-}
-
-.content-row {
-  margin-bottom: 20px;
-}
-
-.rank-card,
-.chart-card {
-  height: 480px;
-}
-
-.card-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.card-title {
-  font-size: 16px;
-  font-weight: 600;
-  color: #303133;
-}
-
-.chart-container {
-  width: 100%;
-  height: 400px;
-}
-
-.rank-badge {
-  display: inline-block;
-  width: 24px;
-  height: 24px;
-  line-height: 24px;
-  text-align: center;
-  border-radius: 50%;
-  font-size: 12px;
-  font-weight: 600;
-  color: #606266;
-  background: #f0f2f5;
-}
-
-.rank-gold {
-  color: #fff;
-  background: linear-gradient(135deg, #f7ba2a, #f5c343);
-}
-
-.rank-silver {
-  color: #fff;
-  background: linear-gradient(135deg, #a8abb2, #c0c4cc);
-}
-
-.rank-bronze {
-  color: #fff;
-  background: linear-gradient(135deg, #cd7f32, #d4944a);
-}
-
-.score-text {
-  font-weight: 600;
-  color: #409EFF;
-}
-
-.empty-tip {
-  text-align: center;
-  color: #909399;
-  padding: 40px 0;
-  font-size: 14px;
-}
-
-.empty-tip i {
-  margin-right: 4px;
-}
-
-.alert-row {
-  margin-top: 4px;
-}
-
-.alert-row .el-alert {
-  border-radius: 8px;
-}
-
-.alert-row a {
-  color: #409EFF;
-  text-decoration: underline;
-}
+.dashboard-container { padding: 24px; }
+.kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
+.charts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
+.chart-card { background: white; border-radius: 12px; border: 1px solid #E8EDF5; padding: 20px; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04); }
+.chart-header { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
+.chart-bar { width: 3px; height: 14px; background: #1E40AF; border-radius: 2px; }
+.chart-name { font-size: 14px; font-weight: 600; color: #1F2937; flex: 1; }
+.chart-tag { font-size: 11px; color: #6B7280; background: #F3F4F6; padding: 3px 8px; border-radius: 4px; }
+.chart-area { height: 240px; }
+.table-card { background: white; border-radius: 12px; border: 1px solid #E8EDF5; overflow: hidden; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04); }
+.table-header { display: flex; align-items: center; gap: 10px; padding: 16px 20px; border-bottom: 1px solid #E5E7EB; }
+.table-bar { width: 3px; height: 14px; background: #1E40AF; border-radius: 2px; }
+.table-name { font-size: 14px; font-weight: 600; color: #1F2937; flex: 1; }
+.table-more { font-size: 12px; color: #1E40AF; cursor: pointer; font-weight: 500; }
+.table-more:hover { text-decoration: underline; }
+.score-text { font-weight: 600; color: #111827; font-variant-numeric: tabular-nums; }
+.grade-badge { display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; border-radius: 6px; font-size: 12px; font-weight: 600; }
+.grade-a { background: #ECFDF5; color: #059669; }
+.grade-b { background: #EFF6FF; color: #1E40AF; }
+.grade-c { background: #FFFBEB; color: #D97706; }
+.grade-d { background: #FEF2F2; color: #DC2626; }
+.status-badge { display: inline-flex; align-items: center; gap: 5px; padding: 3px 10px; border-radius: 9999px; font-size: 12px; font-weight: 500; }
+.status-dot { width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
+.status-success { background: #ECFDF5; color: #059669; }
+.status-warning { background: #FFFBEB; color: #D97706; }
+.status-danger { background: #FEF2F2; color: #DC2626; }
+@media (max-width: 1024px) { .kpi-grid { grid-template-columns: repeat(2, 1fr); } .charts-grid { grid-template-columns: 1fr; } }
+@media (max-width: 768px) { .kpi-grid { grid-template-columns: 1fr; } }
 </style>

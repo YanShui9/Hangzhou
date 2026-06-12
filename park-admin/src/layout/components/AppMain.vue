@@ -19,6 +19,6 @@ export default {
 .app-main {
   flex: 1;
   overflow: auto;
-  background-color: #f0f2f5;
+  background: #FAFCFF;
 }
 </style>

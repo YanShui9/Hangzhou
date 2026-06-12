@@ -1,16 +1,16 @@
 <template>
   <div class="navbar">
-    <div class="right-menu">
-      <el-dropdown trigger="click">
-        <span class="el-dropdown-link">
-          {{ userInfo.realName || userInfo.username || '管理员' }}
-          <span class="role-tag">{{ roleLabel }}</span>
-          <i class="el-icon-arrow-down el-icon--right"></i>
-        </span>
-        <el-dropdown-menu slot="dropdown">
-          <el-dropdown-item @click.native="handleLogout">退出登录</el-dropdown-item>
-        </el-dropdown-menu>
-      </el-dropdown>
+    <div class="breadcrumb">
+      <span>首页</span>
+      <span class="separator">/</span>
+      <span class="current">{{ currentTitle }}</span>
+    </div>
+    <div class="user-menu" @click="handleLogout">
+      <div class="user-info">
+        <div class="user-name">{{ userInfo.realName || userInfo.username || '管理员' }}</div>
+        <div class="user-role">{{ roleLabel }}</div>
+      </div>
+      <div class="user-avatar">{{ avatarText }}</div>
     </div>
   </div>
 </template>
@@ -23,12 +23,34 @@ export default {
   computed: {
     ...mapState('user', ['userInfo']),
     roleLabel() {
-      const roleMap = {
-        1: '市级管理员',
-        2: '区县管理员',
-        3: '园区管理员'
-      }
+      const roleMap = { 1: '市级管理员', 2: '区县管理员', 3: '园区管理员' }
       return roleMap[this.userInfo.roleType] || ''
+    },
+    avatarText() {
+      const name = this.userInfo.realName || this.userInfo.username || '管'
+      return name.charAt(0)
+    },
+    currentTitle() {
+      const path = this.$route.path
+      const titleMap = {
+        '/dashboard': '数据驾驶舱',
+        '/district/dashboard': '数据看板',
+        '/park/dashboard': '数据看板',
+        '/admin/park': '园区列表',
+        '/district/park': '园区列表',
+        '/park/mine': '我的园区',
+        '/admin/enterprise': '入驻企业',
+        '/district/enterprise': '入驻企业',
+        '/park/enterprise': '入驻企业',
+        '/admin/audit': '评价审核',
+        '/district/audit': '评价审核',
+        '/park/evaluation': '评价列表',
+        '/admin/result': '评价结果',
+        '/district/result': '评价结果',
+        '/park/result': '评价结果',
+        '/system/settings': '系统设置'
+      }
+      return titleMap[path] || '首页'
     }
   },
   methods: {
@@ -50,32 +72,47 @@ export default {
 
 <style scoped>
 .navbar {
-  height: 50px;
+  height: 56px;
+  background: white;
+  border-bottom: 1px solid #E5E7EB;
   display: flex;
   align-items: center;
-  justify-content: flex-end;
-  padding: 0 20px;
-  background: #fff;
-  box-shadow: 0 1px 4px rgba(0, 21, 41, 0.08);
+  justify-content: space-between;
+  padding: 0 24px;
+  flex-shrink: 0;
 }
-
-.right-menu {
-  cursor: pointer;
-}
-
-.el-dropdown-link {
-  color: #303133;
+.breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   font-size: 14px;
+  color: #6B7280;
+}
+.breadcrumb .separator { color: #D1D5DB; }
+.breadcrumb .current { color: #1F2937; font-weight: 500; }
+.user-menu {
   display: flex;
   align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  padding: 6px 12px;
+  border-radius: 8px;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
-
-.role-tag {
-  font-size: 12px;
-  color: #909399;
-  margin-left: 8px;
-  padding: 2px 8px;
-  background: #f0f2f5;
-  border-radius: 4px;
+.user-menu:hover { background: #F9FAFB; }
+.user-info { text-align: right; }
+.user-name { font-size: 13px; font-weight: 500; color: #1F2937; }
+.user-role { font-size: 12px; color: #6B7280; }
+.user-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #1E40AF;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 600;
 }
 </style>

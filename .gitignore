@@ -63,3 +63,6 @@ Thumbs.db
 logs/
 *.log
 **/application-dev.yml
+ # Claude Code
+  .agents/
+  skills-lock.json
