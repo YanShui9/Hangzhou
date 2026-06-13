@@ -193,7 +193,13 @@ public class EvaluationController {
      */
     private void applyDataPermission(EvaluationQueryDTO queryDTO, HttpServletRequest request) {
         Integer roleType = (Integer) request.getAttribute("roleType");
-        Long userId = (Long) request.getAttribute("userId");
+        Object userIdObj = request.getAttribute("userId");
+        Long userId = null;
+        if (userIdObj instanceof Integer) {
+            userId = ((Integer) userIdObj).longValue();
+        } else if (userIdObj instanceof Long) {
+            userId = (Long) userIdObj;
+        }
 
         if (roleType == null || roleType == 1) {
             // 市级管理员，查看所有

@@ -83,10 +83,17 @@
         <span slot="title">评价结果</span>
       </el-menu-item>
 
-      <el-menu-item v-if="hasRole([1])" index="/system/settings" @click="$router.push('/system/settings')">
-        <i class="el-icon-setting"></i>
-        <span slot="title">系统设置</span>
-      </el-menu-item>
+      <!-- 系统设置（下拉菜单） -->
+      <el-submenu v-if="hasRole([1])" index="system">
+        <template slot="title">
+          <i class="el-icon-setting"></i>
+          <span>系统设置</span>
+        </template>
+        <el-menu-item index="/system/users" @click="$router.push('/system/users')">
+          <i class="el-icon-user"></i>
+          <span slot="title">用户管理</span>
+        </el-menu-item>
+      </el-submenu>
     </el-menu>
   </div>
 </template>
@@ -147,7 +154,8 @@ export default {
   overflow-x: hidden;
   padding: 12px 8px;
 }
-.sidebar .el-menu-item {
+.sidebar .el-menu-item,
+.sidebar .el-submenu__title {
   height: 40px;
   line-height: 40px;
   margin-bottom: 2px;
@@ -157,7 +165,11 @@ export default {
   color: #4B5563;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
-.sidebar .el-menu-item:hover { background: #F9FAFB; color: #111827; }
+.sidebar .el-menu-item:hover,
+.sidebar .el-submenu__title:hover {
+  background: #F9FAFB;
+  color: #111827;
+}
 .sidebar .el-menu-item.is-active {
   background: #EFF6FF;
   color: #1E40AF;
@@ -174,10 +186,17 @@ export default {
   background: #1E40AF;
   border-radius: 0 2px 2px 0;
 }
-.sidebar .el-menu-item i {
+.sidebar .el-menu-item i,
+.sidebar .el-submenu__title i {
   font-size: 18px;
   width: 20px;
   text-align: center;
   margin-right: 10px;
+}
+.sidebar .el-submenu .el-menu-item {
+  padding-left: 50px !important;
+  height: 36px;
+  line-height: 36px;
+  font-size: 13px;
 }
 </style>

@@ -398,34 +398,31 @@ export default {
 </script>
 
 <style scoped>
+.user-manage {
+  padding: 20px;
+}
 .search-card {
   margin-bottom: 16px;
 }
-
 .search-form {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
 }
-
 .search-form .el-form-item {
   margin-bottom: 0;
-  margin-right: 16px;
+  margin-right: 12px;
 }
-
 .table-header {
   margin-bottom: 16px;
 }
-
 .pagination {
   margin-top: 16px;
   text-align: right;
 }
-
 .danger-btn {
   color: #f56c6c;
 }
-
 .danger-btn:hover {
   color: #f78989;
 }
