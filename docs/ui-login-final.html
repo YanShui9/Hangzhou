@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>杭州市小微园区评价平台</title>
+
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --primary: #2563EB;
+            --primary-hover: #1D4ED8;
+            --primary-light: #DBEAFE;
+            --primary-50: #EFF6FF;
+
+            --gray-50: #F9FAFB;
+            --gray-100: #F3F4F6;
+            --gray-200: #E5E7EB;
+            --gray-300: #D1D5DB;
+            --gray-400: #9CA3AF;
+            --gray-500: #6B7280;
+            --gray-600: #4B5563;
+            --gray-700: #374151;
+            --gray-800: #1F2937;
+            --gray-900: #111827;
+
+            --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', 'Noto Sans SC', -apple-system, BlinkMacSystemFont, sans-serif;
+            font-size: 14px;
+            line-height: 1.6;
+            color: var(--gray-800);
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* ============================================
+           登录页 - 背景图片 + 简洁文字
+           ============================================ */
+        .login-page {
+            min-height: 100vh;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* 背景图片 */
+        .login-bg {
+            position: absolute;
+            inset: 0;
+            z-index: 0;
+        }
+
+        .login-bg img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        /* 浅色遮罩 */
+        .login-overlay {
+            position: absolute;
+            inset: 0;
+            z-index: 1;
+            background: linear-gradient(135deg,
+                rgba(255, 255, 255, 0.92) 0%,
+                rgba(255, 255, 255, 0.88) 50%,
+                rgba(240, 244, 255, 0.92) 100%
+            );
+        }
+
+        /* 内容区 */
+        .login-content {
+            position: relative;
+            z-index: 2;
+            min-height: 100vh;
+            display: flex;
+        }
+
+        /* 左侧品牌 - 精简文字 */
+        .login-brand {
+            flex: 0 0 55%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            padding: 80px;
+        }
+
+        .brand-content {
+            max-width: 440px;
+        }
+
+        .brand-logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 48px;
+        }
+
+        .logo-icon {
+            width: 44px;
+            height: 44px;
+            background: var(--primary);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .logo-icon svg {
+            width: 24px;
+            height: 24px;
+            color: white;
+        }
+
+        .logo-text {
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--gray-700);
+        }
+
+        .brand-title {
+            font-size: 36px;
+            font-weight: 700;
+            color: var(--gray-900);
+            line-height: 1.3;
+            margin-bottom: 12px;
+            letter-spacing: -0.5px;
+        }
+
+        .brand-desc {
+            font-size: 15px;
+            color: var(--gray-500);
+            line-height: 1.6;
+            margin-bottom: 48px;
+        }
+
+        /* 精简数据展示 */
+        .brand-stats {
+            display: flex;
+            gap: 32px;
+        }
+
+        .stat-item {
+            text-align: left;
+        }
+
+        .stat-value {
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--gray-900);
+            font-variant-numeric: tabular-nums;
+            line-height: 1.1;
+            margin-bottom: 4px;
+        }
+
+        .stat-label {
+            font-size: 13px;
+            color: var(--gray-500);
+        }
+
+        /* 右侧登录 */
+        .login-form-area {
+            flex: 0 0 45%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 48px;
+        }
+
+        .login-card {
+            width: 100%;
+            max-width: 380px;
+            background: white;
+            border-radius: 20px;
+            padding: 36px 32px;
+            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
+        }
+
+        .form-header {
+            text-align: center;
+            margin-bottom: 28px;
+        }
+
+        .form-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--gray-900);
+            margin-bottom: 6px;
+        }
+
+        .form-subtitle {
+            font-size: 14px;
+            color: var(--gray-500);
+        }
+
+        /* 角色选择 */
+        .role-tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 24px;
+            background: var(--gray-100);
+            padding: 4px;
+            border-radius: 10px;
+        }
+
+        .role-tab {
+            flex: 1;
+            padding: 10px 8px;
+            text-align: center;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--gray-500);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s var(--ease-smooth);
+        }
+
+        .role-tab:hover {
+            color: var(--gray-700);
+        }
+
+        .role-tab.active {
+            background: white;
+            color: var(--gray-900);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        /* 表单 */
+        .form-group {
+            margin-bottom: 18px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--gray-700);
+            margin-bottom: 8px;
+        }
+
+        .form-input {
+            width: 100%;
+            height: 46px;
+            padding: 0 16px;
+            border: 1.5px solid var(--gray-200);
+            border-radius: 10px;
+            font-size: 15px;
+            font-family: inherit;
+            color: var(--gray-800);
+            background: white;
+            transition: all 0.2s var(--ease-smooth);
+            outline: none;
+        }
+
+        .form-input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 4px var(--primary-light);
+        }
+
+        .form-input::placeholder {
+            color: var(--gray-400);
+        }
+
+        .btn-login {
+            width: 100%;
+            height: 48px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 15px;
+            font-weight: 600;
+            font-family: inherit;
+            cursor: pointer;
+            transition: all 0.2s var(--ease-smooth);
+            margin-top: 4px;
+        }
+
+        .btn-login:hover {
+            background: var(--primary-hover);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(37, 99, 235, 0.3);
+        }
+
+        .btn-login:active {
+            transform: translateY(0);
+        }
+
+        .test-accounts {
+            margin-top: 24px;
+            text-align: center;
+        }
+
+        .test-title {
+            font-size: 12px;
+            color: var(--gray-400);
+            margin-bottom: 10px;
+        }
+
+        .test-list {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .test-item {
+            padding: 6px 12px;
+            background: var(--gray-100);
+            border-radius: 6px;
+            font-size: 12px;
+            color: var(--gray-600);
+            cursor: pointer;
+            transition: all 0.2s var(--ease-smooth);
+        }
+
+        .test-item:hover {
+            background: var(--primary-50);
+            color: var(--primary);
+        }
+
+        /* 响应式 */
+        @media (max-width: 1024px) {
+            .login-brand {
+                flex: 0 0 50%;
+                padding: 48px;
+            }
+
+            .login-form-area {
+                flex: 0 0 50%;
+            }
+
+            .brand-title {
+                font-size: 30px;
+            }
+
+            .brand-stats {
+                gap: 24px;
+            }
+
+            .stat-value {
+                font-size: 24px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .login-content {
+                flex-direction: column;
+            }
+
+            .login-brand {
+                padding: 40px 24px;
+            }
+
+            .brand-title {
+                font-size: 26px;
+            }
+
+            .brand-stats {
+                gap: 20px;
+            }
+
+            .stat-value {
+                font-size: 22px;
+            }
+
+            .login-form-area {
+                padding: 24px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="login-page">
+        <!-- 背景图片 -->
+        <div class="login-bg">
+            <img src="https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=1920&q=80" alt="城市天际线">
+        </div>
+        <div class="login-overlay"></div>
+
+        <!-- 内容 -->
+        <div class="login-content">
+            <!-- 左侧品牌 - 精简 -->
+            <div class="login-brand">
+                <div class="brand-content">
+                    <div class="brand-logo">
+                        <div class="logo-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                                <polyline points="9 22 9 12 15 12 15 22"></polyline>
+                            </svg>
+                        </div>
+                        <span class="logo-text">杭州市经济和信息化局</span>
+                    </div>
+
+                    <h1 class="brand-title">小微园区评价<br>数据分析平台</h1>
+                    <p class="brand-desc">市、区（县）、园区三级架构</p>
+
+                    <div class="brand-stats">
+                        <div class="stat-item">
+                            <div class="stat-value" data-target="156">0</div>
+                            <div class="stat-label">园区</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value" data-target="2847">0</div>
+                            <div class="stat-label">企业</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value" data-target="86.5" data-decimal="1">0</div>
+                            <div class="stat-label">得分</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 右侧登录 -->
+            <div class="login-form-area">
+                <div class="login-card">
+                    <div class="form-header">
+                        <h2 class="form-title">欢迎登录</h2>
+                        <p class="form-subtitle">选择角色并输入账号</p>
+                    </div>
+
+                    <div class="role-tabs">
+                        <div class="role-tab active">市级</div>
+                        <div class="role-tab">区县</div>
+                        <div class="role-tab">园区</div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">用户名</label>
+                        <input type="text" class="form-input" placeholder="请输入用户名" value="admin">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">密码</label>
+                        <input type="password" class="form-input" placeholder="请输入密码" value="123456">
+                    </div>
+
+                    <button class="btn-login">登 录</button>
+
+                    <div class="test-accounts">
+                        <div class="test-title">测试账号</div>
+                        <div class="test-list">
+                            <span class="test-item">admin</span>
+                            <span class="test-item">district</span>
+                            <span class="test-item">park</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function animateValue(element, start, end, duration, decimal) {
+            const startTime = performance.now();
+
+            function update(currentTime) {
+                const elapsed = currentTime - startTime;
+                const progress = Math.min(elapsed / duration, 1);
+                const eased = 1 - Math.pow(1 - progress, 3);
+                let current = start + (end - start) * eased;
+
+                if (decimal) {
+                    element.textContent = current.toFixed(decimal);
+                } else {
+                    element.textContent = Math.floor(current).toLocaleString();
+                }
+
+                if (progress < 1) {
+                    requestAnimationFrame(update);
+                }
+            }
+
+            requestAnimationFrame(update);
+        }
+
+        window.addEventListener('load', () => {
+            document.querySelectorAll('.stat-value').forEach(el => {
+                const target = parseFloat(el.dataset.target);
+                const decimal = el.dataset.decimal ? parseInt(el.dataset.decimal) : 0;
+                animateValue(el, 0, target, 1200, decimal);
+            });
+        });
+    </script>
+</body>
+</html>

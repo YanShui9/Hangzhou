@@ -59,6 +59,10 @@ Thumbs.db
 # 生产环境配置（敏感信息，不提交到Git）
 **/application-prod.yml
 
+# Claude Code
+.agents/
+skills-lock.json
+
 # Logs
 logs/
 *.log

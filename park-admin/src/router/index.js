@@ -13,7 +13,6 @@ const routes = [
   {
     path: '/',
     component: () => import('@/layout/index.vue'),
-    // 根据角色动态重定向到对应的 dashboard
     redirect: to => {
       const userInfo = JSON.parse(localStorage.getItem('userInfo') || '{}')
       const roleType = userInfo.roleType
@@ -22,7 +21,7 @@ const routes = [
       return '/dashboard'
     },
     children: [
-      // ========== 数据看板（三角色共用路径，不同组件） ==========
+      // 数据看板
       {
         path: 'dashboard',
         name: 'AdminDashboard',
@@ -41,23 +40,7 @@ const routes = [
         component: () => import('@/views/park/dashboard/index.vue'),
         meta: { title: '数据看板', icon: 'el-icon-s-home', roles: [3] }
       },
-      // ========== 系统设置（市级管理员） ==========
-      {
-        path: 'system/settings',
-        name: 'SystemSettings',
-        component: () => import('@/views/admin/system/index.vue'),
-        redirect: '/system/settings/users',
-        meta: { title: '系统设置', icon: 'el-icon-setting', roles: [1] },
-        children: [
-          {
-            path: 'users',
-            name: 'UserManage',
-            component: () => import('@/views/admin/system/user.vue'),
-            meta: { title: '用户管理', roles: [1] }
-          }
-        ]
-      },
-      // ========== 园区管理 ==========
+      // 园区管理
       {
         path: 'admin/park',
         name: 'AdminPark',
@@ -76,7 +59,7 @@ const routes = [
         component: () => import('@/views/park/mine/index.vue'),
         meta: { title: '我的园区', icon: 'el-icon-office-building', roles: [3] }
       },
-      // ========== 入驻企业 ==========
+      // 入驻企业
       {
         path: 'admin/enterprise',
         name: 'AdminEnterprise',
@@ -95,14 +78,14 @@ const routes = [
         component: () => import('@/views/park/enterprise/list.vue'),
         meta: { title: '入驻企业', icon: 'el-icon-s-shop', roles: [3] }
       },
-      // ========== 评价模块 ==========
+      // 评价模块
       {
         path: 'park/evaluation',
         name: 'ParkEvaluation',
         component: () => import('@/views/park/evaluation/list.vue'),
         meta: { title: '评价列表', icon: 'el-icon-edit-outline', roles: [3] }
       },
-      // ========== 审核模块 ==========
+      // 审核模块
       {
         path: 'admin/audit',
         name: 'AdminAudit',
@@ -115,7 +98,7 @@ const routes = [
         component: () => import('@/views/district/audit/list.vue'),
         meta: { title: '评价审核', icon: 'el-icon-s-check', roles: [2] }
       },
-      // ========== 评价结果模块 ==========
+      // 评价结果
       {
         path: 'admin/result',
         name: 'AdminResult',
@@ -133,12 +116,18 @@ const routes = [
         name: 'ParkResult',
         component: () => import('@/views/park/result/list.vue'),
         meta: { title: '评价结果', icon: 'el-icon-trophy', roles: [3] }
+      },
+      // 系统设置 - 用户管理（直接作为顶级路由）
+      {
+        path: 'system/users',
+        name: 'UserManage',
+        component: () => import('@/views/admin/system/user.vue'),
+        meta: { title: '用户管理', icon: 'el-icon-setting', roles: [1] }
       }
     ]
   }
 ]
 
-// 预留动态路由
 export const asyncRoutes = []
 
 const router = new VueRouter({

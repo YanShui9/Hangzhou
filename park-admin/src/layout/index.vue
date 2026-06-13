@@ -15,11 +15,7 @@ import AppMain from './components/AppMain.vue'
 
 export default {
   name: 'Layout',
-  components: {
-    Sidebar,
-    Navbar,
-    AppMain
-  }
+  components: { Sidebar, Navbar, AppMain }
 }
 </script>
 
@@ -27,18 +23,18 @@ export default {
 .app-wrapper {
   display: flex;
   height: 100vh;
-}
-
-.sidebar-container {
-  width: 210px;
-  background-color: #304156;
   overflow: hidden;
 }
-
+.sidebar-container {
+  width: 220px;
+  flex-shrink: 0;
+  overflow: hidden;
+}
 .main-container {
   flex: 1;
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  background: #FAFCFF;
 }
 </style>
