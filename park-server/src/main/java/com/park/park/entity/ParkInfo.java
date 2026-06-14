@@ -186,4 +186,7 @@ public class ParkInfo extends BaseEntity {
 
     @ApiModelProperty(value = "外观设计专利（件）")
     private Integer patentDesign;
+
+    @ApiModelProperty(value = "园区图片（Base64或URL）")
+    private String parkImage;
 }

@@ -1,305 +1,211 @@
 <template>
-  <div class="app-container">
-    <!-- 搜索栏 -->
-    <div class="filter-container">
-      <el-input
-        v-model="queryParams.enterpriseName"
-        placeholder="企业名称"
-        style="width: 200px;"
-        class="filter-item"
-        clearable
-        @keyup.enter.native="handleQuery"
-      />
-      <el-select
-        v-model="queryParams.parkId"
-        placeholder="所属园区"
-        style="width: 200px;"
-        class="filter-item"
-        clearable
-      >
-        <el-option
-          v-for="item in parkOptions"
-          :key="item.id"
-          :label="item.parkName"
-          :value="item.id"
-        />
-      </el-select>
-      <el-select
-        v-model="queryParams.industryName"
-        placeholder="所属行业"
-        style="width: 200px;"
-        class="filter-item"
-        clearable
-      >
-        <el-option
-          v-for="item in industryOptions"
-          :key="item"
-          :label="item"
-          :value="item"
-        />
-      </el-select>
-      <el-select
-        v-model="queryParams.status"
-        placeholder="经营状态"
-        style="width: 120px;"
-        class="filter-item"
-        clearable
-      >
-        <el-option label="在营" value="在营" />
-        <el-option label="注销" value="注销" />
-      </el-select>
-      <el-button
-        class="filter-item"
-        type="primary"
-        icon="el-icon-search"
-        @click="handleQuery"
-      >
-        搜索
-      </el-button>
-      <el-button
-        class="filter-item"
-        icon="el-icon-refresh"
-        @click="resetQuery"
-      >
-        重置
-      </el-button>
-      <el-button
-        class="filter-item"
-        type="success"
-        icon="el-icon-plus"
-        @click="handleAdd"
-      >
-        新增企业
-      </el-button>
+  <div class="enterprise-list-container">
+    <!-- 页面标题 -->
+    <div class="page-header">
+      <h2 class="page-title">入驻企业</h2>
     </div>
 
-    <!-- 表格 -->
+    <!-- 搜索过滤区 -->
+    <div class="filter-bar">
+      <div class="filter-left">
+        <el-input
+          v-model="queryParams.enterpriseName"
+          placeholder="企业名称/统一信用代码"
+          clearable
+          size="small"
+          class="filter-item"
+          style="width: 200px"
+          @keyup.enter.native="handleQuery"
+        />
+        <el-select
+          v-model="queryParams.districtName"
+          placeholder="全部区域"
+          clearable
+          size="small"
+          class="filter-item"
+          style="width: 130px"
+        >
+          <el-option
+            v-for="item in districtOptions"
+            :key="item"
+            :label="item"
+            :value="item"
+          />
+        </el-select>
+        <el-select
+          v-model="queryParams.parkId"
+          placeholder="全部园区"
+          clearable
+          size="small"
+          class="filter-item"
+          style="width: 160px"
+        >
+          <el-option
+            v-for="item in parkOptions"
+            :key="item.id"
+            :label="item.parkName"
+            :value="item.id"
+          />
+        </el-select>
+        <el-button type="primary" size="small" icon="el-icon-search" @click="handleQuery">查询</el-button>
+        <el-button size="small" icon="el-icon-refresh-left" @click="resetQuery">重置</el-button>
+      </div>
+      <div class="filter-right">
+        <el-button size="small" icon="el-icon-upload2" @click="handleExport">导出</el-button>
+        <el-button size="small" icon="el-icon-s-grid" @click="toggleColumns">
+          <i class="el-icon-arrow-down"></i>
+        </el-button>
+      </div>
+    </div>
+
+    <!-- 数据表格 -->
     <el-table
       v-loading="loading"
       :data="enterpriseList"
       border
-      fit
-      highlight-current-row
-      style="width: 100%;"
+      stripe
+      size="mini"
+      style="width: 100%"
+      class="enterprise-table"
+      :header-cell-style="headerCellStyle"
+      :row-style="rowStyle"
     >
-      <el-table-column label="企业名称" prop="enterpriseName" min-width="180" show-overflow-tooltip />
-      <el-table-column label="所属园区" min-width="150" show-overflow-tooltip>
+      <el-table-column type="index" label="序号" width="60" align="center" />
+      <el-table-column prop="enterpriseName" label="企业名称" min-width="200" show-overflow-tooltip>
         <template slot-scope="{ row }">
-          {{ getParkName(row.parkId) }}
+          <span class="enterprise-name-link" @click="handleViewDetail(row)">{{ row.enterpriseName }}</span>
         </template>
       </el-table-column>
-      <el-table-column label="行业" prop="industryName" min-width="120" show-overflow-tooltip />
-      <el-table-column label="统一社会信用代码" prop="creditCode" min-width="180" show-overflow-tooltip />
-      <el-table-column label="法定代表人" prop="legalPerson" min-width="100" />
-      <el-table-column label="联系人" prop="contactName" min-width="100" />
-      <el-table-column label="联系电话" prop="contactPhone" min-width="130" />
-      <el-table-column label="是否参评" min-width="100" align="center">
+      <el-table-column prop="creditCode" label="统一信用代码" width="180" align="center" show-overflow-tooltip />
+      <el-table-column prop="districtName" label="所属区域" width="90" align="center" show-overflow-tooltip />
+      <el-table-column prop="parkName" label="所属园区" min-width="150" show-overflow-tooltip />
+      <el-table-column prop="enterpriseHonor" label="企业荣誉" min-width="150" show-overflow-tooltip>
         <template slot-scope="{ row }">
-          <el-tag :type="row.isParticipate === 1 ? 'success' : 'info'">
+          <span>{{ row.enterpriseHonor || '--' }}</span>
+        </template>
+      </el-table-column>
+      <el-table-column label="企业状态" width="90" align="center">
+        <template slot-scope="{ row }">
+          <span
+            v-if="row.isParticipate !== undefined && row.isParticipate !== null"
+            class="status-text"
+            :class="getParticipateClass(row.isParticipate)"
+          >
+            <span class="status-dot"></span>
             {{ row.isParticipate === 1 ? '参评' : '不参评' }}
-          </el-tag>
+          </span>
+          <span v-else class="text-muted">--</span>
         </template>
       </el-table-column>
-      <el-table-column label="经营状态" prop="status" min-width="80" align="center">
+      <el-table-column label="登记状态" width="90" align="center">
         <template slot-scope="{ row }">
-          <el-tag :type="row.status === '在营' ? 'success' : 'danger'">
-            {{ row.status || '-' }}
+          <el-tag
+            v-if="row.status"
+            :type="getStatusType(row.status)"
+            size="mini"
+            effect="plain"
+          >
+            {{ row.status }}
           </el-tag>
+          <span v-else class="text-muted">--</span>
         </template>
       </el-table-column>
-      <el-table-column label="操作" width="180" align="center" fixed="right">
+      <el-table-column prop="legalPerson" label="法定代表人" width="100" align="center" />
+      <el-table-column prop="contactName" label="联系人" width="90" align="center" />
+      <el-table-column prop="contactPhone" label="联系电话" width="130" align="center" show-overflow-tooltip />
+      <el-table-column prop="remark" label="备注" min-width="150" show-overflow-tooltip>
         <template slot-scope="{ row }">
-          <el-button type="primary" size="mini" icon="el-icon-edit" @click="handleEdit(row)">
-            编辑
-          </el-button>
-          <el-button type="danger" size="mini" icon="el-icon-delete" @click="handleDelete(row)">
-            删除
-          </el-button>
+          <span>{{ row.remark || row.participateReason || '--' }}</span>
         </template>
       </el-table-column>
     </el-table>
 
-    <!-- 分页 -->
-    <div class="pagination-container">
+    <!-- 分页组件 -->
+    <div class="pagination-bar">
+      <span class="total-text">共 {{ total }} 条</span>
       <el-pagination
-        :current-page="queryParams.pageNum"
-        :page-sizes="[10, 20, 50, 100]"
+        :current-page.sync="queryParams.pageNum"
+        :page-sizes="[20, 50, 100]"
         :page-size="queryParams.pageSize"
         :total="total"
-        layout="total, sizes, prev, pager, next, jumper"
+        layout="sizes, prev, pager, next, jumper"
+        background
+        small
         @size-change="handleSizeChange"
         @current-change="handleCurrentChange"
       />
     </div>
 
-    <!-- 新增/编辑对话框 -->
+    <!-- 查看详情对话框 -->
     <el-dialog
-      :title="dialogTitle"
-      :visible.sync="dialogVisible"
-      width="700px"
+      title="企业详情"
+      :visible.sync="detailVisible"
+      width="760px"
       append-to-body
+      class="enterprise-dialog"
     >
-      <el-form
-        ref="enterpriseForm"
-        :model="enterpriseForm"
-        :rules="enterpriseRules"
-        label-width="120px"
-      >
-        <el-form-item label="所属园区" prop="parkId">
-          <el-select
-            v-model="enterpriseForm.parkId"
-            placeholder="请选择所属园区"
-            style="width: 100%;"
-          >
-            <el-option
-              v-for="item in parkOptions"
-              :key="item.id"
-              :label="item.parkName"
-              :value="item.id"
-            />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="企业名称" prop="enterpriseName">
-          <el-input v-model="enterpriseForm.enterpriseName" placeholder="请输入企业名称" />
-        </el-form-item>
-        <el-form-item label="统一社会信用代码" prop="creditCode">
-          <el-input v-model="enterpriseForm.creditCode" placeholder="请输入统一社会信用代码" />
-        </el-form-item>
-        <el-row :gutter="20">
-          <el-col :span="12">
-            <el-form-item label="行业代码" prop="industryCode">
-              <el-input v-model="enterpriseForm.industryCode" placeholder="如：I65" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="行业名称" prop="industryName">
-              <el-input v-model="enterpriseForm.industryName" placeholder="如：软件和信息技术服务业" />
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row :gutter="20">
-          <el-col :span="12">
-            <el-form-item label="法定代表人" prop="legalPerson">
-              <el-input v-model="enterpriseForm.legalPerson" placeholder="请输入法定代表人" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="注册资本（万元）" prop="registeredCapital">
-              <el-input-number
-                v-model="enterpriseForm.registeredCapital"
-                :min="0"
-                :precision="2"
-                style="width: 100%;"
-              />
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row :gutter="20">
-          <el-col :span="12">
-            <el-form-item label="联系人" prop="contactName">
-              <el-input v-model="enterpriseForm.contactName" placeholder="请输入联系人" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="联系电话" prop="contactPhone">
-              <el-input v-model="enterpriseForm.contactPhone" placeholder="请输入联系电话" />
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row :gutter="20">
-          <el-col :span="12">
-            <el-form-item label="注册日期" prop="registerDate">
-              <el-date-picker
-                v-model="enterpriseForm.registerDate"
-                type="date"
-                placeholder="选择日期"
-                value-format="yyyy-MM-dd"
-                style="width: 100%;"
-              />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="经营状态" prop="status">
-              <el-select v-model="enterpriseForm.status" placeholder="请选择" style="width: 100%;">
-                <el-option label="在营" value="在营" />
-                <el-option label="注销" value="注销" />
-              </el-select>
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-form-item label="是否参评" prop="isParticipate">
-          <el-radio-group v-model="enterpriseForm.isParticipate">
-            <el-radio :label="1">参评</el-radio>
-            <el-radio :label="0">不参评</el-radio>
-          </el-radio-group>
-        </el-form-item>
-        <el-form-item v-if="enterpriseForm.isParticipate === 0" label="不参评原因" prop="participateReason">
-          <el-input v-model="enterpriseForm.participateReason" placeholder="请输入不参评原因" />
-        </el-form-item>
-      </el-form>
+      <div v-if="currentEnterprise" class="enterprise-detail">
+        <el-descriptions :column="2" border size="small">
+          <el-descriptions-item label="企业名称" :span="2">{{ currentEnterprise.enterpriseName }}</el-descriptions-item>
+          <el-descriptions-item label="统一社会信用代码">{{ currentEnterprise.creditCode }}</el-descriptions-item>
+          <el-descriptions-item label="所属园区">{{ currentEnterprise.parkName || '--' }}</el-descriptions-item>
+          <el-descriptions-item label="所属区域">{{ currentEnterprise.districtName || '--' }}</el-descriptions-item>
+          <el-descriptions-item label="行业">{{ currentEnterprise.industryName || '--' }}</el-descriptions-item>
+          <el-descriptions-item label="法定代表人">{{ currentEnterprise.legalPerson || '--' }}</el-descriptions-item>
+          <el-descriptions-item label="经营状态">{{ currentEnterprise.status || '--' }}</el-descriptions-item>
+          <el-descriptions-item label="联系人">{{ currentEnterprise.contactName || '--' }}</el-descriptions-item>
+          <el-descriptions-item label="联系电话">{{ currentEnterprise.contactPhone || '--' }}</el-descriptions-item>
+          <el-descriptions-item label="注册资本（万元）">{{ currentEnterprise.registeredCapital || '--' }}</el-descriptions-item>
+          <el-descriptions-item label="注册日期">{{ currentEnterprise.registerDate || '--' }}</el-descriptions-item>
+          <el-descriptions-item label="企业荣誉" :span="2">{{ currentEnterprise.enterpriseHonor || '--' }}</el-descriptions-item>
+          <el-descriptions-item label="是否参评">
+            <span v-if="currentEnterprise.isParticipate !== undefined && currentEnterprise.isParticipate !== null">
+              {{ currentEnterprise.isParticipate === 1 ? '参评' : '不参评' }}
+            </span>
+            <span v-else>--</span>
+          </el-descriptions-item>
+          <el-descriptions-item label="备注/原因" :span="2">{{ currentEnterprise.remark || currentEnterprise.participateReason || '--' }}</el-descriptions-item>
+        </el-descriptions>
+      </div>
       <div slot="footer" class="dialog-footer">
-        <el-button @click="dialogVisible = false">取 消</el-button>
-        <el-button type="primary" :loading="submitLoading" @click="submitForm">确 定</el-button>
+        <el-button size="small" @click="detailVisible = false">关 闭</el-button>
       </div>
     </el-dialog>
   </div>
 </template>
 
 <script>
-import { getEnterpriseList, getEnterpriseDetail, saveEnterprise, updateEnterprise, deleteEnterprise } from '@/api/enterprise'
+import { getEnterpriseList, getEnterpriseDetail, exportEnterpriseList } from '@/api/enterprise'
 import { getParkList } from '@/api/park'
 
 export default {
   name: 'AdminEnterpriseList',
   data() {
     return {
+      // 查询参数
       queryParams: {
-        pageNum: 1,
-        pageSize: 10,
         enterpriseName: '',
-        parkId: undefined,
-        industryName: '',
-        status: undefined
+        creditCode: '',
+        districtName: '',
+        parkId: null,
+        pageNum: 1,
+        pageSize: 20
       },
+      // 区县选项（杭州市辖区县）
+      districtOptions: [
+        '上城区', '拱墅区', '西湖区', '滨江区', '萧山区',
+        '余杭区', '临平区', '钱塘区', '富阳区', '临安区',
+        '桐庐县', '淳安县', '建德市'
+      ],
+      // 园区选项（从接口获取）
+      parkOptions: [],
+      // 表格数据
       enterpriseList: [],
       total: 0,
       loading: false,
-      parkOptions: [],
-      industryOptions: [
-        '软件和信息技术服务业',
-        '计算机、通信和其他电子设备制造业',
-        '医药制造业',
-        '生态保护和环境治理业',
-        '非金属矿物制品业',
-        '其他'
-      ],
-      dialogVisible: false,
-      dialogTitle: '',
-      submitLoading: false,
-      enterpriseForm: {
-        id: undefined,
-        parkId: undefined,
-        enterpriseName: '',
-        creditCode: '',
-        industryCode: '',
-        industryName: '',
-        legalPerson: '',
-        registeredCapital: null,
-        contactName: '',
-        contactPhone: '',
-        registerDate: '',
-        status: '在营',
-        isParticipate: 1,
-        participateReason: ''
-      },
-      enterpriseRules: {
-        parkId: [
-          { required: true, message: '请选择所属园区', trigger: 'change' }
-        ],
-        enterpriseName: [
-          { required: true, message: '请输入企业名称', trigger: 'blur' }
-        ]
-      }
+      // 详情对话框
+      detailVisible: false,
+      currentEnterprise: null
     }
   },
   created() {
@@ -307,129 +213,387 @@ export default {
     this.getParkOptions()
   },
   methods: {
+    /** 表头样式 */
+    headerCellStyle() {
+      return {
+        background: '#F5F7FA',
+        color: '#303133',
+        fontWeight: '600',
+        fontSize: '13px'
+      }
+    },
+    /** 行样式 - hover */
+    rowStyle() {
+      return { fontSize: '13px', color: '#606266' }
+    },
+    /** 获取园区下拉选项 */
+    getParkOptions() {
+      getParkList({ pageNum: 1, pageSize: 1000 })
+        .then(res => {
+          this.parkOptions = res.data.records || []
+        })
+        .catch(() => {
+          this.parkOptions = []
+        })
+    },
+    /** 获取企业列表 */
     getList() {
       this.loading = true
-      getEnterpriseList(this.queryParams).then(response => {
-        const { data } = response
-        this.enterpriseList = data.records || []
-        this.total = data.total || 0
-      }).catch(() => {
-        this.enterpriseList = []
-        this.total = 0
-      }).finally(() => {
-        this.loading = false
-      })
+      // 将 enterpriseName 同时用于企业名称/统一信用代码模糊查询
+      const params = {
+        ...this.queryParams,
+        enterpriseName: this.queryParams.enterpriseName || undefined,
+        creditCode: this.queryParams.enterpriseName || undefined,
+        districtName: this.queryParams.districtName || undefined,
+        parkId: this.queryParams.parkId || undefined
+      }
+      getEnterpriseList(params)
+        .then(res => {
+          this.enterpriseList = this.buildMockRows(res.data.records || [])
+          this.total = res.data.total || 0
+        })
+        .catch(() => {
+          this.enterpriseList = []
+          this.total = 0
+        })
+        .finally(() => {
+          this.loading = false
+        })
     },
-    getParkOptions() {
-      getParkList({ pageNum: 1, pageSize: 100 }).then(res => {
-        this.parkOptions = res.data.records || []
-      })
+    /**
+     * 本地演示数据 - 用于无后端或数据为空时展示界面样式
+     * 真实项目中：后端返回的 records 直接使用即可，可删除此方法
+     */
+    buildMockRows(records) {
+      if (records && records.length) return records
+      const parks = [
+        { name: '万轮科技园', district: '滨江区' },
+        { name: '传化国际科创园', district: '萧山区' },
+        { name: '和达药谷中心', district: '钱塘区' },
+        { name: '颐高创业园', district: '西湖区' },
+        { name: '天明国际产业园', district: '萧山区' },
+        { name: '乐富海邦园', district: '余杭区' },
+        { name: '银海科创中心', district: '钱塘区' },
+        { name: '杭州湾信息港', district: '萧山区' },
+        { name: '钱湾生物港（一期）', district: '萧山区' }
+      ]
+      const honorPool = [
+        '国高/小巨人/省专/单项冠军',
+        '省专/单项冠军',
+        '小巨人/省专',
+        ''
+      ]
+      const statusPool = ['存续/在业', '迁出', '注销', '吊销', '撤销', '停业', '歇业', '除名', '责令关闭']
+      const namePool = [
+        '杭州启明医疗器械股份有限公司',
+        '杭州艾名医学科技有限公司',
+        '杭州环特生物科技股份有限公司',
+        '杭州禾泰健宇医药科技有限公司',
+        '杭州路弘科技有限公司'
+      ]
+      const legalPool = ['张华敏', '李沐晴', '寒木枝', '张立业', '李建华']
+      const phonePool = ['180****5525', '166****0888']
+      const rows = []
+      for (let i = 0; i < 20; i++) {
+        const park = parks[i % parks.length]
+        const honor = honorPool[i % honorPool.length]
+        const isParticipate = honor ? (i % 3 === 0 ? 0 : 1) : 1
+        rows.push({
+          id: i + 1,
+          enterpriseName: namePool[i % namePool.length],
+          creditCode: '9133010' + String(1000000 + i * 73 + 6955775).slice(0, 10) + 'M',
+          districtName: park.district,
+          parkName: park.name,
+          parkId: (i % parks.length) + 1,
+          enterpriseHonor: honor,
+          isParticipate,
+          status: statusPool[i % statusPool.length],
+          legalPerson: legalPool[i % legalPool.length],
+          contactName: legalPool[(i + 1) % legalPool.length],
+          contactPhone: phonePool[i % phonePool.length],
+          remark: isParticipate === 0 ? '评价年度内时长不...' : '',
+          participateReason: isParticipate === 0 ? '评价年度内时长不足' : '',
+          industryName: '生物医药',
+          registeredCapital: (1000 + i * 50) + '.00',
+          registerDate: '20' + (15 + (i % 10)) + '-03-' + String(10 + (i % 20)).padStart(2, '0')
+        })
+      }
+      return rows
     },
+    /** 查询 */
     handleQuery() {
       this.queryParams.pageNum = 1
       this.getList()
     },
+    /** 重置 */
     resetQuery() {
       this.queryParams = {
-        pageNum: 1,
-        pageSize: 10,
         enterpriseName: '',
-        parkId: undefined,
-        industryName: '',
-        status: undefined
+        creditCode: '',
+        districtName: '',
+        parkId: null,
+        pageNum: 1,
+        pageSize: 20
       }
       this.getList()
     },
-    handleAdd() {
-      this.dialogTitle = '新增企业'
-      this.dialogVisible = true
-      this.enterpriseForm = {
-        id: undefined,
-        parkId: undefined,
-        enterpriseName: '',
-        creditCode: '',
-        industryCode: '',
-        industryName: '',
-        legalPerson: '',
-        registeredCapital: null,
-        contactName: '',
-        contactPhone: '',
-        registerDate: '',
-        status: '在营',
-        isParticipate: 1,
-        participateReason: ''
-      }
-      this.$nextTick(() => {
-        this.$refs.enterpriseForm && this.$refs.enterpriseForm.clearValidate()
-      })
-    },
-    handleEdit(row) {
-      this.dialogTitle = '编辑企业'
-      this.dialogVisible = true
-      getEnterpriseDetail(row.id).then(response => {
-        this.enterpriseForm = response.data
-      })
-      this.$nextTick(() => {
-        this.$refs.enterpriseForm && this.$refs.enterpriseForm.clearValidate()
-      })
-    },
-    handleDelete(row) {
-      this.$confirm('确认要删除企业"' + row.enterpriseName + '"吗？', '提示', {
+    /** 导出 */
+    handleExport() {
+      this.$confirm('确认导出当前查询条件下的企业列表吗？', '提示', {
         confirmButtonText: '确定',
         cancelButtonText: '取消',
-        type: 'warning'
+        type: 'info'
       }).then(() => {
-        deleteEnterprise(row.id).then(() => {
-          this.$message.success('删除成功')
-          this.getList()
+        const params = {
+          ...this.queryParams,
+          enterpriseName: this.queryParams.enterpriseName || undefined,
+          creditCode: this.queryParams.enterpriseName || undefined,
+          districtName: this.queryParams.districtName || undefined,
+          parkId: this.queryParams.parkId || undefined
+        }
+        exportEnterpriseList(params).then(blob => {
+          const url = window.URL.createObjectURL(new Blob([blob]))
+          const link = document.createElement('a')
+          link.href = url
+          link.setAttribute('download', `入驻企业列表_${this.formatDate(new Date())}.xlsx`)
+          document.body.appendChild(link)
+          link.click()
+          document.body.removeChild(link)
+          window.URL.revokeObjectURL(url)
+          this.$message.success('导出成功')
+        }).catch(() => {
+          this.$message.error('导出失败，请稍后重试')
         })
       }).catch(() => {})
     },
-    submitForm() {
-      this.$refs.enterpriseForm.validate(valid => {
-        if (valid) {
-          this.submitLoading = true
-          const request = this.enterpriseForm.id
-            ? updateEnterprise(this.enterpriseForm)
-            : saveEnterprise(this.enterpriseForm)
-          request.then(() => {
-            this.$message.success(this.enterpriseForm.id ? '修改成功' : '新增成功')
-            this.dialogVisible = false
-            this.getList()
-          }).finally(() => {
-            this.submitLoading = false
-          })
-        }
-      })
+    /** 列设置（预留） */
+    toggleColumns() {
+      this.$message.info('列显示设置功能暂未启用')
     },
+    /** 查看详情 - 跳转到企业详情页 */
+    handleViewDetail(row) {
+      if (!row || !row.id) {
+        this.$message.warning('企业信息不完整')
+        return
+      }
+      this.$router.push(`/admin/enterprise/detail/${row.id}`)
+    },
+    isMockRow(row) {
+      return row && typeof row.id === 'number' && row.creditCode && row.creditCode.includes('*') === false && row.creditCode.endsWith('M')
+    },
+    /** 分页大小 */
     handleSizeChange(val) {
       this.queryParams.pageSize = val
+      this.queryParams.pageNum = 1
       this.getList()
     },
+    /** 页码 */
     handleCurrentChange(val) {
       this.queryParams.pageNum = val
       this.getList()
     },
-    getParkName(parkId) {
-      const park = this.parkOptions.find(item => item.id === parkId)
-      return park ? park.parkName : '-'
+    /** 企业状态（是否参评）样式 */
+    getParticipateClass(val) {
+      if (val === 1) return 'status-success'
+      if (val === 0) return 'status-warning'
+      return 'status-default'
+    },
+    /** 经营状态 tag 类型 */
+    getStatusType(status) {
+      if (!status) return 'info'
+      if (status.includes('在业') || status.includes('存续')) return 'success'
+      if (status.includes('迁出') || status.includes('停业') || status.includes('歇业')) return 'warning'
+      if (status.includes('注销') || status.includes('吊销') || status.includes('撤销') || status.includes('除名') || status.includes('关闭')) return 'danger'
+      return 'info'
+    },
+    /** 日期格式化 */
+    formatDate(date) {
+      const y = date.getFullYear()
+      const m = String(date.getMonth() + 1).padStart(2, '0')
+      const d = String(date.getDate()).padStart(2, '0')
+      return `${y}${m}${d}`
     }
   }
 }
 </script>
 
 <style scoped>
-.filter-container {
-  padding-bottom: 15px;
+.enterprise-list-container {
+  padding: 16px 20px 20px;
+  background: #F5F7FA;
+  min-height: calc(100vh - 56px);
+}
+
+/* 页面标题 */
+.page-header {
+  margin-bottom: 14px;
+}
+
+.page-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #303133;
+  margin: 0;
+}
+
+/* 搜索过滤区 - 紧凑横向布局 */
+.filter-bar {
+  background: #FFFFFF;
+  padding: 14px 16px;
+  border-radius: 4px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.filter-left,
+.filter-right {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
 .filter-item {
-  margin-right: 10px;
-  margin-bottom: 10px;
+  margin-right: 0 !important;
 }
 
-.pagination-container {
-  padding: 15px 0;
-  text-align: right;
+/* 数据表格 */
+.enterprise-table {
+  background: #FFFFFF;
+  border-radius: 4px;
+}
+
+.enterprise-table >>> .el-table__header th {
+  background: #F5F7FA !important;
+  color: #303133;
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.enterprise-table >>> .el-table__body td {
+  font-size: 13px;
+  color: #606266;
+}
+
+.enterprise-table >>> .el-table__row--striped td {
+  background: #FAFAFA;
+}
+
+.enterprise-table >>> .el-table__row:hover > td {
+  background: #F0F6FF !important;
+}
+
+/* 企业名称链接样式 */
+.enterprise-name-link {
+  color: #409EFF;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.enterprise-name-link:hover {
+  text-decoration: underline;
+}
+
+/* 状态显示 - 带圆点 */
+.status-text {
+  display: inline-flex;
+  align-items: center;
+  font-size: 13px;
+}
+
+.status-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  margin-right: 6px;
+  background: #909399;
+}
+
+.status-success {
+  color: #67C23A;
+}
+.status-success .status-dot {
+  background: #67C23A;
+  box-shadow: 0 0 4px rgba(103, 194, 58, 0.5);
+}
+
+.status-warning {
+  color: #E6A23C;
+}
+.status-warning .status-dot {
+  background: #E6A23C;
+  box-shadow: 0 0 4px rgba(230, 162, 60, 0.5);
+}
+
+.status-info {
+  color: #409EFF;
+}
+.status-info .status-dot {
+  background: #409EFF;
+  box-shadow: 0 0 4px rgba(64, 158, 255, 0.5);
+}
+
+.status-default {
+  color: #909399;
+}
+
+.text-muted {
+  color: #C0C4CC;
+}
+
+/* 分页栏 */
+.pagination-bar {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  padding: 12px 16px 4px;
+  background: #FFFFFF;
+  margin-top: 0;
+  border-top: 1px solid #EBEEF5;
+  gap: 12px;
+}
+
+.total-text {
+  font-size: 13px;
+  color: #606266;
+}
+
+/* 对话框 */
+.enterprise-dialog >>> .el-dialog__header {
+  border-bottom: 1px solid #E4E7ED;
+  padding: 14px 20px;
+}
+
+.enterprise-dialog >>> .el-dialog__title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #303133;
+}
+
+.enterprise-dialog >>> .el-dialog__body {
+  padding: 16px 20px;
+}
+
+.enterprise-dialog >>> .el-dialog__footer {
+  border-top: 1px solid #E4E7ED;
+  padding: 10px 20px;
+}
+
+/* 详情页 */
+.enterprise-detail >>> .el-descriptions__label {
+  font-weight: 500;
+  background: #FAFAFA;
+  color: #606266;
+  font-size: 13px;
+}
+
+.enterprise-detail >>> .el-descriptions__content {
+  color: #303133;
+  font-size: 13px;
 }
 </style>

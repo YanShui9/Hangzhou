@@ -64,4 +64,18 @@ public class EnterpriseInfo extends BaseEntity {
 
     @ApiModelProperty(value = "不参评原因")
     private String participateReason;
+
+    /* ========== 非表字段 - 列表页展示使用（由关联查询填充） ========== */
+
+    @ApiModelProperty(value = "所属园区名称")
+    private transient String parkName;
+
+    @ApiModelProperty(value = "所属区县名称")
+    private transient String districtName;
+
+    @ApiModelProperty(value = "企业荣誉（国高/小巨人/省专/单项冠军...）")
+    private transient String enterpriseHonor;
+
+    @ApiModelProperty(value = "备注")
+    private transient String remark;
 }

@@ -7,6 +7,8 @@ import com.park.common.result.PageResult;
 import com.park.common.result.R;
 import com.park.park.dto.ParkQueryDTO;
 import com.park.park.dto.ParkSaveDTO;
+import com.park.park.dto.ParkStatsDTO;
+import com.park.park.dto.TotalStatsDTO;
 import com.park.park.entity.ParkInfo;
 import com.park.park.service.ParkService;
 import com.park.system.entity.DistrictInfo;
@@ -74,6 +76,32 @@ public class ParkController {
     public R<ParkInfo> getParkById(@PathVariable Long id) {
         ParkInfo parkInfo = parkService.getParkById(id);
         return R.ok(parkInfo);
+    }
+
+    /**
+     * 获取园区统计数据
+     *
+     * @param id 园区ID
+     * @return 园区统计数据
+     */
+    @GetMapping("/{id}/stats")
+    @ApiOperation(value = "获取园区统计数据", notes = "根据园区ID查询统计数据（企业、人才、专利等）")
+    public R<ParkStatsDTO> getParkStats(@PathVariable Long id) {
+        ParkStatsDTO stats = parkService.getParkStats(id);
+        return R.ok(stats);
+    }
+
+    /**
+     * 获取全市园区统计数据
+     * 用于前端"园区列表"页面顶部统计卡片
+     *
+     * @return 全市统计数据
+     */
+    @GetMapping("/stats")
+    @ApiOperation(value = "获取全市园区统计数据", notes = "用于园区列表页面顶部统计卡片")
+    public R<TotalStatsDTO> getTotalStats() {
+        TotalStatsDTO stats = parkService.getTotalStats();
+        return R.ok(stats);
     }
 
     /**

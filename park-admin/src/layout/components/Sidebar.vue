@@ -70,18 +70,49 @@
         <span slot="title">评价列表</span>
       </el-menu-item>
 
-      <el-menu-item v-if="hasRole([1])" index="/admin/result" @click="$router.push('/admin/result')">
-        <i class="el-icon-s-data"></i>
-        <span slot="title">评价结果</span>
-      </el-menu-item>
-      <el-menu-item v-if="hasRole([2])" index="/district/result" @click="$router.push('/district/result')">
-        <i class="el-icon-s-data"></i>
-        <span slot="title">评价结果</span>
-      </el-menu-item>
-      <el-menu-item v-if="hasRole([3])" index="/park/result" @click="$router.push('/park/result')">
-        <i class="el-icon-s-data"></i>
-        <span slot="title">评价结果</span>
-      </el-menu-item>
+      <!-- 评价结果（下拉菜单） -->
+      <el-submenu v-if="hasRole([1])" index="admin-result">
+        <template slot="title">
+          <i class="el-icon-s-data"></i>
+          <span>评价结果</span>
+        </template>
+        <el-menu-item index="/admin/result/park" @click="$router.push('/admin/result/park')">
+          <i class="el-icon-office-building"></i>
+          <span slot="title">园区评价</span>
+        </el-menu-item>
+        <el-menu-item index="/admin/result/enterprise" @click="$router.push('/admin/result/enterprise')">
+          <i class="el-icon-s-shop"></i>
+          <span slot="title">企业指标</span>
+        </el-menu-item>
+      </el-submenu>
+      <el-submenu v-if="hasRole([2])" index="district-result">
+        <template slot="title">
+          <i class="el-icon-s-data"></i>
+          <span>评价结果</span>
+        </template>
+        <el-menu-item index="/district/result/park" @click="$router.push('/district/result/park')">
+          <i class="el-icon-office-building"></i>
+          <span slot="title">园区评价</span>
+        </el-menu-item>
+        <el-menu-item index="/district/result/enterprise" @click="$router.push('/district/result/enterprise')">
+          <i class="el-icon-s-shop"></i>
+          <span slot="title">企业指标</span>
+        </el-menu-item>
+      </el-submenu>
+      <el-submenu v-if="hasRole([3])" index="park-result">
+        <template slot="title">
+          <i class="el-icon-s-data"></i>
+          <span>评价结果</span>
+        </template>
+        <el-menu-item index="/park/result/park" @click="$router.push('/park/result/park')">
+          <i class="el-icon-office-building"></i>
+          <span slot="title">园区评价</span>
+        </el-menu-item>
+        <el-menu-item index="/park/result/enterprise" @click="$router.push('/park/result/enterprise')">
+          <i class="el-icon-s-shop"></i>
+          <span slot="title">企业指标</span>
+        </el-menu-item>
+      </el-submenu>
 
       <!-- 系统设置（下拉菜单） -->
       <el-submenu v-if="hasRole([1])" index="system">
@@ -89,9 +120,21 @@
           <i class="el-icon-setting"></i>
           <span>系统设置</span>
         </template>
-        <el-menu-item index="/system/users" @click="$router.push('/system/users')">
+        <el-menu-item index="/system/district-users" @click="$router.push('/system/district-users')">
           <i class="el-icon-user"></i>
-          <span slot="title">用户管理</span>
+          <span slot="title">区县账号</span>
+        </el-menu-item>
+        <el-menu-item index="/system/park-users" @click="$router.push('/system/park-users')">
+          <i class="el-icon-office-building"></i>
+          <span slot="title">园区账号</span>
+        </el-menu-item>
+        <el-menu-item index="/system/data-warehouse" @click="$router.push('/system/data-warehouse')">
+          <i class="el-icon-wallet"></i>
+          <span slot="title">数据仓库</span>
+        </el-menu-item>
+        <el-menu-item index="/system/enterprise-info" @click="$router.push('/system/enterprise-info')">
+          <i class="el-icon-s-shop"></i>
+          <span slot="title">企业信息</span>
         </el-menu-item>
       </el-submenu>
     </el-menu>

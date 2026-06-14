@@ -91,6 +91,7 @@ CREATE TABLE park_info (
     patent_invention INT DEFAULT 0,
     patent_utility INT DEFAULT 0,
     patent_design INT DEFAULT 0,
+    park_image TEXT DEFAULT NULL COMMENT '园区图片（Base64或URL）',
     create_by VARCHAR(50) DEFAULT NULL,
     create_time DATETIME DEFAULT CURRENT_TIMESTAMP,
     update_by VARCHAR(50) DEFAULT NULL,

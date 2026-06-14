@@ -21,11 +21,17 @@ public class EnterpriseQueryDTO extends PageQuery {
     @ApiModelProperty(value = "企业名称（模糊查询）")
     private String enterpriseName;
 
+    @ApiModelProperty(value = "统一社会信用代码（模糊查询）")
+    private String creditCode;
+
     @ApiModelProperty(value = "所属园区ID")
     private Long parkId;
 
     @ApiModelProperty(value = "园区ID列表（区县管理员使用）")
     private List<Long> parkIds;
+
+    @ApiModelProperty(value = "所属区县名称")
+    private String districtName;
 
     @ApiModelProperty(value = "行业名称")
     private String industryName;

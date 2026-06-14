@@ -1,344 +1,625 @@
 <template>
-  <div class="app-container">
-    <el-card>
-      <div slot="header" class="clearfix">
-        <span>评价审核（市级终审）</span>
+  <div class="audit-list-container">
+
+    <!-- ============ 顶部 4 个统计卡片 ============ -->
+    <div class="stats-cards">
+      <div
+        class="stat-card"
+        v-for="(card, index) in statCards"
+        :key="index"
+        :class="['stat-card-' + card.key, { active: activeCardKey === card.key }]"
+        @click="handleCardClick(card.key)"
+      >
+        <div class="stat-label">{{ card.label }}</div>
+        <div class="stat-value">{{ formatStatValue(card.value) }}</div>
+        <div class="stat-icon">
+          <i :class="card.icon"></i>
+        </div>
       </div>
+    </div>
 
-      <!-- 标签页：待审核 / 已审核 -->
-      <el-tabs v-model="activeTab" @tab-click="handleTabChange">
-        <el-tab-pane label="待审核" name="pending">
-          <!-- 筛选条件 -->
-          <div class="filter-container" style="margin-bottom: 15px;">
-            <el-select v-model="pendingQuery.year" placeholder="选择年份" style="width: 120px; margin-right: 10px;" clearable>
-              <el-option v-for="y in yearOptions" :key="y" :label="y + '年'" :value="y" />
-            </el-select>
-            <el-button type="primary" icon="el-icon-search" @click="fetchPendingList">查询</el-button>
-          </div>
-
-          <!-- 待审核表格 -->
-          <el-table :data="pendingList" border stripe style="width: 100%;" v-loading="pendingLoading">
-            <el-table-column prop="parkId" label="园区ID" width="100" align="center" />
-            <el-table-column prop="year" label="年份" width="100" align="center" />
-            <el-table-column prop="totalScore" label="总分" width="120" align="center">
-              <template slot-scope="scope">
-                <span style="font-weight: bold; color: #409EFF;">{{ scope.row.totalScore || '-' }}</span>
-              </template>
-            </el-table-column>
-            <el-table-column prop="grade" label="绩效分档" width="100" align="center">
-              <template slot-scope="scope">
-                <el-tag v-if="scope.row.grade" :type="getGradeTagType(scope.row.grade)">
-                  {{ scope.row.grade }}
-                </el-tag>
-                <span v-else>-</span>
-              </template>
-            </el-table-column>
-            <el-table-column prop="createTime" label="创建时间" width="180" align="center" />
-            <el-table-column label="操作" width="200" align="center" fixed="right">
-              <template slot-scope="scope">
-                <el-button
-                  type="success"
-                  size="mini"
-                  @click="handleAudit(scope.row, 1)"
-                >通过</el-button>
-                <el-button
-                  type="danger"
-                  size="mini"
-                  @click="handleAudit(scope.row, 2)"
-                >驳回</el-button>
-              </template>
-            </el-table-column>
-          </el-table>
-
-          <!-- 分页 -->
-          <el-pagination
-            style="margin-top: 15px; text-align: right;"
-            background
-            layout="total, sizes, prev, pager, next, jumper"
-            :total="pendingTotal"
-            :page-size="pendingQuery.pageSize"
-            :current-page="pendingQuery.pageNum"
-            :page-sizes="[10, 20, 50]"
-            @current-change="handlePendingPageChange"
-            @size-change="handlePendingSizeChange"
-          />
-        </el-tab-pane>
-
-        <el-tab-pane label="已审核" name="audited">
-          <!-- 筛选条件 -->
-          <div class="filter-container" style="margin-bottom: 15px;">
-            <el-select v-model="auditedQuery.year" placeholder="选择年份" style="width: 120px; margin-right: 10px;" clearable>
-              <el-option v-for="y in yearOptions" :key="y" :label="y + '年'" :value="y" />
-            </el-select>
-            <el-button type="primary" icon="el-icon-search" @click="fetchAuditedList">查询</el-button>
-          </div>
-
-          <!-- 已审核表格 -->
-          <el-table :data="auditedList" border stripe style="width: 100%;" v-loading="auditedLoading">
-            <el-table-column prop="parkId" label="园区ID" width="100" align="center" />
-            <el-table-column prop="year" label="年份" width="100" align="center" />
-            <el-table-column prop="totalScore" label="总分" width="120" align="center" />
-            <el-table-column prop="grade" label="绩效分档" width="100" align="center">
-              <template slot-scope="scope">
-                <el-tag v-if="scope.row.grade" :type="getGradeTagType(scope.row.grade)">
-                  {{ scope.row.grade }}
-                </el-tag>
-                <span v-else>-</span>
-              </template>
-            </el-table-column>
-            <el-table-column prop="status" label="状态" width="120" align="center">
-              <template slot-scope="scope">
-                <el-tag :type="getStatusTagType(scope.row.status)">{{ getStatusLabel(scope.row.status) }}</el-tag>
-              </template>
-            </el-table-column>
-            <el-table-column prop="updateTime" label="审核时间" width="180" align="center" />
-            <el-table-column label="操作" width="120" align="center" fixed="right">
-              <template slot-scope="scope">
-                <el-button type="text" size="small" @click="viewAuditHistory(scope.row)">审核历史</el-button>
-              </template>
-            </el-table-column>
-          </el-table>
-
-          <!-- 分页 -->
-          <el-pagination
-            style="margin-top: 15px; text-align: right;"
-            background
-            layout="total, sizes, prev, pager, next, jumper"
-            :total="auditedTotal"
-            :page-size="auditedQuery.pageSize"
-            :current-page="auditedQuery.pageNum"
-            :page-sizes="[10, 20, 50]"
-            @current-change="handleAuditedPageChange"
-            @size-change="handleAuditedSizeChange"
-          />
-        </el-tab-pane>
-      </el-tabs>
-    </el-card>
-
-    <!-- 审核对话框 -->
-    <el-dialog :title="auditDialogTitle" :visible.sync="auditDialogVisible" width="500px" :close-on-click-modal="false">
-      <el-form :model="auditForm" label-width="100px">
-        <el-form-item label="评价记录ID">
-          <el-input v-model="auditForm.evaluationId" disabled />
-        </el-form-item>
-        <el-form-item label="审核结果">
-          <el-tag :type="auditForm.action === 1 ? 'success' : 'danger'">
-            {{ auditForm.action === 1 ? '通过' : '驳回' }}
-          </el-tag>
-        </el-form-item>
-        <el-form-item label="审核意见">
+    <!-- ============ 筛选栏 ============ -->
+    <div class="filter-bar">
+      <div class="filter-row">
+        <div class="filter-item">
           <el-input
-            v-model="auditForm.opinion"
-            type="textarea"
-            :rows="4"
-            placeholder="请输入审核意见"
+            v-model="queryForm.parkName"
+            placeholder="园区名称"
+            clearable
+            size="small"
+            class="filter-input"
+            @keyup.enter.native="handleSearch"
           />
-        </el-form-item>
-      </el-form>
-      <div slot="footer" class="dialog-footer">
-        <el-button @click="auditDialogVisible = false">取 消</el-button>
-        <el-button type="primary" :loading="auditSubmitting" @click="confirmAudit">确 定</el-button>
+        </div>
+
+        <div class="filter-item">
+          <el-select
+            v-model="queryForm.districtName"
+            placeholder="全部区域"
+            clearable
+            size="small"
+            class="filter-input"
+          >
+            <el-option
+              v-for="item in districtOptions"
+              :key="item"
+              :label="item"
+              :value="item"
+            />
+          </el-select>
+        </div>
+
+        <div class="filter-item">
+          <el-select
+            v-model="queryForm.parkType"
+            placeholder="全部类型"
+            clearable
+            size="small"
+            class="filter-input"
+          >
+            <el-option
+              v-for="item in parkTypeOptions"
+              :key="item"
+              :label="item"
+              :value="item"
+            />
+          </el-select>
+        </div>
+
+        <div class="filter-item">
+          <el-select
+            v-model="queryForm.auditStatus"
+            placeholder="全部审核状态"
+            clearable
+            size="small"
+            class="filter-input"
+          >
+            <el-option label="待审核" value="待审核" />
+            <el-option label="已通过" value="已通过" />
+            <el-option label="已驳回" value="已驳回" />
+            <el-option label="已终止" value="已终止" />
+          </el-select>
+        </div>
+
+        <div class="filter-item">
+          <el-select
+            v-model="queryForm.parkStatus"
+            placeholder="全部参评状态"
+            clearable
+            size="small"
+            class="filter-input"
+          >
+            <el-option label="参评" value="参评" />
+            <el-option label="退出" value="退出" />
+          </el-select>
+        </div>
+
+        <div class="filter-actions-left">
+          <el-button size="small" type="primary" icon="el-icon-search" @click="handleSearch">查询</el-button>
+          <el-button size="small" icon="el-icon-refresh-left" @click="handleReset">重置</el-button>
+        </div>
+
+        <div class="filter-actions-right">
+          <el-button size="small" type="primary" @click="handleOpenYearDialog">发起年度填报</el-button>
+        </div>
       </div>
+    </div>
+
+    <!-- ============ 数据表格 ============ -->
+    <div class="table-wrapper">
+      <el-table
+        :data="tableData"
+        border
+        stripe
+        style="width: 100%"
+        v-loading="tableLoading"
+        :header-cell-style="{ background: '#FAFBFC', color: '#303133', fontWeight: '600' }"
+      >
+        <el-table-column type="index" label="序号" width="80" align="center" :index="indexMethod" />
+        <el-table-column prop="parkName" label="园区名称" min-width="240" show-overflow-tooltip />
+        <el-table-column prop="districtName" label="所属区域" width="120" align="center" />
+        <el-table-column prop="parkType" label="园区类型" width="120" align="center" />
+        <el-table-column label="参评状态" width="100" align="center">
+          <template slot-scope="scope">
+            <span class="park-status-dot" :class="'dot-' + mapParkStatusKey(scope.row.parkStatus)"></span>
+            <span>{{ scope.row.parkStatus || '--' }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="审核状态" width="110" align="center">
+          <template slot-scope="scope">
+            <span class="audit-status-dot" :class="'dot-' + mapAuditStatusKey(scope.row.auditStatus)"></span>
+            <span>{{ scope.row.auditStatus || '--' }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column prop="createTime" label="创建时间" width="170" align="center" />
+        <el-table-column label="操作" width="100" align="center" fixed="right">
+          <template slot-scope="scope">
+            <el-button type="text" size="small" @click="handleView(scope.row)">查看</el-button>
+          </template>
+        </el-table-column>
+      </el-table>
+
+      <!-- ============ 分页 ============ -->
+      <div class="pagination-bar">
+        <el-pagination
+          class="pagination"
+          background
+          :current-page="queryForm.pageNum"
+          :page-size="queryForm.pageSize"
+          :page-sizes="[10, 20, 50, 100]"
+          :total="total"
+          layout="total, sizes, prev, pager, next, jumper"
+          @current-change="handlePageChange"
+          @size-change="handleSizeChange"
+        />
+      </div>
+    </div>
+
+    <!-- ============ 发起年度填报 弹窗 ============ -->
+    <el-dialog
+      title="发起年度填报"
+      :visible.sync="yearDialogVisible"
+      width="440px"
+      :close-on-click-modal="false"
+      class="year-dialog"
+      custom-class="year-dialog-custom"
+    >
+      <div class="year-dialog-body">
+        <div class="year-row">
+          <label class="year-label required">年度</label>
+          <el-select
+            v-model="yearDialogForm.year"
+            placeholder="请选择发起年度"
+            class="year-select"
+            size="small"
+          >
+            <el-option
+              v-for="item in yearOptions"
+              :key="item.value"
+              :label="item.label"
+              :value="item.value"
+            />
+          </el-select>
+        </div>
+        <p class="year-tip">注：每个年度只能发起一次，不能重复发起，正常情况下，当前年度只能对前一年度发起年度填报。</p>
+      </div>
+      <span slot="footer" class="dialog-footer">
+        <el-button size="small" @click="yearDialogVisible = false">取消</el-button>
+        <el-button size="small" type="primary" :loading="yearSubmitting" @click="handleConfirmYear">确认</el-button>
+      </span>
     </el-dialog>
 
-    <!-- 审核历史对话框 -->
-    <el-dialog title="审核历史" :visible.sync="historyDialogVisible" width="600px">
-      <el-table :data="auditHistory" border stripe>
-        <el-table-column prop="auditorName" label="审核人" width="100" align="center" />
-        <el-table-column prop="auditorRole" label="审核级别" width="100" align="center">
-          <template slot-scope="scope">
-            {{ scope.row.auditorRole === 1 ? '市级终审' : '区县初审' }}
-          </template>
-        </el-table-column>
-        <el-table-column prop="action" label="审核结果" width="100" align="center">
-          <template slot-scope="scope">
-            <el-tag :type="scope.row.action === 1 ? 'success' : 'danger'" size="small">
-              {{ scope.row.action === 1 ? '通过' : '驳回' }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column prop="opinion" label="审核意见" min-width="200" />
-        <el-table-column prop="createTime" label="审核时间" width="180" align="center" />
-      </el-table>
-      <div slot="footer">
-        <el-button @click="historyDialogVisible = false">关 闭</el-button>
-      </div>
-    </el-dialog>
   </div>
 </template>
 
 <script>
-import { getPendingAuditList, getAuditedList, submitAudit, getAuditHistory } from '@/api/audit'
+import {
+  getEvaluationList,
+  getEvaluationSummary,
+  initEvaluationByYear,
+  getEvaluationYearOptions
+} from '@/api/audit'
 
 export default {
   name: 'AdminAuditList',
   data() {
-    const currentYear = new Date().getFullYear()
     return {
-      activeTab: 'pending',
-      yearOptions: [currentYear, currentYear - 1, currentYear - 2],
-      pendingLoading: false,
-      pendingList: [],
-      pendingTotal: 0,
-      pendingQuery: {
+      // 查询条件
+      queryForm: {
+        parkName: '',
+        districtName: '',
+        parkType: '',
+        auditStatus: '',
+        parkStatus: '',
         pageNum: 1,
-        pageSize: 10,
+        pageSize: 20
+      },
+      // 概览数据
+      summary: {
+        total: 0,
+        pending: 0,
+        passed: 0,
+        returned: 0
+      },
+      activeCardKey: 'all',
+      // 表格数据
+      tableData: [],
+      total: 0,
+      tableLoading: false,
+      // 下拉常量
+      districtOptions: [
+        '滨江区', '萧山区', '余杭区', '西湖区', '上城区',
+        '拱墅区', '钱塘区', '富阳区', '临安区', '桐庐县', '淳安县', '建德市'
+      ],
+      parkTypeOptions: ['制造类', '服务类', '科技类', '数字经济'],
+      // 发起年度填报弹窗
+      yearDialogVisible: false,
+      yearSubmitting: false,
+      yearDialogForm: {
         year: null
       },
-      auditedLoading: false,
-      auditedList: [],
-      auditedTotal: 0,
-      auditedQuery: {
-        pageNum: 1,
-        pageSize: 10,
-        year: null
-      },
-      auditDialogVisible: false,
-      auditDialogTitle: '',
-      auditSubmitting: false,
-      auditForm: {
-        evaluationId: null,
-        action: null,
-        opinion: ''
-      },
-      historyDialogVisible: false,
-      auditHistory: []
+      yearOptions: []
+    }
+  },
+  computed: {
+    statCards() {
+      return [
+        { key: 'all', label: '全部', value: this.summary.total, icon: 'el-icon-document' },
+        { key: 'pending', label: '待审核', value: this.summary.pending, icon: 'el-icon-time' },
+        { key: 'passed', label: '已通过', value: this.summary.passed, icon: 'el-icon-circle-check' },
+        { key: 'returned', label: '已驳回', value: this.summary.returned, icon: 'el-icon-circle-close' }
+      ]
     }
   },
   created() {
-    this.fetchPendingList()
+    this.fetchSummary()
+    this.fetchList()
+    this.fetchYearOptions()
   },
   methods: {
-    handleTabChange(tab) {
-      if (tab.name === 'pending') {
-        this.fetchPendingList()
-      } else {
-        this.fetchAuditedList()
-      }
-    },
-
-    async fetchPendingList() {
-      this.pendingLoading = true
+    /* ---------- 数据加载 ---------- */
+    async fetchSummary() {
       try {
-        const res = await getPendingAuditList({
-          pageNum: this.pendingQuery.pageNum,
-          pageSize: this.pendingQuery.pageSize
-        })
-        this.pendingList = res.data.records || []
-        this.pendingTotal = res.data.total || 0
+        const res = await getEvaluationSummary()
+        if (res && res.data) {
+          this.summary = {
+            total: res.data.total || 0,
+            pending: res.data.pending || 0,
+            passed: res.data.passed || 0,
+            returned: res.data.returned || 0
+          }
+        }
       } catch (e) {
-        console.error('获取待审核列表失败', e)
-      } finally {
-        this.pendingLoading = false
+        console.error('获取概览统计失败', e)
       }
     },
 
-    async fetchAuditedList() {
-      this.auditedLoading = true
+    async fetchList() {
+      this.tableLoading = true
       try {
-        const res = await getAuditedList({
-          pageNum: this.auditedQuery.pageNum,
-          pageSize: this.auditedQuery.pageSize
-        })
-        this.auditedList = res.data.records || []
-        this.auditedTotal = res.data.total || 0
+        // 活动卡片点击后附带筛选，便于快速过滤
+        const params = { ...this.queryForm }
+        if (this.activeCardKey && this.activeCardKey !== 'all') {
+          const map = { pending: '待审核', passed: '已通过', returned: '已驳回' }
+          // 仅当用户没主动选择审核状态时，附加卡片点击的过滤
+          if (!params.auditStatus && map[this.activeCardKey]) {
+            params.auditStatus = map[this.activeCardKey]
+          }
+        }
+        const res = await getEvaluationList(params)
+        if (res && res.data) {
+          this.tableData = res.data.records || []
+          this.total = res.data.total || 0
+        }
       } catch (e) {
-        console.error('获取已审核列表失败', e)
+        console.error('获取评价审核列表失败', e)
       } finally {
-        this.auditedLoading = false
+        this.tableLoading = false
       }
     },
 
-    handleAudit(row, action) {
-      this.auditDialogTitle = action === 1 ? '审核通过' : '审核驳回'
-      this.auditForm = {
-        evaluationId: row.id,
-        action: action,
-        opinion: ''
+    async fetchYearOptions() {
+      try {
+        const res = await getEvaluationYearOptions()
+        if (res && res.data && Array.isArray(res.data)) {
+          this.yearOptions = res.data
+        } else {
+          // 本地兜底：默认返回近三年
+          const currentYear = new Date().getFullYear()
+          this.yearOptions = [
+            { value: currentYear, label: currentYear + '年度' },
+            { value: currentYear - 1, label: (currentYear - 1) + '年度' },
+            { value: currentYear - 2, label: (currentYear - 2) + '年度' }
+          ]
+        }
+      } catch (e) {
+        console.error('获取年度选项失败', e)
+        const currentYear = new Date().getFullYear()
+        this.yearOptions = [
+          { value: currentYear, label: currentYear + '年度' },
+          { value: currentYear - 1, label: (currentYear - 1) + '年度' }
+        ]
       }
-      this.auditDialogVisible = true
     },
 
-    async confirmAudit() {
-      if (!this.auditForm.opinion) {
-        this.$message.warning('请输入审核意见')
+    /* ---------- 顶部卡片交互 ---------- */
+    handleCardClick(key) {
+      this.activeCardKey = key
+      const map = { all: '', pending: '待审核', passed: '已通过', returned: '已驳回' }
+      this.queryForm.auditStatus = map[key] || ''
+      this.queryForm.pageNum = 1
+      this.fetchList()
+    },
+
+    /* ---------- 查询 ---------- */
+    handleSearch() {
+      this.queryForm.pageNum = 1
+      this.activeCardKey = 'all'
+      this.fetchList()
+    },
+
+    handleReset() {
+      this.queryForm = {
+        parkName: '',
+        districtName: '',
+        parkType: '',
+        auditStatus: '',
+        parkStatus: '',
+        pageNum: 1,
+        pageSize: this.queryForm.pageSize
+      }
+      this.activeCardKey = 'all'
+      this.fetchList()
+    },
+
+    /* ---------- 分页 ---------- */
+    handlePageChange(page) {
+      this.queryForm.pageNum = page
+      this.fetchList()
+    },
+    handleSizeChange(size) {
+      this.queryForm.pageSize = size
+      this.queryForm.pageNum = 1
+      this.fetchList()
+    },
+    indexMethod(index) {
+      return (this.queryForm.pageNum - 1) * this.queryForm.pageSize + index + 1
+    },
+
+    /* ---------- 操作 ---------- */
+    handleView(row) {
+      if (!row.id) {
+        this.$message.warning('缺少评价记录ID')
         return
       }
-      this.auditSubmitting = true
+      this.$router.push(`/admin/audit/detail/${row.id}`)
+    },
+
+    /* ---------- 发起年度填报 ---------- */
+    handleOpenYearDialog() {
+      this.yearDialogForm.year = null
+      this.yearDialogVisible = true
+    },
+    async handleConfirmYear() {
+      if (!this.yearDialogForm.year) {
+        this.$message.warning('请选择年度')
+        return
+      }
+      this.yearSubmitting = true
       try {
-        await submitAudit(this.auditForm)
-        this.$message.success(this.auditForm.action === 1 ? '审核通过成功' : '审核驳回成功')
-        this.auditDialogVisible = false
-        this.fetchPendingList()
+        await initEvaluationByYear({ year: this.yearDialogForm.year })
+        this.$message.success('发起年度填报成功')
+        this.yearDialogVisible = false
+        this.fetchSummary()
+        this.fetchList()
       } catch (e) {
-        console.error('审核操作失败', e)
+        console.error('发起年度填报失败', e)
       } finally {
-        this.auditSubmitting = false
+        this.yearSubmitting = false
       }
     },
 
-    async viewAuditHistory(row) {
-      try {
-        const res = await getAuditHistory(row.id)
-        this.auditHistory = res.data || []
-        this.historyDialogVisible = true
-      } catch (e) {
-        console.error('获取审核历史失败', e)
-      }
+    /* ---------- 工具方法 ---------- */
+    formatStatValue(val) {
+      if (val === null || val === undefined) return '--'
+      return Number(val).toLocaleString()
     },
-
-    handlePendingPageChange(page) {
-      this.pendingQuery.pageNum = page
-      this.fetchPendingList()
+    mapAuditStatusKey(status) {
+      const map = { '待审核': 'pending', '已通过': 'passed', '已驳回': 'returned', '已终止': 'stopped' }
+      return map[status] || 'default'
     },
-    handlePendingSizeChange(size) {
-      this.pendingQuery.pageSize = size
-      this.pendingQuery.pageNum = 1
-      this.fetchPendingList()
-    },
-
-    handleAuditedPageChange(page) {
-      this.auditedQuery.pageNum = page
-      this.fetchAuditedList()
-    },
-    handleAuditedSizeChange(size) {
-      this.auditedQuery.pageSize = size
-      this.auditedQuery.pageNum = 1
-      this.fetchAuditedList()
-    },
-
-    getStatusTagType(status) {
-      const map = {
-        3: 'success',
-        4: 'danger'
-      }
-      return map[status] || 'info'
-    },
-
-    getStatusLabel(status) {
-      const map = {
-        3: '通过',
-        4: '驳回'
-      }
-      return map[status] || '-'
-    },
-
-    getGradeTagType(grade) {
-      const map = {
-        'A': 'success',
-        'B': '',
-        'C': 'warning',
-        'D': 'danger'
-      }
-      return map[grade] || 'info'
+    mapParkStatusKey(status) {
+      const map = { '参评': 'join', '退出': 'exit' }
+      return map[status] || 'default'
     }
   }
 }
 </script>
 
 <style scoped>
-.filter-container {
+.audit-list-container {
+  padding: 16px 20px 20px;
+  background: #F5F7FA;
+  min-height: calc(100vh - 56px);
+}
+
+/* ============ 顶部 4 个统计卡片 ============ */
+.stats-cards {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 14px;
+}
+
+.stat-card {
+  background: #FFFFFF;
+  border-radius: 6px;
+  padding: 22px 24px;
   display: flex;
   align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  border: 2px solid transparent;
+  transition: all 0.25s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+}
+
+.stat-card.active {
+  border-color: #409EFF;
+}
+
+.stat-label {
+  font-size: 14px;
+  color: #606266;
+  margin-bottom: 10px;
+  font-weight: 500;
+}
+
+.stat-value {
+  font-size: 32px;
+  font-weight: bold;
+  color: #303133;
+  line-height: 1.1;
+}
+
+.stat-card .stat-label,
+.stat-card .stat-value {
+  display: block;
+  text-align: left;
+}
+
+.stat-icon {
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  background: #ECF5FF;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #409EFF;
+  font-size: 24px;
+  flex-shrink: 0;
+}
+
+.stat-card-pending .stat-icon {
+  background: #FDF6EC;
+  color: #E6A23C;
+}
+.stat-card-passed .stat-icon {
+  background: #ECF8F1;
+  color: #67C23A;
+}
+.stat-card-returned .stat-icon {
+  background: #FDEEEE;
+  color: #F56C6C;
+}
+.stat-card-all .stat-icon {
+  background: #ECF5FF;
+  color: #409EFF;
+}
+
+/* ============ 筛选栏 ============ */
+.filter-bar {
+  background: #FFFFFF;
+  border-radius: 6px;
+  padding: 16px 20px;
+  margin-bottom: 14px;
+}
+
+.filter-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 16px;
+  align-items: center;
+}
+
+.filter-item {
+  flex-shrink: 0;
+}
+
+.filter-input {
+  width: 170px;
+}
+
+.filter-actions-left {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.filter-actions-right {
+  margin-left: auto;
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+/* ============ 表格 + 分页 ============ */
+.table-wrapper {
+  background: #FFFFFF;
+  border-radius: 6px;
+  padding: 16px 20px 12px;
+}
+
+.pagination-bar {
+  display: flex;
+  justify-content: center;
+  padding: 16px 0 4px;
+}
+
+.park-status-dot,
+.audit-status-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 6px;
+  vertical-align: middle;
+}
+
+.dot-join { background: #67C23A; }
+.dot-exit { background: #F56C6C; }
+.dot-pending { background: #E6A23C; }
+.dot-passed { background: #67C23A; }
+.dot-returned { background: #F56C6C; }
+.dot-stopped { background: #909399; }
+.dot-default { background: #C0C4CC; }
+
+/* ============ 发起年度填报弹窗 ============ */
+.year-dialog-body {
+  padding: 10px 4px;
+}
+
+.year-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.year-label {
+  width: 80px;
+  font-size: 14px;
+  color: #303133;
+  text-align: right;
+  margin-right: 14px;
+}
+
+.year-label.required::before {
+  content: '*';
+  color: #F56C6C;
+  margin-right: 4px;
+}
+
+.year-select {
+  flex: 1;
+  max-width: 320px;
+}
+
+.year-tip {
+  margin: 12px 0 0;
+  padding-left: 94px;
+  font-size: 12px;
+  color: #909399;
+  line-height: 1.6;
+}
+
+/* ============ 响应式 ============ */
+@media (max-width: 1400px) {
+  .filter-input { width: 150px; }
+  .stat-value { font-size: 28px; }
+}
+@media (max-width: 1100px) {
+  .stats-cards { grid-template-columns: repeat(2, 1fr); }
+  .filter-input { width: 140px; }
+}
+@media (max-width: 768px) {
+  .stats-cards { grid-template-columns: 1fr; }
+  .filter-actions-right { margin-left: 0; }
 }
 </style>

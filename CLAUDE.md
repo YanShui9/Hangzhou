@@ -1,283 +1,175 @@
 # CLAUDE.md
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
-**严禁直接修改代码**，必须遵循以下流程：
+
+## ⚠️ 顶级规则（必须遵守）
+
+### Skill 调用规范
+
+1. **必须调用 Skill**：对系统的任何修改都必须调用对应专业的 skill
+2. **先讨论后执行**：任何代码的修改都要和用户讨论方案，先讨论再执行
+3. **不影响现有功能**：任何修改都不要影响其他代码的正常功能，不影响系统稳定性
+4. **透明化操作**：必须向用户说明调用了什么 skill，以及为什么调用
+
+### 修改流程
 
 ```
-1. 调用专业 Skill → 2. 拆解任务/制定计划 → 3. 与用户讨论确认 → 4. 执行代码修改
+1. 用户提出需求
+2. 分析需要调用的 skill
+3. 向用户说明修改方案和使用的 skill
+4. 用户确认后执行
+5. 验证修改不影响现有功能
 ```
 
-**详细步骤：**
+---
 
-1. **任务拆解阶段**
-   - 调用 `brainstorming` skill 探索需求和边界
-   - 调用 `writing-plans` skill 制定实现计划
-   - 分析对现有系统的影响（数据库、API、前端页面）
-
-2. **方案讨论阶段**
-   - 向用户展示完整的实现方案
-   - 说明涉及的文件、接口、数据库变更
-   - 评估风险和兼容性
-   - 等待用户确认后才能执行
-
-3. **代码执行阶段**
-   - 调用 `test-driven-development` skill 确保改动正确
-   - 调用 `verification-before-completion` skill 验证完成
-   - **改动代码不能影响原有的系统结构或功能**
-
-### ⚠️ 强制规则：所有代码修改必须调用 Skill
-
-**无论改动大小，任何代码修改都必须先调用对应的 Skill：**
-
-| 改动类型 | 必须调用的 Skill | 说明 |
-|----------|-----------------|------|
-| 小修小补（1-10行） | `systematic-debugging` | 定位问题根因，避免引入新 bug |
-| 功能删除/修改 | `writing-plans` | 评估影响范围，制定修改计划 |
-| 样式/UI 调整 | `design-taste-frontend` | 确保设计一致性 |
-| 接口变更 | `systematic-debugging` | 分析前后端影响 |
-| 数据库变更 | `writing-plans` | 评估数据迁移风险 |
-| 新功能开发 | `brainstorming` → `writing-plans` | 完整的需求分析和计划 |
-| Bug 修复 | `systematic-debugging` | 系统化调试，禁止猜测 |
-| 完成验证 | `verification-before-completion` | 确保改动正确 |
-
-**为什么小修小补也要调用 Skill？**
-- 小改动更容易引入回归 bug
-- Skill 能帮助分析影响范围
-- 避免"改一个小地方，坏了一大片"的问题
-- 确保每次改动都是可追溯、可验证的
-
-### 📢 调用 Skill 时必须告知用户
-
-**每次调用 Skill 时，必须明确告诉用户：**
-
-1. **调用了什么 Skill**
-2. **为什么调用这个 Skill**
-3. **这个 Skill 会做什么**
-
-**示例格式：**
-```
-🔍 调用 Skill：systematic-debugging
-原因：修复评价列表页面的 500 错误
-作用：系统化定位问题根因，避免猜测式修复
-```
-
-**禁止行为：**
-- ❌ 默默调用 Skill 不告诉用户
-- ❌ 只说"我来修复"而不说明调用了什么 Skill
-- ❌ 用户问"你调用了什么 Skill"时才回答
-
-### 禁止行为
-
-- ❌ 不调用 skill 就直接修改代码（包括小修小补）
-- ❌ 跳过用户确认就执行改动
-- ❌ 改动破坏现有功能或架构
-- ❌ 不分析影响范围就动手
-- ❌ 说"这个改动很小，不需要调用 skill"
-- ❌ 调用 Skill 时不告知用户
-
-### Skill 调用场景
-
-| 场景 | 必须调用的 Skill |
-|------|-----------------|
-| 新功能开发 | `brainstorming` → `writing-plans` |
-| Bug 修复 | `systematic-debugging` |
-| 小修小补 | `systematic-debugging` |
-| 功能删除/修改 | `writing-plans` |
-| 样式/UI 调整 | `design-taste-frontend` |
-| 代码修改 | `test-driven-development` |
-| 完成验证 | `verification-before-completion` |
 ## 项目概述
 
-杭州市小微园区评价数据分析平台 - 前后端分离的园区管理系统，支持三级角色（市级管理员、区县管理员、园区管理员）的数据采集、评价和分析。
-
-## 构建和运行命令
-
-### 后端（park-server）
-
-```bash
-# 编译
-cd park-server
-D:\IDEA\apache-maven-3.6.3\bin\mvn clean compile
-
-# 运行
-D:\IDEA\apache-maven-3.6.3\bin\mvn spring-boot:run
-
-# 打包
-D:\IDEA\apache-maven-3.6.3\bin\mvn clean package -DskipTests
-```
-
-### 前端（park-admin）
-
-```bash
-# 安装依赖
-cd park-admin
-npm install
-
-# 开发模式
-npm run serve
-
-# 构建生产版本
-npm run build
-
-# 代码检查
-npm run lint
-```
-
-### 数据库
-
-```bash
-# 初始化数据库（使用 Navicat 或命令行执行）
-mysql -u root -p < park-server/sql/init.sql
-mysql -u root -p park_evaluation < park-server/sql/district.sql
-```
+杭州市小微园区评价数据分析平台 —— 用于管理园区信息、入驻企业、运营数据和绩效评价的管理系统。
 
 ## 技术栈
 
-| 层级 | 技术 |
-|------|------|
-| 后端 | Java 8, SpringBoot 2.7.18, MyBatis-Plus 3.5.5, JWT |
-| 前端 | Vue 2.6, ElementUI 2.15, Vue Router 3.5, Vuex 3.6, Axios, ECharts |
-| 数据库 | MySQL 8.0 |
-| API文档 | OpenAPI 3.0 (springdoc-openapi-ui 1.7.0) |
-| 构建工具 | Maven 3.6.3 (D:\IDEA\apache-maven-3.6.3), npm |
+- **前端**：Vue 2.6 + Element UI 2.15 + Vuex 3 + Vue Router 3
+- **后端**：Spring Boot 2.7.18 + MyBatis-Plus 3.5.5 + MySQL 8.0 + JWT
+- **端口**：前端 8081，后端 8080
 
-## 项目架构
+## 常用命令
 
-### 后端分层（park-server/src/main/java/com/park/）
-
-```
-com.park/
-├── auth/           # 认证模块（登录、JWT、用户信息）
-├── park/           # 园区管理（CRUD、数据权限）
-├── enterprise/     # 企业管理（CRUD、多园区查询）
-├── evaluation/     # 评价管理（状态流转、审核）
-├── system/         # 系统管理（用户管理、区县管理）
-├── dashboard/      # 数据看板（统计、图表）
-├── common/         # 公共模块（响应封装、异常处理、工具类）
-└── config/         # 配置类（Swagger、CORS、MyBatis-Plus、JWT拦截器）
+### 前端 (park-admin)
+```bash
+cd park-admin
+npm run serve      # 启动开发服务器 (端口 8081)
+npm run build      # 生产构建
 ```
 
-**分层规范：**
-- Controller → Service → Mapper（MyBatis-Plus）
-- Entity 映射数据库表，DTO 用于数据传输，QueryDTO 继承 PageQuery 用于分页查询
-- 统一响应：`R<T>` 封装返回结果，`PageResult<T>` 封装分页数据
-
-### 前端结构（park-admin/src/）
-
-```
-src/
-├── api/            # API 请求封装（按模块：auth、park、enterprise等）
-├── router/         # 路由配置（按角色分组，meta.roles 控制权限）
-├── store/          # Vuex 状态管理（user.js 管理token和用户信息）
-├── views/          # 页面组件
-│   ├── login/      # 登录页（三角色共用）
-│   ├── admin/      # 市级管理员页面
-│   ├── district/   # 区县管理员页面
-│   └── park/       # 园区管理员页面
-├── layout/         # 布局组件（Sidebar、Navbar、AppMain）
-├── utils/          # 工具函数（request.js Axios封装、permission.js 权限控制）
-└── components/     # 公共组件
+### 后端 (park-server)
+```bash
+cd park-server
+mvn spring-boot:run                    # 启动开发服务器 (端口 8080)
+mvn clean package -DskipTests          # 打包
+java -jar target/park-server-1.0.0.jar # 运行 jar
 ```
 
-## 核心设计规范
+### 数据库
+```sql
+CREATE DATABASE park_evaluation DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
+```
+初始化脚本：`park-server/src/main/resources/sql/init_database.sql`
 
-### 角色权限体系
-
-| 角色 | roleType | 数据权限 | 功能菜单 |
-|------|----------|----------|----------|
-| 市级管理员 | 1 | 查看所有数据 | 数据驾驶舱、园区列表、入驻企业、评价审核（终审）、评价结果、系统设置 |
-| 区县管理员 | 2 | 只看本区县数据 | 数据看板、园区列表、入驻企业、评价审核（初审）、评价结果 |
-| 园区管理员 | 3 | 只看本园区数据 | 数据看板、我的园区、入驻企业、评价列表、评价结果 |
-
-**数据权限实现：**
-- 后端：Controller 层通过 `applyDataPermission()` 方法，根据 roleType 和用户绑定的 districtId/parkId 过滤查询条件
-- 前端：路由守卫（permission.js）+ 侧边栏菜单（Sidebar.vue 的 hasRole 方法）
-
-### 评价状态流转
+## 项目结构
 
 ```
-草稿(0) → 待区县审(1) → 待市局审(2) → 通过(3)
-                ↓              ↓
-              驳回(4)        驳回(4)
+park-platform/
+├── park-admin/                    # 前端 Vue 项目
+│   ├── src/
+│   │   ├── api/                   # API 接口定义
+│   │   ├── views/                 # 页面组件
+│   │   │   ├── admin/             # 市级管理员页面
+│   │   │   ├── district/          # 区县管理员页面
+│   │   │   └── park/              # 园区管理员页面
+│   │   ├── router/                # 路由配置
+│   │   ├── store/                 # Vuex 状态管理
+│   │   └── utils/                 # 工具函数
+│   └── vue.config.js              # 前端配置
+│
+└── park-server/                   # 后端 Spring Boot 项目
+    ├── src/main/java/com/park/
+    │   ├── auth/                  # 认证模块 (JWT)
+    │   ├── park/                  # 园区管理模块
+    │   ├── enterprise/            # 企业管理模块
+    │   ├── evaluation/            # 评价管理模块
+    │   ├── dashboard/             # 数据统计模块
+    │   ├── audit/                 # 审核模块
+    │   ├── system/                # 系统管理模块
+    │   ├── common/                # 公共模块 (统一响应、异常处理)
+    │   └── config/                # 配置类
+    └── src/main/resources/
+        ├── application.yml        # 主配置
+        ├── application-dev.yml    # 开发环境配置
+        └── sql/                   # SQL 脚本
 ```
 
-**审核接口：**
-- `POST /api/evaluations/{id}/district-pass` - 区县审核通过（roleType=2）
-- `POST /api/evaluations/{id}/district-reject` - 区县审核驳回（roleType=2）
-- `POST /api/evaluations/{id}/city-pass` - 市级审核通过（roleType=1）
-- `POST /api/evaluations/{id}/city-reject` - 市级审核驳回（roleType=1）
+## 角色权限体系
 
-### API 规范
+| roleType | 角色 | 数据范围 |
+|----------|------|----------|
+| 1 | 市级管理员 | 全市数据 |
+| 2 | 区县管理员 | 本区县数据 |
+| 3 | 园区管理员 | 本园区数据 |
 
-- 统一前缀：`/api/`
-- RESTful 风格：GET 查询、POST 新增、PUT 修改、DELETE 删除
-- 分页查询：GET /api/xxx?pageNum=1&pageSize=10
-- 响应格式：`{code: 200, message: "操作成功", data: {...}}`
-- 分页响应：`{code: 200, message: "操作成功", data: {records: [], total: 100, pageNum: 1, pageSize: 10}}`
+前端路由根据角色类型自动跳转：
+- 市级 → `/dashboard`
+- 区县 → `/district/dashboard`
+- 园区 → `/park/dashboard`
 
-### JWT 认证流程
+## API 规范
 
-1. 登录：POST /api/auth/login → 返回 token 和 userInfo
-2. 存储：前端将 token 存入 localStorage
-3. 请求：Header 携带 `Authorization: Bearer {token}`
-4. 拦截：JwtAuthenticationFilter 校验 token，设置 request attributes（userId、username、roleType）
-5. 过期：返回 401，前端自动跳转登录页
+- 基础路径：`/api`
+- 统一响应格式：`{ code: 200, message: "操作成功", data: {}, timestamp: ... }`
+- 分页响应：`{ total, records, pageNum, pageSize, pages }`
+- Swagger 文档：`http://localhost:8080/swagger-ui.html`
 
-## 配置文件
+## 关键实体
 
-```
-park-server/src/main/resources/
-├── application.yml          # 公共配置（端口、MyBatis-Plus、Jackson）
-├── application-dev.yml      # 开发环境（数据库、JWT密钥、Swagger开启）
-└── application-prod.yml     # 生产环境（环境变量注入、Swagger关闭）
-```
-
-**环境切换：** 修改 `application.yml` 中的 `spring.profiles.active`
-
-## 测试账号
-
-| 角色 | 用户名 | 密码 | roleType | 备注 |
-|------|--------|------|----------|------|
-| 市级管理员 | admin | 123456 | 1 | 可查看所有数据 |
-| 区县管理员 | district | 123456 | 2 | 绑定西湖区（district_id=3） |
-| 园区管理员 | park | 123456 | 3 | 绑定园区（park_id=1） |
-
-## 访问地址
-
-- 前端：http://localhost:8081
-- 后端API：http://localhost:8080
-- Swagger文档：http://localhost:8080/swagger-ui.html
-
-## 开发流程规范（最高优先级）
-
-### 功能开发流程
-
-
+| 实体 | 表名 | 说明 |
+|------|------|------|
+| ParkInfo | park_info | 园区基础信息 |
+| EnterpriseInfo | park_enterprise | 入驻企业 |
+| ParkOperation | park_operation | 运营数据（按季度） |
+| EvaluationRecord | park_evaluation_record | 评价记录 |
+| SysUser | sys_user | 系统用户 |
 
 ## 开发注意事项
 
-### 后端开发
+1. **字段映射**：数据库使用下划线命名，Java 使用驼峰命名，MyBatis-Plus 自动转换
+2. **数据权限**：所有查询接口都需通过 `applyDataPermission()` 方法应用数据权限
+3. **前端 API**：定义在 `src/api/` 目录，使用 axios 封装的 request 工具
+4. **图片存储**：园区图片使用 Base64 编码存储在 `park_info.park_image` 字段
 
-1. **实体类继承 BaseEntity**：自动包含 id、createTime、updateTime 字段，使用 @TableField(fill = FieldFill.INSERT) 自动填充
-2. **分页查询继承 PageQuery**：自动包含 pageNum、pageSize 字段
-3. **数据权限**：新增接口需在 Controller 层调用 applyDataPermission() 方法
-4. **异常处理**：使用 BusinessException(ResultCode, message) 抛出业务异常
+## 前端开发规范
 
-### 前端开发
+### 文件命名
+- 组件文件：小写中划线（kebab-case）— 如 `park-detail.vue`
+- 组件名称：大驼峰（PascalCase）— 如 `ParkDetail`
+- API 文件：小写中划线 — 如 `enterprise-info.js`
 
-1. **API 调用**：统一使用 `src/api/` 下的封装方法，baseURL 为 '/'
-2. **响应处理**：响应拦截器返回 R 对象，通过 `response.data` 获取业务数据
-3. **权限控制**：路由 meta.roles 数组控制菜单可见性，hasRole([roleType]) 方法判断
-4. **Token 管理**：自动从 localStorage 读取，401 时自动跳转登录页
+### 代码风格
+- 使用 ES6+ 语法
+- 使用单引号
+- 使用 2 空格缩进
+- 使用分号结尾
 
-## 数据库表结构
+### API 接口定义
+- 定义在 `src/api/` 目录
+- 使用 JSDoc 注释说明参数和返回值
+- 接口路径使用 RESTful 风格
 
-| 表名 | 说明 | 关键字段 |
-|------|------|----------|
-| sys_user | 用户表 | username, password(BCrypt), roleType, districtId, parkId |
-| park_info | 园区信息 | parkName, parkType, districtId, districtName, starLevel |
-| enterprise_info | 企业信息 | enterpriseName, creditCode, parkId, isParticipate |
-| evaluation_record | 评价记录 | parkId, year, status(0-4), totalScore, grade(A/B/C/D) |
-| audit_record | 审核记录 | evaluationId, auditorId, action(1通过/2驳回), opinion |
-| park_operation | 运营数据 | parkId, year, quarter, enterpriseCount, employeeCount |
-| district_info | 区县信息 | name, code, parentId, sortOrder |
+## Mock 数据说明
+
+前端页面使用组件内部的 Mock 数据，便于独立开发和调试。
+
+**使用场景**：
+- 后端接口未实现时
+- 前端独立开发和调试
+- 页面布局和样式验证
+
+**后端开发完成后**：
+- 修改 API 调用
+- 删除 Mock 数据方法
+- 使用后端真实数据
+
+## 部署说明
+
+### 前端部署
+```bash
+cd park-admin
+npm run build
+# 将 dist/ 目录部署到 Web 服务器
+```
+
+### 后端部署
+```bash
+cd park-server
+mvn clean package -DskipTests
+java -jar target/park-server-1.0.0.jar
+```

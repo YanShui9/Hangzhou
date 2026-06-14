@@ -32,11 +32,16 @@ export default {
     },
     currentTitle() {
       const path = this.$route.path
+      // 处理动态路由（带参数的路径）
+      if (path.startsWith('/admin/park/detail/')) {
+        return '园区详情'
+      }
       const titleMap = {
         '/dashboard': '数据驾驶舱',
         '/district/dashboard': '数据看板',
         '/park/dashboard': '数据看板',
         '/admin/park': '园区列表',
+        '/admin/park/add': '新增园区',
         '/district/park': '园区列表',
         '/park/mine': '我的园区',
         '/admin/enterprise': '入驻企业',
@@ -46,9 +51,18 @@ export default {
         '/district/audit': '评价审核',
         '/park/evaluation': '评价列表',
         '/admin/result': '评价结果',
+        '/admin/result/park': '园区评价',
+        '/admin/result/enterprise': '企业指标',
         '/district/result': '评价结果',
+        '/district/result/park': '园区评价',
         '/park/result': '评价结果',
-        '/system/settings': '系统设置'
+        '/park/result/park': '园区评价',
+        '/system/settings': '系统设置',
+        '/system/district-users': '区县账号',
+        '/system/park-users': '园区账号',
+        '/system/data-warehouse': '数据仓库',
+        '/system/enterprise-info': '企业信息',
+        '/system/enterprise-info/edit': '编辑企业信息'
       }
       return titleMap[path] || '首页'
     }
