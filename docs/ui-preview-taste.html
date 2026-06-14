@@ -1,0 +1,1426 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>杭州市小微园区评价平台 - UI 效果预览（Taste 版）</title>
+
+    <!-- 鸿蒙字体 -->
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;600;700&display=swap');
+    </style>
+
+    <!-- ECharts -->
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+
+    <style>
+        /* ============================================
+           设计原则：自然、专业、有品味
+           - 禁止：Double-Bezel、玻璃拟态、动态渐变
+           - 追求：简洁、清晰、信息层级明确
+           ============================================ */
+
+        :root {
+            /* 主色 - 稳重蓝（不刺眼） */
+            --primary: #2563EB;
+            --primary-light: #3B82F6;
+            --primary-dark: #1D4ED8;
+            --primary-50: #EFF6FF;
+            --primary-100: #DBEAFE;
+            --primary-200: #BFDBFE;
+
+            /* 语义色 - 自然柔和 */
+            --success: #16A34A;
+            --success-50: #F0FDF4;
+            --warning: #D97706;
+            --warning-50: #FFFBEB;
+            --danger: #DC2626;
+            --danger-50: #FEF2F2;
+
+            /* 中性色 - 冷灰系统一 */
+            --gray-50: #F8FAFC;
+            --gray-100: #F1F5F9;
+            --gray-200: #E2E8F0;
+            --gray-300: #CBD5E1;
+            --gray-400: #94A3B8;
+            --gray-500: #64748B;
+            --gray-600: #475569;
+            --gray-700: #334155;
+            --gray-800: #1E293B;
+            --gray-900: #0F172A;
+
+            /* 间距 - 4px 倍数 */
+            --space-1: 4px;
+            --space-2: 8px;
+            --space-3: 12px;
+            --space-4: 16px;
+            --space-5: 20px;
+            --space-6: 24px;
+            --space-8: 32px;
+            --space-10: 40px;
+            --space-12: 48px;
+            --space-16: 64px;
+
+            /* 圆角 - 自然不过度 */
+            --radius-sm: 4px;
+            --radius-md: 6px;
+            --radius-lg: 8px;
+            --radius-xl: 12px;
+
+            /* 阴影 - 柔和不刺眼 */
+            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Noto Sans SC', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            font-size: 14px;
+            line-height: 1.6;
+            color: var(--gray-800);
+            background: var(--gray-50);
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* ============================================
+           预览容器
+           ============================================ */
+        .preview-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: var(--space-8);
+        }
+
+        .preview-header {
+            margin-bottom: var(--space-12);
+        }
+
+        .preview-header h1 {
+            font-size: 28px;
+            font-weight: 600;
+            color: var(--gray-900);
+            margin-bottom: var(--space-2);
+        }
+
+        .preview-header p {
+            font-size: 15px;
+            color: var(--gray-500);
+        }
+
+        .section {
+            margin-bottom: var(--space-12);
+        }
+
+        .section-header {
+            display: flex;
+            align-items: baseline;
+            gap: var(--space-3);
+            margin-bottom: var(--space-6);
+            padding-bottom: var(--space-3);
+            border-bottom: 1px solid var(--gray-200);
+        }
+
+        .section-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--gray-900);
+        }
+
+        .section-badge {
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--primary);
+            background: var(--primary-50);
+            padding: 2px 8px;
+            border-radius: var(--radius-sm);
+        }
+
+        .section-desc {
+            font-size: 14px;
+            color: var(--gray-500);
+            margin-bottom: var(--space-6);
+        }
+
+        /* ============================================
+           登录页 - 简洁专业
+           ============================================ */
+        .login-preview {
+            display: flex;
+            min-height: 520px;
+            border-radius: var(--radius-xl);
+            overflow: hidden;
+            box-shadow: var(--shadow-lg);
+            background: white;
+        }
+
+        /* 左侧品牌区 */
+        .login-brand {
+            flex: 1;
+            background: var(--gray-900);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            padding: var(--space-12);
+            position: relative;
+        }
+
+        .login-brand::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, var(--primary-dark) 0%, var(--gray-900) 100%);
+            opacity: 0.9;
+        }
+
+        .brand-content {
+            position: relative;
+            z-index: 1;
+        }
+
+        .brand-logo {
+            width: 48px;
+            height: 48px;
+            background: var(--primary);
+            border-radius: var(--radius-lg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: var(--space-6);
+        }
+
+        .brand-logo svg {
+            width: 24px;
+            height: 24px;
+            color: white;
+        }
+
+        .brand-title {
+            font-size: 24px;
+            font-weight: 600;
+            color: white;
+            margin-bottom: var(--space-3);
+            line-height: 1.4;
+        }
+
+        .brand-desc {
+            font-size: 15px;
+            color: var(--gray-400);
+            line-height: 1.6;
+            max-width: 320px;
+        }
+
+        .brand-stats {
+            display: flex;
+            gap: var(--space-8);
+            margin-top: var(--space-10);
+            padding-top: var(--space-6);
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .brand-stat-value {
+            font-size: 24px;
+            font-weight: 600;
+            color: white;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .brand-stat-label {
+            font-size: 13px;
+            color: var(--gray-400);
+            margin-top: var(--space-1);
+        }
+
+        /* 右侧表单区 */
+        .login-form-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            padding: var(--space-12);
+        }
+
+        .login-form-header {
+            margin-bottom: var(--space-8);
+        }
+
+        .login-form-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--gray-900);
+            margin-bottom: var(--space-1);
+        }
+
+        .login-form-subtitle {
+            font-size: 14px;
+            color: var(--gray-500);
+        }
+
+        /* 角色选择 */
+        .role-tabs {
+            display: flex;
+            gap: var(--space-2);
+            margin-bottom: var(--space-6);
+            background: var(--gray-100);
+            padding: var(--space-1);
+            border-radius: var(--radius-md);
+        }
+
+        .role-tab {
+            flex: 1;
+            padding: var(--space-2) var(--space-3);
+            text-align: center;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--gray-600);
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .role-tab:hover {
+            color: var(--gray-800);
+        }
+
+        .role-tab.active {
+            background: white;
+            color: var(--gray-900);
+            box-shadow: var(--shadow-sm);
+        }
+
+        /* 表单 */
+        .form-group {
+            margin-bottom: var(--space-4);
+        }
+
+        .form-label {
+            display: block;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--gray-700);
+            margin-bottom: var(--space-2);
+        }
+
+        .form-input {
+            width: 100%;
+            height: 40px;
+            padding: 0 var(--space-3);
+            border: 1px solid var(--gray-300);
+            border-radius: var(--radius-md);
+            font-size: 14px;
+            font-family: inherit;
+            color: var(--gray-800);
+            background: white;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+            outline: none;
+        }
+
+        .form-input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px var(--primary-100);
+        }
+
+        .form-input::placeholder {
+            color: var(--gray-400);
+        }
+
+        /* 按钮 */
+        .btn-primary {
+            width: 100%;
+            height: 40px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: var(--radius-md);
+            font-size: 14px;
+            font-weight: 500;
+            font-family: inherit;
+            cursor: pointer;
+            transition: background 0.2s ease, transform 0.1s ease;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-dark);
+        }
+
+        .btn-primary:active {
+            transform: translateY(1px);
+        }
+
+        /* 测试账号提示 */
+        .test-hint {
+            margin-top: var(--space-6);
+            padding-top: var(--space-4);
+            border-top: 1px solid var(--gray-200);
+        }
+
+        .test-hint-title {
+            font-size: 12px;
+            color: var(--gray-500);
+            margin-bottom: var(--space-2);
+        }
+
+        .test-accounts {
+            display: flex;
+            gap: var(--space-2);
+            flex-wrap: wrap;
+        }
+
+        .test-account {
+            padding: var(--space-1) var(--space-3);
+            background: var(--gray-100);
+            border-radius: var(--radius-sm);
+            font-size: 12px;
+            color: var(--gray-600);
+            cursor: pointer;
+            transition: background 0.2s ease;
+        }
+
+        .test-account:hover {
+            background: var(--primary-50);
+            color: var(--primary);
+        }
+
+        /* ============================================
+           侧边栏布局
+           ============================================ */
+        .layout-preview {
+            display: flex;
+            height: 520px;
+            border-radius: var(--radius-xl);
+            overflow: hidden;
+            box-shadow: var(--shadow-lg);
+        }
+
+        /* 侧边栏 */
+        .sidebar {
+            width: 240px;
+            background: var(--gray-900);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .sidebar-header {
+            height: 56px;
+            display: flex;
+            align-items: center;
+            padding: 0 var(--space-5);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .sidebar-logo {
+            width: 28px;
+            height: 28px;
+            background: var(--primary);
+            border-radius: var(--radius-sm);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: var(--space-3);
+        }
+
+        .sidebar-logo svg {
+            width: 16px;
+            height: 16px;
+            color: white;
+        }
+
+        .sidebar-brand {
+            font-size: 14px;
+            font-weight: 600;
+            color: white;
+        }
+
+        .sidebar-nav {
+            flex: 1;
+            padding: var(--space-4) var(--space-3);
+            overflow-y: auto;
+        }
+
+        .nav-section {
+            margin-bottom: var(--space-6);
+        }
+
+        .nav-section-title {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--gray-500);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            padding: 0 var(--space-3);
+            margin-bottom: var(--space-2);
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: var(--space-3);
+            padding: var(--space-2) var(--space-3);
+            border-radius: var(--radius-md);
+            color: var(--gray-400);
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            margin-bottom: 2px;
+        }
+
+        .nav-item:hover {
+            background: rgba(255, 255, 255, 0.06);
+            color: var(--gray-300);
+        }
+
+        .nav-item.active {
+            background: var(--primary);
+            color: white;
+        }
+
+        .nav-item i {
+            font-size: 16px;
+            width: 20px;
+            text-align: center;
+        }
+
+        /* 主内容区 */
+        .main-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: var(--gray-50);
+        }
+
+        /* 顶部导航 */
+        .topbar {
+            height: 56px;
+            background: white;
+            border-bottom: 1px solid var(--gray-200);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 var(--space-6);
+        }
+
+        .breadcrumb {
+            display: flex;
+            align-items: center;
+            gap: var(--space-2);
+            font-size: 13px;
+            color: var(--gray-500);
+        }
+
+        .breadcrumb-current {
+            color: var(--gray-800);
+            font-weight: 500;
+        }
+
+        .user-menu {
+            display: flex;
+            align-items: center;
+            gap: var(--space-3);
+            cursor: pointer;
+            padding: var(--space-2) var(--space-3);
+            border-radius: var(--radius-md);
+            transition: background 0.15s ease;
+        }
+
+        .user-menu:hover {
+            background: var(--gray-100);
+        }
+
+        .user-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: var(--primary);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .user-info {
+            text-align: right;
+        }
+
+        .user-name {
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--gray-800);
+        }
+
+        .user-role {
+            font-size: 12px;
+            color: var(--gray-500);
+        }
+
+        /* 内容区 */
+        .content {
+            flex: 1;
+            padding: var(--space-6);
+            overflow-y: auto;
+        }
+
+        /* ============================================
+           数据看板 - 统计卡片
+           ============================================ */
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: var(--space-5);
+            margin-bottom: var(--space-6);
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: var(--radius-lg);
+            padding: var(--space-5);
+            border: 1px solid var(--gray-200);
+            transition: box-shadow 0.2s ease;
+        }
+
+        .stat-card:hover {
+            box-shadow: var(--shadow-md);
+        }
+
+        .stat-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: var(--space-3);
+        }
+
+        .stat-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: var(--radius-md);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .stat-icon.blue {
+            background: var(--primary-50);
+            color: var(--primary);
+        }
+
+        .stat-icon.green {
+            background: var(--success-50);
+            color: var(--success);
+        }
+
+        .stat-icon.orange {
+            background: var(--warning-50);
+            color: var(--warning);
+        }
+
+        .stat-icon.red {
+            background: var(--danger-50);
+            color: var(--danger);
+        }
+
+        .stat-icon svg {
+            width: 18px;
+            height: 18px;
+        }
+
+        .stat-trend {
+            font-size: 12px;
+            font-weight: 500;
+            padding: 2px 6px;
+            border-radius: var(--radius-sm);
+        }
+
+        .stat-trend.up {
+            color: var(--success);
+            background: var(--success-50);
+        }
+
+        .stat-trend.down {
+            color: var(--danger);
+            background: var(--danger-50);
+        }
+
+        .stat-value {
+            font-size: 28px;
+            font-weight: 600;
+            color: var(--gray-900);
+            font-variant-numeric: tabular-nums;
+            line-height: 1.2;
+        }
+
+        .stat-label {
+            font-size: 13px;
+            color: var(--gray-500);
+            margin-top: var(--space-1);
+        }
+
+        /* ============================================
+           图表区域
+           ============================================ */
+        .charts-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: var(--space-5);
+            margin-bottom: var(--space-6);
+        }
+
+        .chart-card {
+            background: white;
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--gray-200);
+            padding: var(--space-5);
+        }
+
+        .chart-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: var(--space-4);
+        }
+
+        .chart-title {
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--gray-800);
+        }
+
+        .chart-badge {
+            font-size: 12px;
+            color: var(--gray-500);
+            background: var(--gray-100);
+            padding: 2px 8px;
+            border-radius: var(--radius-sm);
+        }
+
+        .chart-container {
+            height: 240px;
+        }
+
+        /* ============================================
+           表格
+           ============================================ */
+        .table-card {
+            background: white;
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--gray-200);
+            overflow: hidden;
+        }
+
+        .table-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: var(--space-4) var(--space-5);
+            border-bottom: 1px solid var(--gray-200);
+        }
+
+        .table-title {
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--gray-800);
+        }
+
+        .table-link {
+            font-size: 13px;
+            color: var(--primary);
+            cursor: pointer;
+            font-weight: 500;
+        }
+
+        .table-link:hover {
+            text-decoration: underline;
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .data-table th {
+            text-align: left;
+            padding: var(--space-3) var(--space-5);
+            background: var(--gray-50);
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--gray-600);
+            border-bottom: 1px solid var(--gray-200);
+        }
+
+        .data-table td {
+            padding: var(--space-3) var(--space-5);
+            font-size: 14px;
+            border-bottom: 1px solid var(--gray-100);
+        }
+
+        .data-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .data-table tr:hover td {
+            background: var(--gray-50);
+        }
+
+        /* 状态标签 */
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 2px 10px;
+            border-radius: 9999px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .badge-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: currentColor;
+        }
+
+        .badge-success {
+            background: var(--success-50);
+            color: var(--success);
+        }
+
+        .badge-warning {
+            background: var(--warning-50);
+            color: var(--warning);
+        }
+
+        .badge-danger {
+            background: var(--danger-50);
+            color: var(--danger);
+        }
+
+        /* 分数 */
+        .score {
+            font-weight: 600;
+            color: var(--gray-900);
+            font-variant-numeric: tabular-nums;
+        }
+
+        /* 等级 */
+        .grade {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 24px;
+            height: 24px;
+            border-radius: var(--radius-sm);
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .grade-a {
+            background: var(--success-50);
+            color: var(--success);
+        }
+
+        .grade-b {
+            background: var(--primary-50);
+            color: var(--primary);
+        }
+
+        .grade-c {
+            background: var(--warning-50);
+            color: var(--warning);
+        }
+
+        .grade-d {
+            background: var(--danger-50);
+            color: var(--danger);
+        }
+
+        /* ============================================
+           设计规范展示
+           ============================================ */
+        .design-spec {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: var(--space-5);
+        }
+
+        .spec-card {
+            background: white;
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--gray-200);
+            padding: var(--space-5);
+        }
+
+        .spec-title {
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--gray-800);
+            margin-bottom: var(--space-4);
+        }
+
+        .color-swatches {
+            display: flex;
+            gap: var(--space-3);
+            flex-wrap: wrap;
+        }
+
+        .color-swatch {
+            text-align: center;
+        }
+
+        .color-preview {
+            width: 48px;
+            height: 48px;
+            border-radius: var(--radius-md);
+            margin-bottom: var(--space-2);
+            border: 1px solid var(--gray-200);
+        }
+
+        .color-name {
+            font-size: 11px;
+            color: var(--gray-600);
+            font-weight: 500;
+        }
+
+        .color-value {
+            font-size: 10px;
+            color: var(--gray-400);
+            font-family: monospace;
+        }
+
+        .spec-list {
+            list-style: none;
+        }
+
+        .spec-list li {
+            padding: var(--space-2) 0;
+            font-size: 14px;
+            color: var(--gray-600);
+            border-bottom: 1px solid var(--gray-100);
+            display: flex;
+            align-items: center;
+            gap: var(--space-2);
+        }
+
+        .spec-list li:last-child {
+            border-bottom: none;
+        }
+
+        .spec-list li::before {
+            content: '';
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--primary);
+            flex-shrink: 0;
+        }
+
+        /* 响应式 */
+        @media (max-width: 1024px) {
+            .stats-row {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .charts-row,
+            .design-spec {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .login-preview {
+                flex-direction: column;
+            }
+
+            .login-brand {
+                padding: var(--space-8);
+            }
+
+            .layout-preview {
+                flex-direction: column;
+                height: auto;
+            }
+
+            .sidebar {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="preview-container">
+        <!-- 头部 -->
+        <div class="preview-header">
+            <h1>杭州市小微园区评价数据分析平台</h1>
+            <p>自然、专业、有品味的 UI 设计方案</p>
+        </div>
+
+        <!-- 登录页 -->
+        <div class="section">
+            <div class="section-header">
+                <h2 class="section-title">登录页</h2>
+                <span class="section-badge">简洁专业</span>
+            </div>
+            <p class="section-desc">左右分栏布局，左侧品牌展示，右侧登录表单</p>
+
+            <div class="login-preview">
+                <!-- 左侧品牌 -->
+                <div class="login-brand">
+                    <div class="brand-content">
+                        <div class="brand-logo">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                                <polyline points="9 22 9 12 15 12 15 22"></polyline>
+                            </svg>
+                        </div>
+                        <h2 class="brand-title">杭州市小微园区<br>评价数据分析平台</h2>
+                        <p class="brand-desc">数据驱动的园区管理解决方案，支持市、区（县）、园区三级架构</p>
+                        <div class="brand-stats">
+                            <div>
+                                <div class="brand-stat-value">156</div>
+                                <div class="brand-stat-label">园区总数</div>
+                            </div>
+                            <div>
+                                <div class="brand-stat-value">2,847</div>
+                                <div class="brand-stat-label">入驻企业</div>
+                            </div>
+                            <div>
+                                <div class="brand-stat-value">86.5</div>
+                                <div class="brand-stat-label">平均得分</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 右侧表单 -->
+                <div class="login-form-area">
+                    <div class="login-form-header">
+                        <h3 class="login-form-title">欢迎登录</h3>
+                        <p class="login-form-subtitle">请选择角色并输入账号信息</p>
+                    </div>
+
+                    <div class="role-tabs">
+                        <div class="role-tab active">市级管理员</div>
+                        <div class="role-tab">区县管理员</div>
+                        <div class="role-tab">园区管理员</div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">用户名</label>
+                        <input type="text" class="form-input" placeholder="请输入用户名" value="admin">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">密码</label>
+                        <input type="password" class="form-input" placeholder="请输入密码" value="123456">
+                    </div>
+                    <button class="btn-primary">登 录</button>
+
+                    <div class="test-hint">
+                        <div class="test-hint-title">测试账号</div>
+                        <div class="test-accounts">
+                            <span class="test-account">admin / 123456</span>
+                            <span class="test-account">district / 123456</span>
+                            <span class="test-account">park / 123456</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 主布局 -->
+        <div class="section">
+            <div class="section-header">
+                <h2 class="section-title">主布局</h2>
+                <span class="section-badge">侧边栏 + 导航</span>
+            </div>
+            <p class="section-desc">深色侧边栏 + 白色顶栏 + 灰色内容区</p>
+
+            <div class="layout-preview">
+                <!-- 侧边栏 -->
+                <div class="sidebar">
+                    <div class="sidebar-header">
+                        <div class="sidebar-logo">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                                <polyline points="9 22 9 12 15 12 15 22"></polyline>
+                            </svg>
+                        </div>
+                        <span class="sidebar-brand">园区评价平台</span>
+                    </div>
+                    <div class="sidebar-nav">
+                        <div class="nav-section">
+                            <div class="nav-section-title">数据概览</div>
+                            <div class="nav-item active">
+                                <i class="el-icon-data-line"></i>
+                                <span>数据驾驶舱</span>
+                            </div>
+                        </div>
+                        <div class="nav-section">
+                            <div class="nav-section-title">业务管理</div>
+                            <div class="nav-item">
+                                <i class="el-icon-office-building"></i>
+                                <span>园区列表</span>
+                            </div>
+                            <div class="nav-item">
+                                <i class="el-icon-s-shop"></i>
+                                <span>入驻企业</span>
+                            </div>
+                        </div>
+                        <div class="nav-section">
+                            <div class="nav-section-title">评价管理</div>
+                            <div class="nav-item">
+                                <i class="el-icon-s-check"></i>
+                                <span>评价审核</span>
+                            </div>
+                            <div class="nav-item">
+                                <i class="el-icon-s-data"></i>
+                                <span>评价结果</span>
+                            </div>
+                        </div>
+                        <div class="nav-section">
+                            <div class="nav-section-title">系统</div>
+                            <div class="nav-item">
+                                <i class="el-icon-setting"></i>
+                                <span>系统设置</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 主内容 -->
+                <div class="main-area">
+                    <div class="topbar">
+                        <div class="breadcrumb">
+                            <span>首页</span>
+                            <span>/</span>
+                            <span class="breadcrumb-current">数据驾驶舱</span>
+                        </div>
+                        <div class="user-menu">
+                            <div class="user-info">
+                                <div class="user-name">张明</div>
+                                <div class="user-role">市级管理员</div>
+                            </div>
+                            <div class="user-avatar">张</div>
+                        </div>
+                    </div>
+                    <div class="content">
+                        <!-- 统计卡片 -->
+                        <div class="stats-row">
+                            <div class="stat-card">
+                                <div class="stat-header">
+                                    <div class="stat-icon blue">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                                        </svg>
+                                    </div>
+                                    <span class="stat-trend up">+12.5%</span>
+                                </div>
+                                <div class="stat-value">156</div>
+                                <div class="stat-label">园区总数</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-header">
+                                    <div class="stat-icon green">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
+                                            <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
+                                        </svg>
+                                    </div>
+                                    <span class="stat-trend up">+8.3%</span>
+                                </div>
+                                <div class="stat-value">2,847</div>
+                                <div class="stat-label">企业总数</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-header">
+                                    <div class="stat-icon orange">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                                            <circle cx="9" cy="7" r="4"></circle>
+                                        </svg>
+                                    </div>
+                                    <span class="stat-trend up">+5.2%</span>
+                                </div>
+                                <div class="stat-value">18.6万</div>
+                                <div class="stat-label">就业人数</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-header">
+                                    <div class="stat-icon red">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                            <polyline points="14 2 14 8 20 8"></polyline>
+                                        </svg>
+                                    </div>
+                                    <span class="stat-trend down">-2.1%</span>
+                                </div>
+                                <div class="stat-value">86.5</div>
+                                <div class="stat-label">平均评价得分</div>
+                            </div>
+                        </div>
+
+                        <!-- 图表 -->
+                        <div class="charts-row">
+                            <div class="chart-card">
+                                <div class="chart-header">
+                                    <span class="chart-title">季度运营趋势</span>
+                                    <span class="chart-badge">2026年</span>
+                                </div>
+                                <div class="chart-container" id="trendChart"></div>
+                            </div>
+                            <div class="chart-card">
+                                <div class="chart-header">
+                                    <span class="chart-title">园区排名 TOP 5</span>
+                                    <span class="chart-badge">按评价得分</span>
+                                </div>
+                                <div class="chart-container" id="rankChart"></div>
+                            </div>
+                        </div>
+
+                        <!-- 表格 -->
+                        <div class="table-card">
+                            <div class="table-header">
+                                <span class="table-title">最近评价记录</span>
+                                <span class="table-link">查看全部 →</span>
+                            </div>
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>园区名称</th>
+                                        <th>评价年份</th>
+                                        <th>总分</th>
+                                        <th>绩效等级</th>
+                                        <th>状态</th>
+                                        <th>提交时间</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>杭州未来科技城</td>
+                                        <td>2026</td>
+                                        <td><span class="score">92.5</span></td>
+                                        <td><span class="grade grade-a">A</span></td>
+                                        <td><span class="badge badge-success"><span class="badge-dot"></span>已通过</span></td>
+                                        <td>2026-06-10 14:30</td>
+                                    </tr>
+                                    <tr>
+                                        <td>滨江高新区产业园</td>
+                                        <td>2026</td>
+                                        <td><span class="score">88.0</span></td>
+                                        <td><span class="grade grade-b">B</span></td>
+                                        <td><span class="badge badge-warning"><span class="badge-dot"></span>待审核</span></td>
+                                        <td>2026-06-09 10:15</td>
+                                    </tr>
+                                    <tr>
+                                        <td>西湖科技园</td>
+                                        <td>2026</td>
+                                        <td><span class="score">78.5</span></td>
+                                        <td><span class="grade grade-c">C</span></td>
+                                        <td><span class="badge badge-danger"><span class="badge-dot"></span>已驳回</span></td>
+                                        <td>2026-06-08 16:45</td>
+                                    </tr>
+                                    <tr>
+                                        <td>钱塘新区产业园</td>
+                                        <td>2026</td>
+                                        <td><span class="score">91.2</span></td>
+                                        <td><span class="grade grade-a">A</span></td>
+                                        <td><span class="badge badge-success"><span class="badge-dot"></span>已通过</span></td>
+                                        <td>2026-06-07 09:20</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 设计规范 -->
+        <div class="section">
+            <div class="section-header">
+                <h2 class="section-title">设计规范</h2>
+                <span class="section-badge">自然专业</span>
+            </div>
+
+            <div class="design-spec">
+                <div class="spec-card">
+                    <h3 class="spec-title">配色方案</h3>
+                    <div class="color-swatches">
+                        <div class="color-swatch">
+                            <div class="color-preview" style="background: #2563EB;"></div>
+                            <div class="color-name">主色</div>
+                            <div class="color-value">#2563EB</div>
+                        </div>
+                        <div class="color-swatch">
+                            <div class="color-preview" style="background: #16A34A;"></div>
+                            <div class="color-name">成功</div>
+                            <div class="color-value">#16A34A</div>
+                        </div>
+                        <div class="color-swatch">
+                            <div class="color-preview" style="background: #D97706;"></div>
+                            <div class="color-name">警告</div>
+                            <div class="color-value">#D97706</div>
+                        </div>
+                        <div class="color-swatch">
+                            <div class="color-preview" style="background: #DC2626;"></div>
+                            <div class="color-name">错误</div>
+                            <div class="color-value">#DC2626</div>
+                        </div>
+                        <div class="color-swatch">
+                            <div class="color-preview" style="background: #0F172A;"></div>
+                            <div class="color-name">深色</div>
+                            <div class="color-value">#0F172A</div>
+                        </div>
+                        <div class="color-swatch">
+                            <div class="color-preview" style="background: #F8FAFC;"></div>
+                            <div class="color-name">背景</div>
+                            <div class="color-value">#F8FAFC</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="spec-card">
+                    <h3 class="spec-title">设计原则</h3>
+                    <ul class="spec-list">
+                        <li>简洁清晰，信息层级明确</li>
+                        <li>专业可信，传递权威感</li>
+                        <li>数据驱动，图表统计突出</li>
+                        <li>自然配色，不刺眼不花哨</li>
+                        <li>统一圆角（4/6/8/12px）</li>
+                        <li>柔和阴影，不过度浮夸</li>
+                        <li>等宽数字，数据对齐</li>
+                        <li>响应式布局，适配多端</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ECharts 初始化 -->
+    <script>
+        // 趋势图
+        const trendChart = echarts.init(document.getElementById('trendChart'));
+        trendChart.setOption({
+            tooltip: {
+                trigger: 'axis',
+                backgroundColor: 'white',
+                borderColor: '#E2E8F0',
+                borderWidth: 1,
+                textStyle: { color: '#1E293B', fontSize: 13 }
+            },
+            legend: {
+                data: ['企业数量', '就业人数'],
+                bottom: 0,
+                textStyle: { color: '#64748B', fontSize: 12 }
+            },
+            grid: {
+                left: '3%',
+                right: '4%',
+                bottom: '15%',
+                top: '5%',
+                containLabel: true
+            },
+            xAxis: {
+                type: 'category',
+                data: ['Q1', 'Q2', 'Q3', 'Q4'],
+                axisLine: { lineStyle: { color: '#E2E8F0' } },
+                axisTick: { show: false },
+                axisLabel: { color: '#64748B' }
+            },
+            yAxis: {
+                type: 'value',
+                axisLine: { show: false },
+                axisTick: { show: false },
+                splitLine: { lineStyle: { color: '#F1F5F9' } },
+                axisLabel: { color: '#64748B' }
+            },
+            series: [
+                {
+                    name: '企业数量',
+                    type: 'line',
+                    smooth: true,
+                    symbol: 'circle',
+                    symbolSize: 6,
+                    lineStyle: { width: 2, color: '#2563EB' },
+                    itemStyle: { color: '#2563EB' },
+                    areaStyle: {
+                        color: {
+                            type: 'linear',
+                            x: 0, y: 0, x2: 0, y2: 1,
+                            colorStops: [
+                                { offset: 0, color: 'rgba(37, 99, 235, 0.1)' },
+                                { offset: 1, color: 'rgba(37, 99, 235, 0.01)' }
+                            ]
+                        }
+                    },
+                    data: [680, 720, 750, 780]
+                },
+                {
+                    name: '就业人数',
+                    type: 'line',
+                    smooth: true,
+                    symbol: 'circle',
+                    symbolSize: 6,
+                    lineStyle: { width: 2, color: '#16A34A' },
+                    itemStyle: { color: '#16A34A' },
+                    data: [15.2, 16.8, 17.5, 18.6]
+                }
+            ]
+        });
+
+        // 排名图
+        const rankChart = echarts.init(document.getElementById('rankChart'));
+        rankChart.setOption({
+            tooltip: {
+                trigger: 'axis',
+                backgroundColor: 'white',
+                borderColor: '#E2E8F0',
+                borderWidth: 1,
+                textStyle: { color: '#1E293B', fontSize: 13 }
+            },
+            grid: {
+                left: '3%',
+                right: '10%',
+                bottom: '3%',
+                top: '5%',
+                containLabel: true
+            },
+            xAxis: {
+                type: 'value',
+                axisLine: { show: false },
+                axisTick: { show: false },
+                splitLine: { lineStyle: { color: '#F1F5F9' } },
+                axisLabel: { color: '#64748B' }
+            },
+            yAxis: {
+                type: 'category',
+                data: ['钱塘新区', '余杭区', '滨江区', '西湖区', '未来科技城'],
+                axisLine: { lineStyle: { color: '#E2E8F0' } },
+                axisTick: { show: false },
+                axisLabel: { color: '#64748B' }
+            },
+            series: [{
+                type: 'bar',
+                barWidth: 20,
+                itemStyle: {
+                    borderRadius: [0, 4, 4, 0],
+                    color: '#2563EB'
+                },
+                data: [85.2, 88.5, 90.1, 91.8, 92.5]
+            }]
+        });
+
+        // 响应式
+        window.addEventListener('resize', () => {
+            trendChart.resize();
+            rankChart.resize();
+        });
+    </script>
+</body>
+</html>
