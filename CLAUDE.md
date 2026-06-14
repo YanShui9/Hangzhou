@@ -1,7 +1,91 @@
 # CLAUDE.md
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+**严禁直接修改代码**，必须遵循以下流程：
 
+```
+1. 调用专业 Skill → 2. 拆解任务/制定计划 → 3. 与用户讨论确认 → 4. 执行代码修改
+```
+
+**详细步骤：**
+
+1. **任务拆解阶段**
+   - 调用 `brainstorming` skill 探索需求和边界
+   - 调用 `writing-plans` skill 制定实现计划
+   - 分析对现有系统的影响（数据库、API、前端页面）
+
+2. **方案讨论阶段**
+   - 向用户展示完整的实现方案
+   - 说明涉及的文件、接口、数据库变更
+   - 评估风险和兼容性
+   - 等待用户确认后才能执行
+
+3. **代码执行阶段**
+   - 调用 `test-driven-development` skill 确保改动正确
+   - 调用 `verification-before-completion` skill 验证完成
+   - **改动代码不能影响原有的系统结构或功能**
+
+### ⚠️ 强制规则：所有代码修改必须调用 Skill
+
+**无论改动大小，任何代码修改都必须先调用对应的 Skill：**
+
+| 改动类型 | 必须调用的 Skill | 说明 |
+|----------|-----------------|------|
+| 小修小补（1-10行） | `systematic-debugging` | 定位问题根因，避免引入新 bug |
+| 功能删除/修改 | `writing-plans` | 评估影响范围，制定修改计划 |
+| 样式/UI 调整 | `design-taste-frontend` | 确保设计一致性 |
+| 接口变更 | `systematic-debugging` | 分析前后端影响 |
+| 数据库变更 | `writing-plans` | 评估数据迁移风险 |
+| 新功能开发 | `brainstorming` → `writing-plans` | 完整的需求分析和计划 |
+| Bug 修复 | `systematic-debugging` | 系统化调试，禁止猜测 |
+| 完成验证 | `verification-before-completion` | 确保改动正确 |
+
+**为什么小修小补也要调用 Skill？**
+- 小改动更容易引入回归 bug
+- Skill 能帮助分析影响范围
+- 避免"改一个小地方，坏了一大片"的问题
+- 确保每次改动都是可追溯、可验证的
+
+### 📢 调用 Skill 时必须告知用户
+
+**每次调用 Skill 时，必须明确告诉用户：**
+
+1. **调用了什么 Skill**
+2. **为什么调用这个 Skill**
+3. **这个 Skill 会做什么**
+
+**示例格式：**
+```
+🔍 调用 Skill：systematic-debugging
+原因：修复评价列表页面的 500 错误
+作用：系统化定位问题根因，避免猜测式修复
+```
+
+**禁止行为：**
+- ❌ 默默调用 Skill 不告诉用户
+- ❌ 只说"我来修复"而不说明调用了什么 Skill
+- ❌ 用户问"你调用了什么 Skill"时才回答
+
+### 禁止行为
+
+- ❌ 不调用 skill 就直接修改代码（包括小修小补）
+- ❌ 跳过用户确认就执行改动
+- ❌ 改动破坏现有功能或架构
+- ❌ 不分析影响范围就动手
+- ❌ 说"这个改动很小，不需要调用 skill"
+- ❌ 调用 Skill 时不告知用户
+
+### Skill 调用场景
+
+| 场景 | 必须调用的 Skill |
+|------|-----------------|
+| 新功能开发 | `brainstorming` → `writing-plans` |
+| Bug 修复 | `systematic-debugging` |
+| 小修小补 | `systematic-debugging` |
+| 功能删除/修改 | `writing-plans` |
+| 样式/UI 调整 | `design-taste-frontend` |
+| 代码修改 | `test-driven-development` |
+| 完成验证 | `verification-before-completion` |
 ## 项目概述
 
 杭州市小微园区评价数据分析平台 - 前后端分离的园区管理系统，支持三级角色（市级管理员、区县管理员、园区管理员）的数据采集、评价和分析。
@@ -168,91 +252,7 @@ park-server/src/main/resources/
 
 ### 功能开发流程
 
-**严禁直接修改代码**，必须遵循以下流程：
 
-```
-1. 调用专业 Skill → 2. 拆解任务/制定计划 → 3. 与用户讨论确认 → 4. 执行代码修改
-```
-
-**详细步骤：**
-
-1. **任务拆解阶段**
-   - 调用 `brainstorming` skill 探索需求和边界
-   - 调用 `writing-plans` skill 制定实现计划
-   - 分析对现有系统的影响（数据库、API、前端页面）
-
-2. **方案讨论阶段**
-   - 向用户展示完整的实现方案
-   - 说明涉及的文件、接口、数据库变更
-   - 评估风险和兼容性
-   - 等待用户确认后才能执行
-
-3. **代码执行阶段**
-   - 调用 `test-driven-development` skill 确保改动正确
-   - 调用 `verification-before-completion` skill 验证完成
-   - **改动代码不能影响原有的系统结构或功能**
-
-### ⚠️ 强制规则：所有代码修改必须调用 Skill
-
-**无论改动大小，任何代码修改都必须先调用对应的 Skill：**
-
-| 改动类型 | 必须调用的 Skill | 说明 |
-|----------|-----------------|------|
-| 小修小补（1-10行） | `systematic-debugging` | 定位问题根因，避免引入新 bug |
-| 功能删除/修改 | `writing-plans` | 评估影响范围，制定修改计划 |
-| 样式/UI 调整 | `design-taste-frontend` | 确保设计一致性 |
-| 接口变更 | `systematic-debugging` | 分析前后端影响 |
-| 数据库变更 | `writing-plans` | 评估数据迁移风险 |
-| 新功能开发 | `brainstorming` → `writing-plans` | 完整的需求分析和计划 |
-| Bug 修复 | `systematic-debugging` | 系统化调试，禁止猜测 |
-| 完成验证 | `verification-before-completion` | 确保改动正确 |
-
-**为什么小修小补也要调用 Skill？**
-- 小改动更容易引入回归 bug
-- Skill 能帮助分析影响范围
-- 避免"改一个小地方，坏了一大片"的问题
-- 确保每次改动都是可追溯、可验证的
-
-### 📢 调用 Skill 时必须告知用户
-
-**每次调用 Skill 时，必须明确告诉用户：**
-
-1. **调用了什么 Skill**
-2. **为什么调用这个 Skill**
-3. **这个 Skill 会做什么**
-
-**示例格式：**
-```
-🔍 调用 Skill：systematic-debugging
-原因：修复评价列表页面的 500 错误
-作用：系统化定位问题根因，避免猜测式修复
-```
-
-**禁止行为：**
-- ❌ 默默调用 Skill 不告诉用户
-- ❌ 只说"我来修复"而不说明调用了什么 Skill
-- ❌ 用户问"你调用了什么 Skill"时才回答
-
-### 禁止行为
-
-- ❌ 不调用 skill 就直接修改代码（包括小修小补）
-- ❌ 跳过用户确认就执行改动
-- ❌ 改动破坏现有功能或架构
-- ❌ 不分析影响范围就动手
-- ❌ 说"这个改动很小，不需要调用 skill"
-- ❌ 调用 Skill 时不告知用户
-
-### Skill 调用场景
-
-| 场景 | 必须调用的 Skill |
-|------|-----------------|
-| 新功能开发 | `brainstorming` → `writing-plans` |
-| Bug 修复 | `systematic-debugging` |
-| 小修小补 | `systematic-debugging` |
-| 功能删除/修改 | `writing-plans` |
-| 样式/UI 调整 | `design-taste-frontend` |
-| 代码修改 | `test-driven-development` |
-| 完成验证 | `verification-before-completion` |
 
 ## 开发注意事项
 

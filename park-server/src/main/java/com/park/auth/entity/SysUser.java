@@ -25,7 +25,7 @@ public class SysUser extends BaseEntity {
     @ApiModelProperty(value = "用户名")
     private String username;
 
-    @TableField(select = false) // 默认查询不包含password字段，防止泄露
+    @TableField(select = false)
     @ApiModelProperty(value = "密码（BCrypt加密）")
     private String password;
 
@@ -38,7 +38,7 @@ public class SysUser extends BaseEntity {
     @ApiModelProperty(value = "角色类型：1=市级管理员, 2=区县管理员, 3=园区管理员")
     private Integer roleType;
 
-    @ApiModelProperty(value = "所属区县ID")
+    @ApiModelProperty(value = "所属区县ID（关联district_info表）")
     private Long districtId;
 
     @ApiModelProperty(value = "所属园区ID")

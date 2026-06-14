@@ -175,7 +175,7 @@ public class EnterpriseController {
                 if (district != null) {
                     // 查询该区县下的所有园区ID
                     LambdaQueryWrapper<ParkInfo> parkQuery = new LambdaQueryWrapper<>();
-                    parkQuery.eq(ParkInfo::getDistrictName, district.getName());
+                    parkQuery.eq(ParkInfo::getDistrictName, district.getDistrictName());
                     parkQuery.select(ParkInfo::getId);
                     List<ParkInfo> parks = parkMapper.selectList(parkQuery);
                     List<Long> parkIds = parks.stream().map(ParkInfo::getId).collect(Collectors.toList());

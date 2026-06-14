@@ -21,18 +21,18 @@ public class DistrictInfo extends BaseEntity {
 
     private static final long serialVersionUID = 1L;
 
+    @ApiModelProperty(value = "区县编码（如 330102）")
+    private String districtCode;
+
     @ApiModelProperty(value = "区县名称")
-    private String name;
+    private String districtName;
 
-    @ApiModelProperty(value = "区县编码")
-    private String code;
+    @ApiModelProperty(value = "所属地市")
+    private String city;
 
-    @ApiModelProperty(value = "父级ID")
-    private Long parentId;
+    @ApiModelProperty(value = "所属省份")
+    private String province;
 
     @ApiModelProperty(value = "排序")
     private Integer sortOrder;
-
-    @ApiModelProperty(value = "状态：0=禁用, 1=启用")
-    private Integer status;
 }

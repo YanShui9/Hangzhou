@@ -144,7 +144,7 @@ public class DashboardController {
     private String getDistrictNameById(Long districtId) {
         if (districtId == null) return null;
         DistrictInfo district = districtMapper.selectById(districtId);
-        return district != null ? district.getName() : null;
+        return district != null ? district.getDistrictName() : null;
     }
 
     /**

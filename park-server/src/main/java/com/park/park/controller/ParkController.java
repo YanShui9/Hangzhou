@@ -155,7 +155,7 @@ public class ParkController {
             if (user.getDistrictId() != null) {
                 DistrictInfo district = districtMapper.selectById(user.getDistrictId());
                 if (district != null) {
-                    queryDTO.setDistrictName(district.getName());
+                    queryDTO.setDistrictName(district.getDistrictName());
                 }
             }
         } else if (roleType == 3) {
