@@ -1,8 +1,8 @@
 package com.park.enterprise.entity;
 
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.park.common.entity.BaseEntity;
-import com.fasterxml.jackson.annotation.JsonFormat;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 import lombok.Data;
@@ -31,6 +31,9 @@ public class EnterpriseInfo extends BaseEntity {
     @ApiModelProperty(value = "统一社会信用代码")
     private String creditCode;
 
+    @ApiModelProperty(value = "所属区县ID")
+    private Long districtId;
+
     @ApiModelProperty(value = "所属园区ID")
     private Long parkId;
 
@@ -40,28 +43,27 @@ public class EnterpriseInfo extends BaseEntity {
     @ApiModelProperty(value = "行业名称")
     private String industryName;
 
-    @ApiModelProperty(value = "经营状态")
-    private String status;
+    @ApiModelProperty(value = "荣誉称号")
+    private String honor;
 
-    @ApiModelProperty(value = "注册日期")
-    @JsonFormat(pattern = "yyyy-MM-dd")
-    private LocalDate registerDate;
+    @ApiModelProperty(value = "企业状态")
+    @TableField("enterprise_status")
+    private String enterpriseStatus;
+
+    @ApiModelProperty(value = "注册状态")
+    @TableField("register_status")
+    private String registerStatus;
 
     @ApiModelProperty(value = "法定代表人")
     private String legalPerson;
 
-    @ApiModelProperty(value = "注册资本（万元）")
-    private BigDecimal registeredCapital;
-
     @ApiModelProperty(value = "联系人")
-    private String contactName;
+    @TableField("contact_person")
+    private String contactPerson;
 
     @ApiModelProperty(value = "联系电话")
     private String contactPhone;
 
-    @ApiModelProperty(value = "是否参评：0=不参评, 1=参评")
-    private Integer isParticipate;
-
-    @ApiModelProperty(value = "不参评原因")
-    private String participateReason;
+    @ApiModelProperty(value = "备注")
+    private String remark;
 }

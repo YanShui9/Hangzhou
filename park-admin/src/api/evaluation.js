@@ -57,3 +57,16 @@ export function submitEvaluation(id) {
     method: 'post'
   })
 }
+
+/**
+ * 导出评价记录为Excel
+ * @param {Object} params 查询参数
+ */
+export function exportEvaluations(params) {
+  return request({
+    url: '/api/evaluations/export',
+    method: 'get',
+    params,
+    responseType: 'blob'
+  })
+}

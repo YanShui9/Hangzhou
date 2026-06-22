@@ -26,6 +26,15 @@ export function getParkDetail(id) {
 }
 
 /**
+ * 获取园区详情（别名）
+ * @param {Number} id 园区ID
+ * @returns {Promise}
+ */
+export function getParkById(id) {
+  return getParkDetail(id)
+}
+
+/**
  * 新增园区
  * @param {Object} data 园区信息
  * @returns {Promise}
@@ -36,6 +45,15 @@ export function savePark(data) {
     method: 'post',
     data
   })
+}
+
+/**
+ * 新增园区（别名）
+ * @param {Object} data 园区信息
+ * @returns {Promise}
+ */
+export function addPark(data) {
+  return savePark(data)
 }
 
 /**

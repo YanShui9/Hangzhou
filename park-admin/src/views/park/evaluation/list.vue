@@ -19,6 +19,7 @@
           <el-option label="驳回" :value="4" />
         </el-select>
         <el-button type="primary" icon="el-icon-search" @click="fetchList">查询</el-button>
+        <el-button type="success" icon="el-icon-download" @click="handleExport" style="margin-left: 10px;">导出</el-button>
       </div>
 
       <!-- 表格 -->
@@ -157,7 +158,7 @@
 </template>
 
 <script>
-import { getEvaluationPage, addEvaluation, updateEvaluation, submitEvaluation, getEvaluationById } from '@/api/evaluation'
+import { getEvaluationPage, addEvaluation, updateEvaluation, submitEvaluation, getEvaluationById, exportEvaluations } from '@/api/evaluation'
 import { getAuditHistory } from '@/api/audit'
 import { mapGetters } from 'vuex'
 
@@ -304,6 +305,39 @@ export default {
         this.historyDialogVisible = true
       } catch (e) {
         console.error('获取审核历史失败', e)
+      }
+    },
+
+    async handleExport() {
+      const loading = this.$loading({
+        lock: true,
+        text: '导出中...',
+        spinner: 'el-icon-loading',
+        background: 'rgba(0, 0, 0, 0.7)'
+      })
+      try {
+        const params = {
+          ...this.query,
+          parkId: this.userInfo.parkId
+        }
+        const res = await exportEvaluations(params)
+        
+        const blob = new Blob([res], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
+        const downloadUrl = window.URL.createObjectURL(blob)
+        const link = document.createElement('a')
+        link.href = downloadUrl
+        link.download = `园区评价记录_${new Date().getTime()}.xlsx`
+        document.body.appendChild(link)
+        link.click()
+        document.body.removeChild(link)
+        window.URL.revokeObjectURL(downloadUrl)
+        
+        this.$message.success('导出成功')
+      } catch (e) {
+        console.error('导出失败', e)
+        this.$message.error('导出失败')
+      } finally {
+        loading.close()
       }
     },
 

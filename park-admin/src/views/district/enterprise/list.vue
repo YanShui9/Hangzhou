@@ -56,39 +56,46 @@
     </div>
 
     <!-- 表格 -->
-    <el-table
-      v-loading="loading"
-      :data="enterpriseList"
-      border
-      fit
-      highlight-current-row
-      style="width: 100%;"
-    >
-      <el-table-column label="企业名称" prop="enterpriseName" min-width="180" show-overflow-tooltip />
-      <el-table-column label="所属园区" min-width="150" show-overflow-tooltip>
-        <template slot-scope="{ row }">
-          {{ getParkName(row.parkId) }}
-        </template>
-      </el-table-column>
-      <el-table-column label="行业" prop="industryName" min-width="120" show-overflow-tooltip />
-      <el-table-column label="法定代表人" prop="legalPerson" min-width="100" />
-      <el-table-column label="联系人" prop="contactName" min-width="100" />
-      <el-table-column label="联系电话" prop="contactPhone" min-width="130" />
-      <el-table-column label="是否参评" min-width="100" align="center">
-        <template slot-scope="{ row }">
-          <el-tag :type="row.isParticipate === 1 ? 'success' : 'info'">
-            {{ row.isParticipate === 1 ? '参评' : '不参评' }}
-          </el-tag>
-        </template>
-      </el-table-column>
-      <el-table-column label="经营状态" prop="status" min-width="80" align="center">
-        <template slot-scope="{ row }">
-          <el-tag :type="row.status === '在营' ? 'success' : 'danger'">
-            {{ row.status || '-' }}
-          </el-tag>
-        </template>
-      </el-table-column>
-    </el-table>
+    <div class="table-container">
+      <el-table
+        v-loading="loading"
+        :data="enterpriseList"
+        border
+        fit
+        highlight-current-row
+        style="width: 100%;"
+        max-height="500"
+      >
+        <el-table-column label="企业名称" min-width="180" fixed>
+          <template slot-scope="{ row }">
+            <span class="enterprise-name-link" @click="handleView(row)">{{ row.enterpriseName }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="所属园区" min-width="150" show-overflow-tooltip>
+          <template slot-scope="{ row }">
+            {{ getParkName(row.parkId) }}
+          </template>
+        </el-table-column>
+        <el-table-column label="行业" prop="industryName" min-width="120" show-overflow-tooltip />
+        <el-table-column label="法定代表人" prop="legalPerson" min-width="100" />
+        <el-table-column label="联系人" prop="contactName" min-width="100" />
+        <el-table-column label="联系电话" prop="contactPhone" min-width="130" />
+        <el-table-column label="是否参评" min-width="100" align="center">
+          <template slot-scope="{ row }">
+            <el-tag :type="row.isParticipate === 1 ? 'success' : 'info'">
+              {{ row.isParticipate === 1 ? '参评' : '不参评' }}
+            </el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column label="经营状态" prop="status" min-width="80" align="center">
+          <template slot-scope="{ row }">
+            <el-tag :type="row.status === '在营' ? 'success' : 'danger'">
+              {{ row.status || '-' }}
+            </el-tag>
+          </template>
+        </el-table-column>
+      </el-table>
+    </div>
 
     <!-- 分页 -->
     <div class="pagination-container">
@@ -220,6 +227,13 @@ export default {
     getParkName(parkId) {
       const park = this.parkOptions.find(item => item.id === parkId)
       return park ? park.parkName : '-'
+    },
+    /**
+     * 查看企业详情
+     * @param {Object} row - 企业数据
+     */
+    handleView(row) {
+      this.$router.push(`/district/enterprise/detail/${row.id}`)
     }
   }
 }
@@ -238,5 +252,16 @@ export default {
 .pagination-container {
   padding: 15px 0;
   text-align: right;
+}
+
+/* 企业名称链接样式 */
+.enterprise-name-link {
+  color: #409EFF;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.enterprise-name-link:hover {
+  color: #66b1ff;
 }
 </style>

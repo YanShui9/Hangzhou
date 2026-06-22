@@ -17,6 +17,8 @@
   },
   "devDependencies": {
     "@vue/cli-service": "~5.0.8",
+    "sass": "^1.101.0",
+    "sass-loader": "^17.0.0",
     "vue-template-compiler": "^2.6.14"
   },
   "browserslist": [

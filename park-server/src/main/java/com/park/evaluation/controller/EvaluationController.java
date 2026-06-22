@@ -18,10 +18,16 @@ import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.validation.Valid;
+import java.io.IOException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -249,5 +255,38 @@ public class EvaluationController {
         if (roleType == null || !roleType.equals(requiredRoleType)) {
             throw new BusinessException(ResultCode.FORBIDDEN, "无审核权限");
         }
+    }
+
+    /**
+     * 导出评价记录为Excel
+     *
+     * @param queryDTO 查询条件
+     * @param request  HTTP请求
+     * @return Excel文件下载响应
+     */
+    @GetMapping("/export")
+    @ApiOperation(value = "导出评价记录", notes = "根据条件导出评价记录为Excel文件")
+    public ResponseEntity<byte[]> exportEvaluations(
+            EvaluationQueryDTO queryDTO,
+            HttpServletRequest request) throws IOException {
+
+        // 应用数据权限
+        applyDataPermission(queryDTO, request);
+
+        byte[] excelData = evaluationService.exportEvaluations(queryDTO);
+
+        String fileName = "园区评价记录_" + System.currentTimeMillis() + ".xlsx";
+        String encodedFileName = URLEncoder.encode(fileName, StandardCharsets.UTF_8)
+                .replaceAll("\\+", "%20");
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_OCTET_STREAM);
+        headers.setContentDispositionFormData("attachment", encodedFileName);
+        headers.set(HttpHeaders.CONTENT_DISPOSITION,
+                "attachment; filename=\"" + encodedFileName + "\"; filename*=UTF-8''" + encodedFileName);
+
+        return ResponseEntity.ok()
+                .headers(headers)
+                .body(excelData);
     }
 }

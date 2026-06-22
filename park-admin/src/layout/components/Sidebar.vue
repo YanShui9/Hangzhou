@@ -18,95 +18,83 @@
       :unique-opened="true"
       mode="vertical"
     >
-      <el-menu-item v-if="hasRole([1])" index="/dashboard" @click="$router.push('/dashboard')">
+      <el-menu-item v-if="hasRole([1])" index="/dashboard" @click="handleMenuClick('/dashboard')">
         <i class="el-icon-data-line"></i>
         <span slot="title">数据驾驶舱</span>
       </el-menu-item>
-      <el-menu-item v-if="hasRole([2])" index="/district/dashboard" @click="$router.push('/district/dashboard')">
+      <el-menu-item v-if="hasRole([2])" index="/district/dashboard" @click="handleMenuClick('/district/dashboard')">
         <i class="el-icon-data-line"></i>
         <span slot="title">数据看板</span>
       </el-menu-item>
-      <el-menu-item v-if="hasRole([3])" index="/park/dashboard" @click="$router.push('/park/dashboard')">
+      <el-menu-item v-if="hasRole([3])" index="/park/dashboard" @click="handleMenuClick('/park/dashboard')">
         <i class="el-icon-data-line"></i>
         <span slot="title">数据看板</span>
       </el-menu-item>
 
-      <el-menu-item v-if="hasRole([1])" index="/admin/park" @click="$router.push('/admin/park')">
+      <el-menu-item v-if="hasRole([1])" index="/admin/park" @click="handleMenuClick('/admin/park')">
         <i class="el-icon-office-building"></i>
         <span slot="title">园区列表</span>
       </el-menu-item>
-      <el-menu-item v-if="hasRole([2])" index="/district/park" @click="$router.push('/district/park')">
+      <el-menu-item v-if="hasRole([2])" index="/district/park" @click="handleMenuClick('/district/park')">
         <i class="el-icon-office-building"></i>
         <span slot="title">园区列表</span>
       </el-menu-item>
-      <el-menu-item v-if="hasRole([3])" index="/park/mine" @click="$router.push('/park/mine')">
+      <el-menu-item v-if="hasRole([3])" index="/park/mine" @click="handleMenuClick('/park/mine')">
         <i class="el-icon-office-building"></i>
         <span slot="title">我的园区</span>
       </el-menu-item>
 
-      <el-menu-item v-if="hasRole([1])" index="/admin/enterprise" @click="$router.push('/admin/enterprise')">
+      <el-menu-item v-if="hasRole([1])" index="/admin/enterprise" @click="handleMenuClick('/admin/enterprise')">
         <i class="el-icon-s-shop"></i>
         <span slot="title">入驻企业</span>
       </el-menu-item>
-      <el-menu-item v-if="hasRole([2])" index="/district/enterprise" @click="$router.push('/district/enterprise')">
+      <el-menu-item v-if="hasRole([2])" index="/district/enterprise" @click="handleMenuClick('/district/enterprise')">
         <i class="el-icon-s-shop"></i>
         <span slot="title">入驻企业</span>
       </el-menu-item>
-      <el-menu-item v-if="hasRole([3])" index="/park/enterprise" @click="$router.push('/park/enterprise')">
+      <el-menu-item v-if="hasRole([3])" index="/park/enterprise" @click="handleMenuClick('/park/enterprise')">
         <i class="el-icon-s-shop"></i>
         <span slot="title">入驻企业</span>
       </el-menu-item>
 
-      <el-menu-item v-if="hasRole([1])" index="/admin/audit" @click="$router.push('/admin/audit')">
+      <el-menu-item v-if="hasRole([1])" index="/admin/audit" @click="handleMenuClick('/admin/audit')">
         <i class="el-icon-s-check"></i>
         <span slot="title">评价审核</span>
       </el-menu-item>
-      <el-menu-item v-if="hasRole([2])" index="/district/audit" @click="$router.push('/district/audit')">
+      <el-menu-item v-if="hasRole([2])" index="/district/audit" @click="handleMenuClick('/district/audit')">
         <i class="el-icon-s-check"></i>
         <span slot="title">评价审核</span>
       </el-menu-item>
-      <el-menu-item v-if="hasRole([3])" index="/park/evaluation" @click="$router.push('/park/evaluation')">
+      <el-menu-item v-if="hasRole([3])" index="/park/evaluation" @click="handleMenuClick('/park/evaluation')">
         <i class="el-icon-edit-outline"></i>
         <span slot="title">评价列表</span>
       </el-menu-item>
 
-      <el-menu-item v-if="hasRole([1])" index="/admin/result" @click="$router.push('/admin/result')">
+      <el-menu-item v-if="hasRole([1])" index="/admin/result" @click="handleMenuClick('/admin/result')">
         <i class="el-icon-s-data"></i>
         <span slot="title">评价结果</span>
       </el-menu-item>
-      <el-menu-item v-if="hasRole([2])" index="/district/result" @click="$router.push('/district/result')">
-        <i class="el-icon-s-data"></i>
-        <span slot="title">评价结果</span>
-      </el-menu-item>
-      <el-menu-item v-if="hasRole([3])" index="/park/result" @click="$router.push('/park/result')">
+      <!-- 区县端评价结果（下拉菜单） -->
+      <el-submenu v-if="hasRole([2])" index="district-result">
+        <template slot="title">
+          <i class="el-icon-s-data"></i>
+          <span>评价结果</span>
+        </template>
+        <el-menu-item index="/district/result" @click="handleMenuClick('/district/result')">
+          <i class="el-icon-office-building"></i>
+          <span slot="title">园区评价</span>
+        </el-menu-item>
+        <el-menu-item index="/district/result/enterprise" @click="handleMenuClick('/district/result/enterprise')">
+          <i class="el-icon-user"></i>
+          <span slot="title">企业指标</span>
+        </el-menu-item>
+      </el-submenu>
+      <el-menu-item v-if="hasRole([3])" index="/park/result" @click="handleMenuClick('/park/result')">
         <i class="el-icon-s-data"></i>
         <span slot="title">评价结果</span>
       </el-menu-item>
 
-      <!-- 系统设置（下拉菜单） -->
-      <el-submenu v-if="hasRole([1])" index="system">
-        <template slot="title">
-          <i class="el-icon-setting"></i>
-          <span>系统设置</span>
-        </template>
-        <el-menu-item index="/system/users" @click="$router.push('/system/users')">
-          <i class="el-icon-user"></i>
-          <span slot="title">用户管理</span>
-        </el-menu-item>
-      </el-submenu>
-
-      <!-- 区县端系统设置 -->
-      <el-submenu v-if="hasRole([2])" index="district-system">
-        <template slot="title">
-          <i class="el-icon-setting"></i>
-          <span>系统设置</span>
-        </template>
-        <el-menu-item index="/district/system/users" @click="$router.push('/district/system/users')">
-          <i class="el-icon-user"></i>
-          <span slot="title">园区管理员</span>
-        </el-menu-item>
-      </el-submenu>
-    </el-menu>
+      </el-menu>
   </div>
 </template>
 
@@ -125,6 +113,11 @@ export default {
     hasRole(roles) {
       if (!this.userInfo || !this.userInfo.roleType) return false
       return roles.includes(this.userInfo.roleType)
+    },
+    handleMenuClick(path) {
+      if (this.$route.path !== path) {
+        this.$router.push(path)
+      }
     }
   }
 }

@@ -102,11 +102,16 @@ export default {
         }
       })
     },
-    fillAccount(username) {
-      this.loginForm.username = username
-      this.loginForm.password = '123456'
-      const roleMap = { 'admin': 1, 'district': 2, 'park': 3 }
-      this.loginForm.roleType = roleMap[username] || 1
+    fillAccount(type) {
+      const accountMap = {
+        'admin':    { username: 'admin',     password: '123456', roleType: 1 },
+        'district': { username: 'district01', password: '123456', roleType: 2 },
+        'park':     { username: 'park01',    password: '123456', roleType: 3 }
+      }
+      const account = accountMap[type] || accountMap['admin']
+      this.loginForm.username = account.username
+      this.loginForm.password = account.password
+      this.loginForm.roleType = account.roleType
     }
   }
 }

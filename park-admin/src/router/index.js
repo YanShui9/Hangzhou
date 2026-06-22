@@ -60,6 +60,18 @@ const routes = [
         meta: { title: '园区详情', roles: [2] }
       },
       {
+        path: 'district/park/add',
+        name: 'DistrictParkAdd',
+        component: () => import('@/views/district/park/form.vue'),
+        meta: { title: '新增园区', roles: [2] }
+      },
+      {
+        path: 'district/park/edit/:id',
+        name: 'DistrictParkEdit',
+        component: () => import('@/views/district/park/form.vue'),
+        meta: { title: '编辑园区', roles: [2] }
+      },
+      {
         path: 'park/mine',
         name: 'ParkMine',
         component: () => import('@/views/park/mine/index.vue'),
@@ -77,6 +89,12 @@ const routes = [
         name: 'DistrictEnterprise',
         component: () => import('@/views/district/enterprise/list.vue'),
         meta: { title: '入驻企业', icon: 'el-icon-s-shop', roles: [2] }
+      },
+      {
+        path: 'district/enterprise/detail/:id',
+        name: 'DistrictEnterpriseDetail',
+        component: () => import('@/views/district/enterprise/detail.vue'),
+        meta: { title: '企业详情', roles: [2] }
       },
       {
         path: 'park/enterprise',
@@ -104,38 +122,37 @@ const routes = [
         component: () => import('@/views/district/audit/list.vue'),
         meta: { title: '评价审核', icon: 'el-icon-s-check', roles: [2] }
       },
-      // 评价结果
+      {
+        path: 'district/audit/detail/:id',
+        name: 'DistrictAuditDetail',
+        component: () => import('@/views/district/audit/detail.vue'),
+        meta: { title: '审核详情', roles: [2] }
+      },
+      // 评价结果 - 园区评价
       {
         path: 'admin/result',
         name: 'AdminResult',
         component: () => import('@/views/admin/result/list.vue'),
-        meta: { title: '评价结果', icon: 'el-icon-trophy', roles: [1] }
+        meta: { title: '园区评价', icon: 'el-icon-trophy', roles: [1] }
       },
       {
         path: 'district/result',
         name: 'DistrictResult',
         component: () => import('@/views/district/result/list.vue'),
-        meta: { title: '评价结果', icon: 'el-icon-trophy', roles: [2] }
+        meta: { title: '园区评价', icon: 'el-icon-trophy', roles: [2] }
       },
       {
         path: 'park/result',
         name: 'ParkResult',
         component: () => import('@/views/park/result/list.vue'),
-        meta: { title: '评价结果', icon: 'el-icon-trophy', roles: [3] }
+        meta: { title: '园区评价', icon: 'el-icon-trophy', roles: [3] }
       },
-      // 系统设置 - 用户管理
+      // 评价结果 - 企业指标
       {
-        path: 'system/users',
-        name: 'UserManage',
-        component: () => import('@/views/admin/system/user.vue'),
-        meta: { title: '用户管理', icon: 'el-icon-setting', roles: [1] }
-      },
-      // 区县端系统设置 - 园区管理员管理
-      {
-        path: 'district/system/users',
-        name: 'DistrictUserManage',
-        component: () => import('@/views/district/system/user.vue'),
-        meta: { title: '园区管理员', icon: 'el-icon-setting', roles: [2] }
+        path: 'district/result/enterprise',
+        name: 'DistrictResultEnterprise',
+        component: () => import('@/views/district/result/enterprise.vue'),
+        meta: { title: '企业指标', roles: [2] }
       }
     ]
   }

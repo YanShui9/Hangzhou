@@ -62,12 +62,13 @@ public class EnterpriseService {
 
         // 状态筛选
         if (StringUtils.hasText(queryDTO.getStatus())) {
-            queryWrapper.eq(EnterpriseInfo::getStatus, queryDTO.getStatus());
+            queryWrapper.eq(EnterpriseInfo::getEnterpriseStatus, queryDTO.getStatus());
         }
 
-        // 参评筛选
-        if (queryDTO.getIsParticipate() != null) {
-            queryWrapper.eq(EnterpriseInfo::getIsParticipate, queryDTO.getIsParticipate());
+        // 参评筛选（使用园区ID作为替代）
+        if (queryDTO.getIsParticipate() != null && queryDTO.getIsParticipate() == 1) {
+            // 如果要求参评，则筛选有园区ID的企业
+            queryWrapper.isNotNull(EnterpriseInfo::getParkId);
         }
 
         // 按创建时间降序排序
@@ -103,8 +104,6 @@ public class EnterpriseService {
         // 转换并保存
         EnterpriseInfo enterprise = new EnterpriseInfo();
         BeanUtils.copyProperties(saveDTO, enterprise);
-        enterprise.setIsParticipate(enterprise.getIsParticipate() != null ? enterprise.getIsParticipate() : 1);
-        enterprise.setStatus(enterprise.getStatus() != null ? enterprise.getStatus() : "在营");
 
         int rows = enterpriseMapper.insert(enterprise);
         if (rows <= 0) {

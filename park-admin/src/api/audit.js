@@ -58,3 +58,14 @@ export function getAuditHistory(evaluationId) {
     method: 'get'
   })
 }
+
+/**
+ * 查询评价记录详情
+ * @param {Number} id 评价记录ID
+ */
+export function getEvaluationDetail(id) {
+  return request({
+    url: `/api/evaluations/${id}`,
+    method: 'get'
+  })
+}
