@@ -1,5 +1,5 @@
 <template>
-  <div class="user-manage">
+  <div class="user-manage page-list-flex">
     <!-- 搜索栏 -->
     <el-card class="search-card" shadow="never">
       <el-form :inline="true" :model="queryParams" class="search-form">
@@ -48,13 +48,14 @@
         <el-button type="primary" icon="el-icon-plus" @click="handleAdd">新增用户</el-button>
       </div>
 
-      <el-table
-        v-loading="loading"
-        :data="userList"
-        border
-        stripe
-        style="width: 100%;"
-      >
+      <div class="table-flex-wrapper">
+        <el-table
+          v-loading="loading"
+          :data="userList"
+          border
+          stripe
+          height="100%"
+        >
         <el-table-column prop="username" label="用户名" min-width="120" show-overflow-tooltip />
         <el-table-column prop="realName" label="真实姓名" min-width="120" show-overflow-tooltip />
         <el-table-column label="角色" min-width="120">
@@ -93,6 +94,7 @@
           </template>
         </el-table-column>
       </el-table>
+      </div>
 
       <!-- 分页 -->
       <el-pagination
@@ -399,7 +401,8 @@ export default {
 
 <style scoped>
 .user-manage {
-  padding: 20px;
+  height: 100%;
+  overflow: hidden;
 }
 .search-card {
   margin-bottom: 16px;

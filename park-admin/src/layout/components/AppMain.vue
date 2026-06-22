@@ -20,5 +20,6 @@ export default {
   flex: 1;
   overflow: auto;
   background: #FAFCFF;
+  position: relative;
 }
 </style>

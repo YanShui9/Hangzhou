@@ -5,21 +5,114 @@
       <span class="separator">/</span>
       <span class="current">{{ currentTitle }}</span>
     </div>
-    <div class="user-menu" @click="handleLogout">
-      <div class="user-info">
-        <div class="user-name">{{ userInfo.realName || userInfo.username || '管理员' }}</div>
-        <div class="user-role">{{ roleLabel }}</div>
-      </div>
-      <div class="user-avatar">{{ avatarText }}</div>
+    <div class="user-menu">
+      <el-dropdown trigger="click" @command="handleCommand">
+        <div class="user-trigger">
+          <div class="user-info">
+            <div class="user-name">{{ userInfo.realName || userInfo.username || '管理员' }}</div>
+            <div class="user-role">{{ roleLabel }}</div>
+          </div>
+          <div class="user-avatar">{{ avatarText }}</div>
+          <i class="el-icon-caret-bottom dropdown-arrow"></i>
+        </div>
+        <el-dropdown-menu slot="dropdown">
+          <el-dropdown-item command="changePwd" icon="el-icon-lock">修改密码</el-dropdown-item>
+          <el-dropdown-item command="logout" icon="el-icon-switch-button">退出登录</el-dropdown-item>
+        </el-dropdown-menu>
+      </el-dropdown>
     </div>
+
+    <el-dialog
+      title="修改密码"
+      :visible.sync="pwdDialogVisible"
+      width="440px"
+      :close-on-click-modal="false"
+      append-to-body
+    >
+      <el-form
+        ref="pwdForm"
+        :model="pwdForm"
+        :rules="pwdRules"
+        label-width="100px"
+      >
+        <el-form-item label="原密码" prop="oldPassword">
+          <el-input
+            v-model="pwdForm.oldPassword"
+            type="password"
+            placeholder="请输入原密码"
+            show-password
+          />
+        </el-form-item>
+        <el-form-item label="新密码" prop="newPassword">
+          <el-input
+            v-model="pwdForm.newPassword"
+            type="password"
+            placeholder="请输入新密码（8-16位，由大小写字母和数字组成）"
+            show-password
+          />
+        </el-form-item>
+        <el-form-item label="确认新密码" prop="confirmPassword">
+          <el-input
+            v-model="pwdForm.confirmPassword"
+            type="password"
+            placeholder="请再次输入新密码"
+            show-password
+          />
+        </el-form-item>
+      </el-form>
+      <div slot="footer" class="dialog-footer">
+        <el-button size="small" @click="pwdDialogVisible = false">取 消</el-button>
+        <el-button type="primary" size="small" :loading="pwdLoading" @click="handleChangePwd">确 定</el-button>
+      </div>
+    </el-dialog>
   </div>
 </template>
 
 <script>
 import { mapState } from 'vuex'
+import { changePassword } from '@/api/auth'
 
 export default {
   name: 'Navbar',
+  data() {
+    const validatePassword = (rule, value, callback) => {
+      if (!value) {
+        callback(new Error('请输入新密码'))
+      } else if (value.length < 8 || value.length > 16) {
+        callback(new Error('密码长度为8-16位'))
+      } else if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(value)) {
+        callback(new Error('密码必须包含大小写字母和数字'))
+      } else {
+        callback()
+      }
+    }
+    return {
+      pwdDialogVisible: false,
+      pwdLoading: false,
+      pwdForm: {
+        oldPassword: '',
+        newPassword: '',
+        confirmPassword: ''
+      },
+      pwdRules: {
+        oldPassword: [{ required: true, message: '请输入原密码', trigger: 'blur' }],
+        newPassword: [{ required: true, validator: validatePassword, trigger: 'blur' }],
+        confirmPassword: [
+          { required: true, message: '请再次输入新密码', trigger: 'blur' },
+          {
+            validator: (rule, value, callback) => {
+              if (value !== this.pwdForm.newPassword) {
+                callback(new Error('两次输入的密码不一致'))
+              } else {
+                callback()
+              }
+            },
+            trigger: 'blur'
+          }
+        ]
+      }
+    }
+  },
   computed: {
     ...mapState('user', ['userInfo']),
     roleLabel() {
@@ -68,6 +161,16 @@ export default {
     }
   },
   methods: {
+    handleCommand(command) {
+      if (command === 'changePwd') {
+        this.pwdDialogVisible = true
+        this.$nextTick(() => {
+          this.$refs.pwdForm && this.$refs.pwdForm.resetFields()
+        })
+      } else if (command === 'logout') {
+        this.handleLogout()
+      }
+    },
     handleLogout() {
       this.$confirm('确定要退出登录吗?', '提示', {
         confirmButtonText: '确定',
@@ -79,6 +182,26 @@ export default {
           this.$message.success('已退出登录')
         })
       }).catch(() => {})
+    },
+    handleChangePwd() {
+      this.$refs.pwdForm.validate(valid => {
+        if (!valid) return
+        this.pwdLoading = true
+        changePassword({
+          oldPassword: this.pwdForm.oldPassword,
+          newPassword: this.pwdForm.newPassword
+        }).then(() => {
+          this.$message.success('密码修改成功，请重新登录')
+          this.pwdDialogVisible = false
+          this.$store.dispatch('user/logout').then(() => {
+            this.$router.push('/login')
+          })
+        }).catch(() => {
+          // 错误已在 request 拦截器中处理
+        }).finally(() => {
+          this.pwdLoading = false
+        })
+      })
     }
   }
 }
@@ -104,7 +227,9 @@ export default {
 }
 .breadcrumb .separator { color: #D1D5DB; }
 .breadcrumb .current { color: #1F2937; font-weight: 500; }
-.user-menu {
+.user-menu { display: flex; align-items: center; }
+.user-menu >>> .el-dropdown { display: flex; align-items: center; }
+.user-trigger {
   display: flex;
   align-items: center;
   gap: 12px;
@@ -113,7 +238,12 @@ export default {
   border-radius: 8px;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
-.user-menu:hover { background: #F9FAFB; }
+.user-trigger:hover { background: #F9FAFB; }
+.dropdown-arrow {
+  font-size: 12px;
+  color: #909399;
+  margin-left: -4px;
+}
 .user-info { text-align: right; }
 .user-name { font-size: 13px; font-weight: 500; color: #1F2937; }
 .user-role { font-size: 12px; color: #6B7280; }

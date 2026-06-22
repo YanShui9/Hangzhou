@@ -18,7 +18,7 @@ const routes = [
       const roleType = userInfo.roleType
       if (roleType === 2) return '/district/dashboard'
       if (roleType === 3) return '/park/dashboard'
-      return '/dashboard'
+      return '/admin/park'
     },
     children: [
       // 数据看板

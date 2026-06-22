@@ -1,5 +1,5 @@
 <template>
-  <div class="enterprise-list-container">
+  <div class="enterprise-list-container page-list-flex">
     <!-- 页面标题 -->
     <div class="page-header">
       <h2 class="page-title">入驻企业</h2>
@@ -59,13 +59,13 @@
     </div>
 
     <!-- 数据表格 -->
+    <div class="table-flex-wrapper">
     <el-table
       v-loading="loading"
       :data="enterpriseList"
       border
       stripe
       size="mini"
-      style="width: 100%"
       class="enterprise-table"
       :header-cell-style="headerCellStyle"
       :row-style="rowStyle"
@@ -119,6 +119,7 @@
         </template>
       </el-table-column>
     </el-table>
+    </div>
 
     <!-- 分页组件 -->
     <div class="pagination-bar">
@@ -421,7 +422,8 @@ export default {
 .enterprise-list-container {
   padding: 16px 20px 20px;
   background: #F5F7FA;
-  min-height: calc(100vh - 56px);
+  height: 100%;
+  overflow: hidden;
 }
 
 /* 页面标题 */

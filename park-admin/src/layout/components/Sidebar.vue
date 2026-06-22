@@ -15,7 +15,7 @@
       background-color="#FFFFFF"
       text-color="#4B5563"
       active-text-color="#1E40AF"
-      :unique-opened="true"
+      :unique-opened="false"
       mode="vertical"
     >
       <el-menu-item v-if="hasRole([1])" index="/dashboard" @click="$router.push('/dashboard')">

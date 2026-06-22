@@ -69,7 +69,9 @@ park-platform/
 │   │   │   └── park/              # 园区管理员页面
 │   │   ├── router/                # 路由配置
 │   │   ├── store/                 # Vuex 状态管理
-│   │   └── utils/                 # 工具函数
+│   │   ├── layout/                # 布局组件（Sidebar、Navbar、AppMain）
+│   │   └── utils/                 # 工具函数（request.js 含 401 拦截）
+│   ├── App.vue                    # 全局 CSS（page-list-flex 等）
 │   └── vue.config.js              # 前端配置
 │
 └── park-server/                   # 后端 Spring Boot 项目
@@ -98,7 +100,7 @@ park-platform/
 | 3 | 园区管理员 | 本园区数据 |
 
 前端路由根据角色类型自动跳转：
-- 市级 → `/dashboard`
+- 市级 → `/admin/park`（园区列表）
 - 区县 → `/district/dashboard`
 - 园区 → `/park/dashboard`
 
@@ -108,6 +110,26 @@ park-platform/
 - 统一响应格式：`{ code: 200, message: "操作成功", data: {}, timestamp: ... }`
 - 分页响应：`{ total, records, pageNum, pageSize, pages }`
 - Swagger 文档：`http://localhost:8080/swagger-ui.html`
+
+### 审核状态枚举
+
+| 状态 | 说明 |
+|------|------|
+| 未提交 | 园区端尚未提交 |
+| 区县待审核 | 等待区县管理员审核 |
+| 区县审核通过 | 区县已通过，进入市级 |
+| 区县审核驳回 | 区县驳回，园区可修改重提 |
+| 已终止 | 评价流程终止 |
+| 市级待审核 | 等待市级管理员审核 |
+| 市级审核通过 | 市级已通过 |
+| 市级审核驳回 | 市级驳回，园区可修改重提 |
+
+### 参评状态
+
+| 状态 | 说明 |
+|------|------|
+| 参评 | 企业参与本次评价 |
+| 不参评 | 企业不满足参评条件 |
 
 ## 关键实体
 
@@ -143,10 +165,44 @@ park-platform/
 - 定义在 `src/api/` 目录
 - 使用 JSDoc 注释说明参数和返回值
 - 接口路径使用 RESTful 风格
+- 修改密码接口：`POST /api/auth/change-password`，参数 `{ oldPassword, newPassword }`
+
+### 列表页面布局规范
+
+所有列表页面统一使用全局 CSS 类 `page-list-flex`（定义在 `App.vue`），实现搜索区固定、表格区滚动、分页区固定：
+
+```html
+<div class="xxx-container page-list-flex">
+  <div class="page-header">...</div>        <!-- 标题，flex-shrink: 0 -->
+  <div class="filter-bar">...</div>          <!-- 搜索区，flex-shrink: 0 -->
+  <div class="table-flex-wrapper">           <!-- 表格容器，flex: 1; overflow: auto -->
+    <el-table>...</el-table>
+  </div>
+  <div class="pagination-bar">...</div>      <!-- 分页，flex-shrink: 0 -->
+</div>
+```
+
+全局 CSS 已覆盖常见 class（`.page-header`、`.filter-bar`、`.filter-container`、`.search-card`、`.el-card`、`.top-bar`、`.stats-cards`、`.pagination-bar`、`.el-pagination`），这些元素自动获得 `flex-shrink: 0`。非标准 class 名需在组件内自行添加 `flex-shrink: 0`。
+
+布局依赖 `AppMain.vue` 中 `.app-main` 的 `position: relative`，列表页根容器通过 `position: absolute; top: 0; bottom: 0; left: 0; right: 0;` 填充可用空间。
+
+### Vue 2 响应式注意事项
+
+- `Set` 和 `Map` 在 Vue 2 中**不响应式**，`set.add()` 不会触发视图更新。改用普通对象 `{}` + `this.$set(obj, key, value)` 实现响应式。
+
+### 审核详情页模式
+
+审核详情页通过 URL query 参数区分模式：
+- `?mode=audit` — 审核模式，市局负责的打分字段可编辑
+- `?mode=view` — 查看模式，所有字段只读
+
+基础指标（区县审核）和自动计算字段始终只读，不随模式切换。
 
 ## Mock 数据说明
 
 前端页面使用组件内部的 Mock 数据，便于独立开发和调试。
+
+**Mock 数据模式**：在 `getList()` / `fetchList()` 方法中，当 API 返回空数据或失败时，自动降级到 `applyMockList()` 方法。判断条件为 `res.data.records[0]` 的关键字段是否为空（如 `parkName`、`enterpriseName`）。
 
 **使用场景**：
 - 后端接口未实现时
@@ -154,9 +210,23 @@ park-platform/
 - 页面布局和样式验证
 
 **后端开发完成后**：
-- 修改 API 调用
-- 删除 Mock 数据方法
+- 删除 `applyMockList()` 方法
+- 恢复原始 API 调用逻辑
 - 使用后端真实数据
+
+## 常见问题处理
+
+### 401 多请求导航冲突
+
+`request.js` 响应拦截器中使用 `isRedirecting` 标志位，防止多个 401 响应同时触发多次 `router.push('/login')`。`permission.js` 路由守卫中，当 `getInfo()` 失败且目标已是 `/login` 时直接放行，避免重复导航。
+
+### 侧边栏 (Sidebar)
+
+`unique-opened` 设为 `false`，允许多个子菜单同时展开。评价结果和系统设置的下拉菜单可同时打开。
+
+### 导航栏 (Navbar)
+
+右上角用户区使用 `el-dropdown` 下拉菜单，包含"修改密码"和"退出登录"。修改密码弹窗含原密码、新密码（8-16位须含大小写字母和数字）、确认新密码三字段，修改成功后自动退出登录。
 
 ## 部署说明
 

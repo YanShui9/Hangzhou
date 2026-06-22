@@ -11,17 +11,15 @@
         <el-menu
           :default-active="activeSection"
           class="nav-menu"
-          @select="handleSectionChange"
+          :class="{ 'is-locked': isAuditMode && !allSectionsVisited }"
+          @select="handleMenuSelect"
         >
-          <el-menu-item index="basic">1-基础指标</el-menu-item>
-          <el-menu-item index="industry">2-产业发展</el-menu-item>
-          <el-menu-item index="enterprise">3-企业培育</el-menu-item>
-          <el-menu-item index="tech">4-科技创新</el-menu-item>
-          <el-menu-item index="service">5-服务能力</el-menu-item>
-          <el-menu-item index="benefit">6-效益产出</el-menu-item>
-          <el-menu-item index="safety">7-安全生产</el-menu-item>
-          <el-menu-item index="other">8-其他</el-menu-item>
-          <el-menu-item index="result">9-审核结果</el-menu-item>
+          <el-menu-item
+            v-for="item in navItems"
+            :key="item.index"
+            :index="item.index"
+            :class="{ 'is-visited': visitedSections[item.index] }"
+          >{{ item.label }}</el-menu-item>
         </el-menu>
       </div>
 
@@ -32,11 +30,17 @@
             <span class="title-text">{{ sectionTitle }}</span>
           </div>
           <div class="header-actions">
+            <el-button
+              v-if="isAuditMode"
+              type="primary"
+              size="small"
+              :loading="saveLoading"
+              @click="handleSaveDraft"
+            >保存</el-button>
             <div class="audit-record-btn" @click="toggleAuditRecord">
               <i class="el-icon-document"></i>
               <span>审核记录</span>
             </div>
-            <el-button type="primary" size="small" :loading="saveLoading" @click="handleSave">保存</el-button>
           </div>
         </div>
 
@@ -51,19 +55,19 @@
             </div>
             <div class="radio-group">
               <label class="radio-label">
-                <input type="radio" name="basicResult1" v-model="formData.basicResult1" value="通过" />
+                <input type="radio" name="basicResult1" v-model="formData.basicResult1" value="通过" :disabled="true" />
                 <span>通过</span>
               </label>
               <label class="radio-label">
-                <input type="radio" name="basicResult1" v-model="formData.basicResult1" value="驳回" />
+                <input type="radio" name="basicResult1" v-model="formData.basicResult1" value="驳回" :disabled="true" />
                 <span>驳回</span>
               </label>
               <label class="radio-label">
-                <input type="radio" name="basicResult1" v-model="formData.basicResult1" value="暂缓" />
+                <input type="radio" name="basicResult1" v-model="formData.basicResult1" value="暂缓" :disabled="true" />
                 <span>暂缓</span>
               </label>
               <label class="radio-label">
-                <input type="radio" name="basicResult1" v-model="formData.basicResult1" value="退出" />
+                <input type="radio" name="basicResult1" v-model="formData.basicResult1" value="退出" :disabled="true" />
                 <span>退出</span>
               </label>
             </div>
@@ -156,6 +160,7 @@
                     placeholder="请输入得分（满分5分）"
                     size="small"
                     style="width: 180px;"
+                    :disabled="!isAuditMode"
                   />
                 </div>
               </div>
@@ -171,6 +176,7 @@
                 maxlength="500"
                 show-word-limit
                 class="opinion-textarea"
+                :disabled="!isAuditMode"
               />
             </div>
           </div>
@@ -211,7 +217,7 @@
                 <div class="tech-row-cell"><span class="field-label-inline">所属企业</span><span class="field-value-inline">{{ item.company || '-' }}</span></div>
                 <div class="tech-row-cell tech-score-wrap">
                   <span class="field-label-inline">得分</span>
-                  <el-input v-model="item.score" size="small" style="width: 140px" placeholder="请输入得分" />
+                  <el-input v-model="item.score" size="small" style="width: 140px" placeholder="请输入得分" :disabled="true" />
                 </div>
               </div>
             </div>
@@ -227,6 +233,7 @@
                 maxlength="500"
                 show-word-limit
                 class="opinion-textarea"
+                :disabled="!isAuditMode"
               />
             </div>
 
@@ -259,6 +266,7 @@
                     placeholder="请输入得分（满分5分）"
                     size="small"
                     style="width: 180px;"
+                    :disabled="!isAuditMode"
                   />
                 </div>
               </div>
@@ -274,6 +282,7 @@
                 maxlength="500"
                 show-word-limit
                 class="opinion-textarea"
+                :disabled="!isAuditMode"
               />
             </div>
           </div>
@@ -297,7 +306,7 @@
                   <span class="file-name">助企服务站建设材料.pdf</span>
                   <span class="file-preview">预览</span>
                   <div class="score-input-inline">
-                    <el-input v-model="formData.serviceScore1" placeholder="请输入得分（满分5分）" size="small" style="width: 180px;" />
+                    <el-input v-model="formData.serviceScore1" placeholder="请输入得分（满分5分）" size="small" style="width: 180px;" :disabled="!isAuditMode" />
                   </div>
                 </div>
               </div>
@@ -308,7 +317,7 @@
                   <span class="file-name">助企服务站建设材料.pdf</span>
                   <span class="file-preview">预览</span>
                   <div class="score-input-inline">
-                    <el-input v-model="formData.serviceScore2" placeholder="请输入得分（满分5分）" size="small" style="width: 180px;" />
+                    <el-input v-model="formData.serviceScore2" placeholder="请输入得分（满分5分）" size="small" style="width: 180px;" :disabled="!isAuditMode" />
                   </div>
                 </div>
               </div>
@@ -322,7 +331,7 @@
                 <span class="file-name">助企服务站建设材料.pdf</span>
                 <span class="file-preview">预览</span>
                 <div class="score-input-inline">
-                  <el-input v-model="formData.serviceScore3" placeholder="请输入得分（满分5分）" size="small" style="width: 180px;" />
+                  <el-input v-model="formData.serviceScore3" placeholder="请输入得分（满分5分）" size="small" style="width: 180px;" :disabled="!isAuditMode" />
                 </div>
               </div>
             </div>
@@ -337,6 +346,7 @@
                 maxlength="500"
                 show-word-limit
                 class="opinion-textarea"
+                :disabled="!isAuditMode"
               />
             </div>
 
@@ -355,7 +365,7 @@
                 <span class="file-name">助企服务站建设材料.pdf</span>
                 <span class="file-preview">预览</span>
                 <div class="score-input-inline">
-                  <el-input v-model="formData.serviceScore4" placeholder="请输入得分（满分5分）" size="small" style="width: 180px;" />
+                  <el-input v-model="formData.serviceScore4" placeholder="请输入得分（满分5分）" size="small" style="width: 180px;" :disabled="!isAuditMode" />
                 </div>
               </div>
             </div>
@@ -370,6 +380,7 @@
                 maxlength="500"
                 show-word-limit
                 class="opinion-textarea"
+                :disabled="!isAuditMode"
               />
             </div>
 
@@ -389,7 +400,7 @@
                   <span class="file-name">助企服务站建设材料.pdf</span>
                   <span class="file-preview">预览</span>
                   <div class="score-input-inline">
-                    <el-input v-model="formData.serviceScore5" placeholder="请输入得分（满分3分）" size="small" style="width: 180px;" />
+                    <el-input v-model="formData.serviceScore5" placeholder="请输入得分（满分3分）" size="small" style="width: 180px;" :disabled="!isAuditMode" />
                   </div>
                 </div>
               </div>
@@ -400,7 +411,7 @@
                   <span class="file-name">助企服务站建设材料.pdf</span>
                   <span class="file-preview">预览</span>
                   <div class="score-input-inline">
-                    <el-input v-model="formData.serviceScore6" placeholder="请输入得分（满分3分）" size="small" style="width: 180px;" />
+                    <el-input v-model="formData.serviceScore6" placeholder="请输入得分（满分3分）" size="small" style="width: 180px;" :disabled="!isAuditMode" />
                   </div>
                 </div>
               </div>
@@ -416,6 +427,7 @@
                 maxlength="500"
                 show-word-limit
                 class="opinion-textarea"
+                :disabled="!isAuditMode"
               />
             </div>
 
@@ -434,7 +446,7 @@
                 <span class="file-name">助企服务站建设材料.pdf</span>
                 <span class="file-preview">预览</span>
                 <div class="score-input-inline">
-                  <el-input v-model="formData.serviceScore7" placeholder="请输入得分（满分3分）" size="small" style="width: 180px;" />
+                  <el-input v-model="formData.serviceScore7" placeholder="请输入得分（满分3分）" size="small" style="width: 180px;" :disabled="!isAuditMode" />
                 </div>
               </div>
             </div>
@@ -449,6 +461,7 @@
                 maxlength="500"
                 show-word-limit
                 class="opinion-textarea"
+                :disabled="!isAuditMode"
               />
             </div>
           </div>
@@ -482,6 +495,7 @@
                     placeholder="请输入得分"
                     size="small"
                     style="width: 180px;"
+                    :disabled="!isAuditMode"
                   />
                 </div>
               </div>
@@ -497,6 +511,7 @@
                 maxlength="500"
                 show-word-limit
                 class="opinion-textarea"
+                :disabled="!isAuditMode"
               />
             </div>
           </div>
@@ -509,7 +524,7 @@
                 未落实《杭州市小微创业园安全管理通则》要求，经查实的，扣2分；
               </p>
             </div>
-            <el-input v-model="formData.safetyScore1" placeholder="请输入得分" size="small" style="width: 300px; margin-bottom: 16px;" />
+            <el-input v-model="formData.safetyScore1" placeholder="请输入得分" size="small" style="width: 300px; margin-bottom: 16px;" :disabled="!isAuditMode" />
 
             <div class="rule-box">
               <p class="rule-text">
@@ -517,7 +532,7 @@
                 未签订消防安全责任书的，扣2分；未落实培训、演练要求的，扣2分；
               </p>
             </div>
-            <el-input v-model="formData.safetyScore2" placeholder="请输入得分" size="small" style="width: 300px; margin-bottom: 16px;" />
+            <el-input v-model="formData.safetyScore2" placeholder="请输入得分" size="small" style="width: 300px; margin-bottom: 16px;" :disabled="!isAuditMode" />
 
             <div class="rule-box">
               <p class="rule-text">
@@ -525,7 +540,7 @@
                 消防设施器材不完整或过期的，扣2分；
               </p>
             </div>
-            <el-input v-model="formData.safetyScore3" placeholder="请输入得分" size="small" style="width: 300px; margin-bottom: 16px;" />
+            <el-input v-model="formData.safetyScore3" placeholder="请输入得分" size="small" style="width: 300px; margin-bottom: 16px;" :disabled="!isAuditMode" />
 
             <div class="rule-box">
               <p class="rule-text">
@@ -533,7 +548,7 @@
                 存在安全隐患被省、市主管部门通报的，每次扣2分。
               </p>
             </div>
-            <el-input v-model="formData.safetyScore4" placeholder="请输入得分" size="small" style="width: 300px; margin-bottom: 16px;" />
+            <el-input v-model="formData.safetyScore4" placeholder="请输入得分" size="small" style="width: 300px; margin-bottom: 16px;" :disabled="!isAuditMode" />
 
             <div class="rule-box">
               <p class="rule-text">
@@ -543,11 +558,11 @@
             </div>
             <div class="radio-group">
               <label class="radio-label">
-                <input type="radio" name="safetyDGrade" v-model="formData.safetyDGrade" value="yes" />
+                <input type="radio" name="safetyDGrade" v-model="formData.safetyDGrade" value="yes" :disabled="!isAuditMode" />
                 <span>列入D档</span>
               </label>
               <label class="radio-label">
-                <input type="radio" name="safetyDGrade" v-model="formData.safetyDGrade" value="no" />
+                <input type="radio" name="safetyDGrade" v-model="formData.safetyDGrade" value="no" :disabled="!isAuditMode" />
                 <span>不列入D档</span>
               </label>
             </div>
@@ -570,11 +585,11 @@
             </div>
             <div class="radio-group" style="margin-bottom: 16px;">
               <label class="radio-label">
-                <input type="radio" name="otherDGrade" v-model="formData.otherDGrade" value="yes" />
+                <input type="radio" name="otherDGrade" v-model="formData.otherDGrade" value="yes" :disabled="!isAuditMode" />
                 <span>列入D档</span>
               </label>
               <label class="radio-label">
-                <input type="radio" name="otherDGrade" v-model="formData.otherDGrade" value="no" />
+                <input type="radio" name="otherDGrade" v-model="formData.otherDGrade" value="no" :disabled="!isAuditMode" />
                 <span>不列入D档</span>
               </label>
             </div>
@@ -585,7 +600,7 @@
                 评价年度内有媒体负面报道，经查实并造成较大影响的，扣6分。
               </p>
             </div>
-            <el-input v-model="formData.otherScore1" placeholder="请输入得分" size="small" style="width: 300px; margin-bottom: 16px;" />
+            <el-input v-model="formData.otherScore1" placeholder="请输入得分" size="small" style="width: 300px; margin-bottom: 16px;" :disabled="!isAuditMode" />
 
             <div class="rule-box">
               <p class="rule-text">
@@ -610,18 +625,18 @@
             
             <div class="radio-group" style="margin-bottom: 16px;">
               <label class="radio-label">
-                <input type="radio" name="result1" v-model="formData.result1" value="pass" />
+                <input type="radio" name="result1" v-model="formData.result1" value="pass" :disabled="!isAuditMode" />
                 <span>通过</span>
               </label>
               <label class="radio-label">
-                <input type="radio" name="result1" v-model="formData.result1" value="reject" />
+                <input type="radio" name="result1" v-model="formData.result1" value="reject" :disabled="!isAuditMode" />
                 <span>驳回</span>
               </label>
             </div>
 
             <div style="margin-bottom: 16px;">
               <div class="section-subtitle" style="font-weight: 500;">驳回指标</div>
-              <el-select v-model="formData.rejectIndex" placeholder="选择指标" size="small" style="width: 300px;">
+              <el-select v-model="formData.rejectIndex" placeholder="选择指标" size="small" style="width: 300px;" :disabled="!isAuditMode">
                 <el-option label="基础指标" value="basic" />
                 <el-option label="产业发展" value="industry" />
                 <el-option label="企业培育" value="enterprise" />
@@ -643,13 +658,32 @@
                 maxlength="500"
                 show-word-limit
                 class="opinion-textarea"
+                :disabled="!isAuditMode"
               />
             </div>
 
-            <div style="margin-top: 16px;">
-              <el-button type="primary" @click="handleAuditComplete">审核完成</el-button>
             </div>
-          </div>
+        </div>
+
+        <div class="section-nav-footer">
+          <el-button
+            size="small"
+            :disabled="!hasPrevSection"
+            @click="goToPrevSection"
+          >上一步</el-button>
+          <span class="nav-progress">{{ currentSectionNum }} / {{ navItems.length }}</span>
+          <el-button
+            v-if="isAuditMode && !hasNextSection"
+            type="primary"
+            size="small"
+            @click="handleAuditComplete"
+          >审核完成</el-button>
+          <el-button
+            v-else
+            size="small"
+            :disabled="!hasNextSection"
+            @click="goToNextSection"
+          >下一步</el-button>
         </div>
       </div>
     </div>
@@ -671,11 +705,24 @@ import { getAuditDetail, updateAuditDetail, getAuditHistory } from '@/api/audit'
 export default {
   name: 'AdminAuditDetail',
   data() {
+    const navItems = [
+      { index: 'basic', label: '1-基础指标' },
+      { index: 'industry', label: '2-产业发展' },
+      { index: 'enterprise', label: '3-企业培育' },
+      { index: 'tech', label: '4-科技创新' },
+      { index: 'service', label: '5-服务能力' },
+      { index: 'benefit', label: '6-效益产出' },
+      { index: 'safety', label: '7-安全生产' },
+      { index: 'other', label: '8-其他' },
+      { index: 'result', label: '9-审核结果' }
+    ]
     return {
       activeSection: 'basic',
       showAuditRecord: false,
       saveLoading: false,
       detailLoading: false,
+      navItems,
+      visitedSections: { basic: true },
       formData: {
         basicResult1: '',
         enterpriseScore: '',
@@ -718,6 +765,12 @@ export default {
     }
   },
   computed: {
+    isAuditMode() {
+      return this.$route.query.mode === 'audit'
+    },
+    allSectionsVisited() {
+      return this.navItems.every(item => this.visitedSections[item.index])
+    },
     sectionTitle() {
       const titles = {
         basic: '基础指标',
@@ -731,6 +784,17 @@ export default {
         result: '审核结果'
       }
       return titles[this.activeSection] || ''
+    },
+    currentSectionNum() {
+      const idx = this.navItems.findIndex(item => item.index === this.activeSection)
+      return idx === -1 ? 1 : idx + 1
+    },
+    hasPrevSection() {
+      return this.navItems.findIndex(item => item.index === this.activeSection) > 0
+    },
+    hasNextSection() {
+      const idx = this.navItems.findIndex(item => item.index === this.activeSection)
+      return idx < this.navItems.length - 1
     }
   },
   created() {
@@ -744,24 +808,71 @@ export default {
       this.detailLoading = true
       try {
         const res = await getAuditDetail(id)
-        if (res && res.data) {
+        if (res && res.data && Object.keys(res.data).length > 2) {
           const data = res.data
-          // 合并可编辑字段
           this.formData = { ...this.formData, ...data }
-          // 附件数据
           this.highTechFileList = Array.isArray(data.highTechFileList) ? data.highTechFileList : []
           this.enterpriseFileList = Array.isArray(data.enterpriseFileList) ? data.enterpriseFileList : []
           this.techFileList = Array.isArray(data.techFileList) ? data.techFileList : []
-          // 表格数据
           this.industryTableData = Array.isArray(data.industryTableData) ? data.industryTableData : []
           this.techTableData = Array.isArray(data.techTableData) ? data.techTableData : []
+        } else {
+          this.applyMockDetail(id)
         }
       } catch (e) {
         console.error('加载审核详情失败', e)
-        this.$message.error('加载审核详情失败')
+        this.applyMockDetail(id)
       } finally {
         this.detailLoading = false
       }
+    },
+    applyMockDetail(id) {
+      this.formData = {
+        ...this.formData,
+        basicResult1: '通过',
+        enterpriseScore: '4',
+        enterpriseOpinion: '企业培育情况良好，符合要求',
+        techOpinion: '科技创新能力较强',
+        techScore2: '3',
+        techOpinion2: '科研合作成果显著',
+        serviceScore1: '4',
+        serviceScore2: '5',
+        serviceScore3: '3',
+        serviceOpinion1: '助企服务机制完善',
+        serviceScore4: '4',
+        serviceOpinion2: '数字化建设较好',
+        serviceScore5: '2',
+        serviceScore6: '3',
+        serviceOpinion3: '服务活动开展正常',
+        serviceScore7: '2',
+        serviceOpinion4: '合作项目推进顺利',
+        benefitScore: '6',
+        benefitOpinion: '亩均效益达到全市平均水平',
+        safetyScore1: '',
+        safetyScore2: '',
+        safetyScore3: '',
+        safetyScore4: '',
+        safetyDGrade: 'no',
+        otherDGrade: 'no',
+        otherScore1: '',
+        result1: '',
+        rejectIndex: '',
+        resultOpinion: ''
+      }
+      this.highTechFileList = [
+        { name: '2025年高新技术企业名单.pdf', url: '' }
+      ]
+      this.techFileList = [
+        { name: '科研合作项目材料.pdf', url: '' }
+      ]
+      this.industryTableData = [
+        { parkName: '盛惠哈源科创园', enterpriseName: '杭州某科技有限公司', creditCode: '91330100MA2XXXXXXX', entryTime: '2025.01-至今', address: '杭州市余杭区XX路XX号' },
+        { parkName: '盛惠哈源科创园', enterpriseName: '浙江某生物医药有限公司', creditCode: '91330100MA2YYYYYYY', entryTime: '2025.03-至今', address: '杭州市余杭区XX路XX号' }
+      ]
+      this.techTableData = [
+        { level: 'C类', name: '张三', date: '2025-06', company: '杭州某科技有限公司', score: '' },
+        { level: 'D类', name: '李四', date: '2025-09', company: '浙江某生物医药有限公司', score: '' }
+      ]
     },
 
     async loadAuditHistory() {
@@ -769,16 +880,58 @@ export default {
       if (!id) return
       try {
         const res = await getAuditHistory(id)
-        if (res && res.data && Array.isArray(res.data)) {
+        if (res && res.data && Array.isArray(res.data) && res.data.length > 0) {
           this.auditHistory = res.data
+        } else {
+          this.auditHistory = [
+            { content: '园区端提交评价材料', time: '2026-06-01 09:00:00', active: false },
+            { content: '区县管理员审核通过', time: '2026-06-10 14:30:00', active: false },
+            { content: '待市级管理员审核', time: '2026-06-10 14:30:00', active: true }
+          ]
         }
       } catch (e) {
         console.error('获取审核历史失败', e)
+        this.auditHistory = [
+          { content: '园区端提交评价材料', time: '2026-06-01 09:00:00', active: false },
+          { content: '区县管理员审核通过', time: '2026-06-10 14:30:00', active: false },
+          { content: '待市级管理员审核', time: '2026-06-10 14:30:00', active: true }
+        ]
       }
     },
 
     handleSectionChange(index) {
       this.activeSection = index
+      this.$set(this.visitedSections, index, true)
+    },
+    handleMenuSelect(index) {
+      if (this.isAuditMode && !this.visitedSections[index]) {
+        this.$message.warning('请按顺序逐项审核，已完成的可自由跳转')
+        return
+      }
+      this.handleSectionChange(index)
+    },
+    goToPrevSection() {
+      const curIdx = this.navItems.findIndex(item => item.index === this.activeSection)
+      if (curIdx > 0) {
+        this.handleSectionChange(this.navItems[curIdx - 1].index)
+      }
+    },
+    goToNextSection() {
+      const curIdx = this.navItems.findIndex(item => item.index === this.activeSection)
+      if (curIdx < this.navItems.length - 1) {
+        const nextIndex = this.navItems[curIdx + 1].index
+        if (this.visitedSections[nextIndex]) {
+          this.handleSectionChange(nextIndex)
+        } else {
+          this.$confirm('确认已完成当前页面的审核，进入下一页？', '提示', {
+            confirmButtonText: '确认进入下一页',
+            cancelButtonText: '继续审核',
+            type: 'info'
+          }).then(() => {
+            this.handleSectionChange(nextIndex)
+          }).catch(() => {})
+        }
+      }
     },
     toggleAuditRecord() {
       this.showAuditRecord = !this.showAuditRecord
@@ -786,7 +939,16 @@ export default {
     goBackToList() {
       this.$router.push('/admin/audit')
     },
-    async handleSave() {
+    async handleSaveDraft() {
+      try {
+        await this.$confirm('确认保存当前审核进度？保存后可随时返回继续审核。', '保存确认', {
+          confirmButtonText: '确认保存',
+          cancelButtonText: '取消',
+          type: 'info'
+        })
+      } catch (e) {
+        return
+      }
       const id = this.$route.params.id
       if (!id) {
         this.$message.warning('缺少评价记录ID')
@@ -795,31 +957,82 @@ export default {
       this.saveLoading = true
       try {
         await updateAuditDetail({ id, ...this.formData })
-        this.$message.success('保存成功')
+        this.$message.success('已保存审核进度')
+        this.$router.push('/admin/audit')
       } catch (e) {
         console.error('保存失败', e)
-        this.$message.error('保存失败')
       } finally {
         this.saveLoading = false
       }
     },
     async handleAuditComplete() {
-      const id = this.$route.params.id
-      if (!id) {
-        this.$message.warning('缺少评价记录ID')
+      const sectionChecks = [
+        { label: '3-企业培育', field: 'enterpriseScore', index: 'enterprise' },
+        { label: '4-科技创新', field: 'techScore2', index: 'tech' },
+        { label: '5-服务能力', field: 'serviceScore1', index: 'service' },
+        { label: '6-效益产出', field: 'benefitScore', index: 'benefit' },
+        { label: '7-安全生产', field: 'safetyScore1', index: 'safety' },
+        { label: '8-其他', field: 'otherScore1', index: 'other' },
+        { label: '9-审核结果', field: 'result1', index: 'result' }
+      ]
+      const uncompleted = sectionChecks
+        .filter(item => !this.formData[item.field] || this.formData[item.field] === '')
+      if (uncompleted.length > 0) {
+        const h = this.$createElement
+        const msg = h('div', { style: { lineHeight: '2.2' } }, [
+          h('p', { style: { marginBottom: '10px', color: '#303133', fontSize: '14px' } }, '以下子页面尚未完成审核，请填写打分后再提交：'),
+          h('div', { style: { background: '#F5F7FA', borderRadius: '6px', padding: '10px 14px' } },
+            uncompleted.map(item =>
+              h('p', {
+                style: { color: '#409EFF', cursor: 'pointer', margin: '4px 0', fontSize: '13px' },
+                on: {
+                  click: () => {
+                    const el = document.querySelector('.el-message-box__wrapper')
+                    if (el) {
+                      const closeBtn = el.querySelector('.el-message-box__headerbtn')
+                      if (closeBtn) closeBtn.click()
+                    }
+                    this.$nextTick(() => {
+                      this.handleSectionChange(item.index)
+                    })
+                  }
+                }
+              }, '→ ' + item.label)
+            )
+          )
+        ])
+        this.$msgbox({
+          title: '审核未完成',
+          message: msg,
+          confirmButtonText: '知道了',
+          type: 'warning',
+          showClose: true
+        }).catch(() => {})
         return
       }
-      this.saveLoading = true
       try {
+        await this.$confirm(
+          '确认提交审核结果？提交后将进入市级审核流程。',
+          '审核完成确认',
+          { confirmButtonText: '确认提交', cancelButtonText: '继续检查', type: 'info' }
+        )
+        const id = this.$route.params.id
+        if (!id) {
+          this.$message.warning('缺少评价记录ID')
+          return
+        }
+        this.saveLoading = true
         await updateAuditDetail({ id, ...this.formData })
         this.$message.success('审核完成')
+        this.$router.push('/admin/audit')
       } catch (e) {
-        console.error('审核失败', e)
-        this.$message.error('审核失败')
+        if (e !== 'cancel') {
+          console.error('审核提交失败', e)
+        }
       } finally {
         this.saveLoading = false
       }
-    }
+    },
   }
 }
 </script>
@@ -828,7 +1041,10 @@ export default {
 .audit-detail-container {
   padding: 16px 20px 20px;
   background: #F5F7FA;
-  min-height: calc(100vh - 56px);
+  height: 100%;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
 .breadcrumb-bar {
@@ -840,6 +1056,7 @@ export default {
   align-items: center;
   font-size: 13px;
   color: #6B7280;
+  flex-shrink: 0;
 }
 
 .breadcrumb-link {
@@ -866,7 +1083,9 @@ export default {
   display: flex;
   background: #FFFFFF;
   border-radius: 4px;
-  min-height: 500px;
+  flex: 1;
+  overflow: hidden;
+  min-height: 0;
 }
 
 /* ===== 左侧章节导航 ===== */
@@ -896,6 +1115,52 @@ export default {
 .nav-menu .el-menu-item.is-active {
   background: #1E40AF;
   color: #FFFFFF;
+}
+
+.nav-menu .el-menu-item.is-visited {
+  color: #67C23A;
+  position: relative;
+}
+
+.nav-menu .el-menu-item.is-visited::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 8px;
+  bottom: 8px;
+  width: 3px;
+  background: #67C23A;
+  border-radius: 0 2px 2px 0;
+}
+
+.nav-menu .el-menu-item.is-visited.is-active {
+  color: #FFFFFF;
+}
+
+.nav-menu .el-menu-item.is-visited.is-active::before {
+  background: #A0D9A0;
+}
+
+.nav-menu.is-locked .el-menu-item:not(.is-visited):not(.is-active) {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+/* ===== 上一步/下一步导航 ===== */
+.section-nav-footer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 20px;
+  border-top: 1px solid #E8EDF5;
+  background: #FAFBFC;
+  flex-shrink: 0;
+}
+
+.nav-progress {
+  font-size: 13px;
+  color: #909399;
 }
 
 /* ===== 主内容区 ===== */

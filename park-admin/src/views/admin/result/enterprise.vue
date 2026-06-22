@@ -1,5 +1,5 @@
 <template>
-  <div class="enterprise-result-container">
+  <div class="enterprise-result-container page-list-flex">
     <div class="breadcrumb-bar">
       <span class="breadcrumb-link">评价结果</span>
       <i class="el-icon-arrow-right breadcrumb-sep"></i>
@@ -29,10 +29,11 @@
       </div>
     </div>
 
+    <!-- 表格标题 -->
+    <div class="table-title">企业荣誉数量统计汇总表</div>
     <!-- 数据表格 -->
-    <div class="table-wrapper">
-      <div class="table-title">企业荣誉数量统计汇总表</div>
-      <el-table v-loading="loading" :data="list" border stripe size="mini" style="width: 100%" class="result-table">
+    <div class="table-flex-wrapper">
+      <el-table v-loading="loading" :data="list" border stripe size="mini" class="result-table">
         <el-table-column type="index" label="序号" width="70" align="center" fixed="left" />
         <el-table-column prop="parkName" label="园区名称" width="160" align="center" fixed="left" show-overflow-tooltip />
         <el-table-column prop="region" label="所属区域" width="120" align="center" />
@@ -72,8 +73,9 @@
           <el-table-column prop="talentCClass" label="C类人才" width="90" align="center" />
         </el-table-column>
       </el-table>
+    </div>
 
-      <div class="pagination-bar">
+    <div class="pagination-bar">
         <span class="total-text">共 {{ total }}条</span>
         <el-select v-model="queryParams.pageSize" size="small" style="width: 110px" @change="handleSizeChange">
           <el-option v-for="s in [20, 50, 100]" :key="s" :label="s + '条/页'" :value="s" />
@@ -94,7 +96,6 @@
           <span>页</span>
         </div>
       </div>
-    </div>
   </div>
 </template>
 
@@ -247,7 +248,8 @@ export default {
 .enterprise-result-container {
   padding: 16px 20px 20px;
   background: #F5F7FA;
-  min-height: calc(100vh - 56px);
+  height: 100%;
+  overflow: hidden;
 }
 
 .breadcrumb-bar {
@@ -259,6 +261,7 @@ export default {
   align-items: center;
   font-size: 13px;
   color: #6B7280;
+  flex-shrink: 0;
 }
 
 .breadcrumb-link {
@@ -295,17 +298,12 @@ export default {
   flex-wrap: wrap;
 }
 
-.table-wrapper {
-  background: #FFFFFF;
-  border-radius: 4px;
-  padding: 12px 16px 16px;
-}
-
 .table-title {
   font-size: 13px;
   font-weight: 500;
   color: #303133;
   padding: 8px 0 12px 0;
+  flex-shrink: 0;
 }
 
 .result-table >>> .el-table__header th {

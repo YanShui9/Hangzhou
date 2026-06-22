@@ -1,5 +1,5 @@
 <template>
-  <div class="park-list-container">
+  <div class="park-list-container page-list-flex">
     <!-- 页面标题 -->
     <div class="page-header">
       <h2 class="page-title">园区列表</h2>
@@ -78,15 +78,16 @@
     </div>
 
     <!-- 数据表格 -->
-    <el-table
-      v-loading="loading"
-      :data="parkList"
-      border
-      stripe
-      size="mini"
-      style="width: 100%"
-      class="park-table"
-    >
+    <div class="table-flex-wrapper">
+      <el-table
+        v-loading="loading"
+        :data="parkList"
+        border
+        stripe
+        size="mini"
+        height="100%"
+        class="park-table"
+      >
       <el-table-column type="index" label="序号" width="60" align="center" />
       <el-table-column prop="parkName" label="园区名称" min-width="150" show-overflow-tooltip>
         <template slot-scope="{ row }">
@@ -152,6 +153,7 @@
         </template>
       </el-table-column>
     </el-table>
+    </div>
 
     <!-- 分页组件 -->
     <div class="pagination-bar">
@@ -563,7 +565,8 @@ export default {
 .park-list-container {
   padding: 16px 20px 20px;
   background: #F5F7FA;
-  min-height: calc(100vh - 56px);
+  height: 100%;
+  overflow: hidden;
 }
 
 /* 页面标题 */

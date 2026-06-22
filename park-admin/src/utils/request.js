@@ -3,6 +3,8 @@ import { Message } from 'element-ui'
 import store from '@/store'
 import router from '@/router'
 
+let isRedirecting = false
+
 const service = axios.create({
   baseURL: '/', // 基础URL为'/'，因为后端接口统一以 /api/ 开头
   timeout: 15000
@@ -42,15 +44,19 @@ service.interceptors.response.use(
 
     // 处理 401 未授权（Token 过期或无效）
     if (error.response && error.response.status === 401) {
-      Message({
-        message: '登录已过期，请重新登录',
-        type: 'warning',
-        duration: 2000
-      })
-      // 清除用户信息并跳转到登录页
-      store.dispatch('user/logout').then(() => {
-        router.push('/login')
-      })
+      if (!isRedirecting) {
+        isRedirecting = true
+        Message({
+          message: '登录已过期，请重新登录',
+          type: 'warning',
+          duration: 2000
+        })
+        store.dispatch('user/logout').then(() => {
+          router.push('/login').finally(() => {
+            isRedirecting = false
+          })
+        })
+      }
       return Promise.reject(error)
     }
 

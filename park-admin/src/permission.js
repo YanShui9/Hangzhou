@@ -19,7 +19,11 @@ router.beforeEach(async(to, from, next) => {
           // 用户信息加载成功，继续导航
           next({ ...to, replace: true })
         } catch (error) {
-          // 获取用户信息失败，清除 token 并跳转登录页
+          // 获取用户信息失败（request.js 拦截器已处理跳转），放行避免重复导航
+          if (to.path === '/login') {
+            next()
+            return
+          }
           await store.dispatch('user/logout')
           next('/login')
         }

@@ -1,5 +1,5 @@
 <template>
-  <div class="district-user-page">
+  <div class="district-user-page page-list-flex">
     <!-- 顶部操作区 -->
     <div class="top-bar">
       <!-- 面包屑 -->
@@ -72,12 +72,12 @@
     </div>
 
     <!-- 数据表格 -->
+    <div class="table-flex-wrapper">
     <el-table
       v-loading="loading"
       :data="userList"
       border
       stripe
-      style="width: 100%;"
     >
       <el-table-column
         type="index"
@@ -132,6 +132,7 @@
         </template>
       </el-table-column>
     </el-table>
+    </div>
 
     <!-- 分页 -->
     <div class="pagination-bar">
@@ -506,11 +507,13 @@ export default {
 
 <style scoped>
 .district-user-page {
-  padding: 20px;
+  height: 100%;
+  overflow: hidden;
 }
 
 /* 顶部操作栏 */
 .top-bar {
+  flex-shrink: 0;
   display: flex;
   justify-content: space-between;
   align-items: center;

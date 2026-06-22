@@ -1,5 +1,5 @@
 <template>
-  <div class="park-user-page">
+  <div class="park-user-page page-list-flex">
     <!-- 顶部操作区 -->
     <div class="top-bar">
       <!-- 面包屑 -->
@@ -85,13 +85,13 @@
     </div>
 
     <!-- 数据表格 -->
-    <el-table
-      v-loading="loading"
-      :data="userList"
-      border
-      stripe
-      style="width: 100%;"
-    >
+    <div class="table-flex-wrapper">
+      <el-table
+        v-loading="loading"
+        :data="userList"
+        border
+        stripe
+      >
       <el-table-column
         type="index"
         label="序号"
@@ -147,6 +147,7 @@
         </template>
       </el-table-column>
     </el-table>
+    </div>
 
     <!-- 分页 -->
     <div class="pagination-bar">
@@ -188,7 +189,7 @@
     <el-dialog
       :title="dialogTitle"
       :visible.sync="dialogVisible"
-      width="560px"
+      width="600px"
       :close-on-click-modal="false"
       @closed="handleDialogClosed"
     >
@@ -196,7 +197,7 @@
         ref="userForm"
         :model="userForm"
         :rules="userRules"
-        label-width="110px"
+        label-width="140px"
       >
         <el-form-item label="企业名称" prop="enterpriseName">
           <el-input v-model="userForm.enterpriseName" placeholder="请输入企业名称" />
@@ -516,7 +517,8 @@ export default {
 
 <style scoped>
 .park-user-page {
-  padding: 20px;
+  height: 100%;
+  overflow: hidden;
 }
 
 /* 顶部操作栏 */
@@ -612,5 +614,10 @@ export default {
   display: flex;
   justify-content: flex-end;
   gap: 8px;
+}
+
+/* 防止表单标签换行 */
+.park-user-page >>> .el-form-item__label {
+  white-space: nowrap;
 }
 </style>

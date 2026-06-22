@@ -1,5 +1,5 @@
 <template>
-  <div class="park-result-container">
+  <div class="park-result-container page-list-flex">
     <!-- 筛选区 -->
     <div class="filter-bar">
       <div class="filter-left">
@@ -76,6 +76,7 @@
     <div class="table-wrapper">
       <div class="table-title">园区评价汇总表（{{ viewMode === 'detail' ? '详版' : '简版' }}）</div>
 
+      <div class="table-flex-wrapper">
       <!-- 简版表格 -->
       <el-table
         v-if="viewMode === 'simple'"
@@ -84,7 +85,6 @@
         border
         stripe
         size="mini"
-        style="width: 100%"
         class="result-table simple-table"
         :header-cell-style="headerCellStyle"
       >
@@ -122,7 +122,6 @@
         border
         stripe
         size="mini"
-        style="width: 100%"
         class="result-table"
         :header-cell-style="headerCellStyle"
       >
@@ -280,6 +279,7 @@
           </template>
         </el-table-column>
       </el-table>
+      </div>
 
       <!-- 分页 -->
       <div class="pagination-bar">
@@ -582,7 +582,8 @@ export default {
 .park-result-container {
   padding: 16px 20px 20px;
   background: #F5F7FA;
-  min-height: calc(100vh - 56px);
+  height: 100%;
+  overflow: hidden;
 }
 
 .filter-bar {

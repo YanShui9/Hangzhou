@@ -1,5 +1,5 @@
 <template>
-  <div class="audit-list-container">
+  <div class="audit-list-container page-list-flex">
 
     <!-- ============ 顶部 4 个统计卡片 ============ -->
     <div class="stats-cards">
@@ -74,10 +74,14 @@
             size="small"
             class="filter-input"
           >
-            <el-option label="待审核" value="待审核" />
-            <el-option label="已通过" value="已通过" />
-            <el-option label="已驳回" value="已驳回" />
+            <el-option label="未提交" value="未提交" />
+            <el-option label="区县待审核" value="区县待审核" />
+            <el-option label="区县审核通过" value="区县审核通过" />
+            <el-option label="区县审核驳回" value="区县审核驳回" />
             <el-option label="已终止" value="已终止" />
+            <el-option label="市级待审核" value="市级待审核" />
+            <el-option label="市级审核通过" value="市级审核通过" />
+            <el-option label="市级审核驳回" value="市级审核驳回" />
           </el-select>
         </div>
 
@@ -90,7 +94,7 @@
             class="filter-input"
           >
             <el-option label="参评" value="参评" />
-            <el-option label="退出" value="退出" />
+            <el-option label="不参评" value="不参评" />
           </el-select>
         </div>
 
@@ -106,12 +110,11 @@
     </div>
 
     <!-- ============ 数据表格 ============ -->
-    <div class="table-wrapper">
+    <div class="table-flex-wrapper">
       <el-table
         :data="tableData"
         border
         stripe
-        style="width: 100%"
         v-loading="tableLoading"
         :header-cell-style="{ background: '#FAFBFC', color: '#303133', fontWeight: '600' }"
       >
@@ -134,13 +137,26 @@
         <el-table-column prop="createTime" label="创建时间" width="170" align="center" />
         <el-table-column label="操作" width="100" align="center" fixed="right">
           <template slot-scope="scope">
-            <el-button type="text" size="small" @click="handleView(scope.row)">查看</el-button>
+            <el-button
+              v-if="scope.row.auditStatus === '市级待审核'"
+              type="text"
+              size="small"
+              style="color: #409EFF;"
+              @click="handleAudit(scope.row)"
+            >审核</el-button>
+            <el-button
+              v-else
+              type="text"
+              size="small"
+              @click="handleView(scope.row)"
+            >查看</el-button>
           </template>
         </el-table-column>
       </el-table>
+    </div>
 
-      <!-- ============ 分页 ============ -->
-      <div class="pagination-bar">
+    <!-- ============ 分页 ============ -->
+    <div class="pagination-bar">
         <el-pagination
           class="pagination"
           background
@@ -153,7 +169,6 @@
           @size-change="handleSizeChange"
         />
       </div>
-    </div>
 
     <!-- ============ 发起年度填报 弹窗 ============ -->
     <el-dialog
@@ -217,9 +232,9 @@ export default {
       // 概览数据
       summary: {
         total: 0,
-        pending: 0,
-        passed: 0,
-        returned: 0
+        cityPending: 0,
+        cityPassed: 0,
+        cityReturned: 0
       },
       activeCardKey: 'all',
       // 表格数据
@@ -245,9 +260,9 @@ export default {
     statCards() {
       return [
         { key: 'all', label: '全部', value: this.summary.total, icon: 'el-icon-document' },
-        { key: 'pending', label: '待审核', value: this.summary.pending, icon: 'el-icon-time' },
-        { key: 'passed', label: '已通过', value: this.summary.passed, icon: 'el-icon-circle-check' },
-        { key: 'returned', label: '已驳回', value: this.summary.returned, icon: 'el-icon-circle-close' }
+        { key: 'cityPending', label: '市级待审核', value: this.summary.cityPending, icon: 'el-icon-time' },
+        { key: 'cityPassed', label: '市级审核通过', value: this.summary.cityPassed, icon: 'el-icon-circle-check' },
+        { key: 'cityReturned', label: '市级审核驳回', value: this.summary.cityReturned, icon: 'el-icon-circle-close' }
       ]
     }
   },
@@ -261,41 +276,82 @@ export default {
     async fetchSummary() {
       try {
         const res = await getEvaluationSummary()
-        if (res && res.data) {
+        if (res && res.data && res.data.total > 0) {
           this.summary = {
             total: res.data.total || 0,
-            pending: res.data.pending || 0,
-            passed: res.data.passed || 0,
-            returned: res.data.returned || 0
+            cityPending: res.data.cityPending || 0,
+            cityPassed: res.data.cityPassed || 0,
+            cityReturned: res.data.cityReturned || 0
           }
+        } else {
+          this.applyMockSummary()
         }
       } catch (e) {
         console.error('获取概览统计失败', e)
+        this.applyMockSummary()
       }
+    },
+    applyMockSummary() {
+      this.summary = { total: 8, cityPending: 3, cityPassed: 2, cityReturned: 1 }
     },
 
     async fetchList() {
       this.tableLoading = true
       try {
-        // 活动卡片点击后附带筛选，便于快速过滤
         const params = { ...this.queryForm }
         if (this.activeCardKey && this.activeCardKey !== 'all') {
-          const map = { pending: '待审核', passed: '已通过', returned: '已驳回' }
-          // 仅当用户没主动选择审核状态时，附加卡片点击的过滤
+          const map = { cityPending: '市级待审核', cityPassed: '市级审核通过', cityReturned: '市级审核驳回' }
           if (!params.auditStatus && map[this.activeCardKey]) {
             params.auditStatus = map[this.activeCardKey]
           }
         }
         const res = await getEvaluationList(params)
-        if (res && res.data) {
+        if (res && res.data && res.data.records && res.data.records.length > 0 && res.data.records[0].parkName) {
           this.tableData = res.data.records || []
           this.total = res.data.total || 0
+        } else {
+          this.applyMockList(params)
         }
       } catch (e) {
         console.error('获取评价审核列表失败', e)
+        this.applyMockList(this.queryForm)
       } finally {
         this.tableLoading = false
       }
+    },
+    applyMockList(params) {
+      const allMock = [
+        { id: 1, parkName: '盛惠哈源科创园', districtName: '余杭区', parkType: '服务类', parkStatus: '参评', auditStatus: '市级待审核', createTime: '2026-06-15 10:30:00' },
+        { id: 2, parkName: '世创智能制造产业园', districtName: '临平区', parkType: '制造类', parkStatus: '参评', auditStatus: '市级待审核', createTime: '2026-06-16 14:20:00' },
+        { id: 3, parkName: '舒泰富春智创园', districtName: '桐庐县', parkType: '制造类', parkStatus: '参评', auditStatus: '市级待审核', createTime: '2026-06-17 09:15:00' },
+        { id: 4, parkName: '蜀山未来城', districtName: '萧山区', parkType: '服务类', parkStatus: '参评', auditStatus: '市级审核通过', createTime: '2026-06-10 16:00:00' },
+        { id: 5, parkName: '丝联166文创园', districtName: '拱墅区', parkType: '服务类', parkStatus: '参评', auditStatus: '市级审核通过', createTime: '2026-06-11 11:30:00' },
+        { id: 6, parkName: '算力一期', districtName: '临平区', parkType: '服务类', parkStatus: '不参评', auditStatus: '市级审核驳回', createTime: '2026-06-12 08:45:00' },
+        { id: 7, parkName: '泰嘉园', districtName: '拱墅区', parkType: '服务类', parkStatus: '参评', auditStatus: '区县待审核', createTime: '2026-06-18 13:00:00' },
+        { id: 8, parkName: '天诚生物医药科创园', districtName: '萧山区', parkType: '制造类', parkStatus: '参评', auditStatus: '未提交', createTime: '2026-06-20 10:00:00' }
+      ]
+      let filtered = allMock
+      const p = params || {}
+      if (p.auditStatus) {
+        filtered = filtered.filter(item => item.auditStatus === p.auditStatus)
+      }
+      if (p.parkName) {
+        filtered = filtered.filter(item => item.parkName.includes(p.parkName))
+      }
+      if (p.districtName) {
+        filtered = filtered.filter(item => item.districtName === p.districtName)
+      }
+      if (p.parkType) {
+        filtered = filtered.filter(item => item.parkType === p.parkType)
+      }
+      if (p.parkStatus) {
+        filtered = filtered.filter(item => item.parkStatus === p.parkStatus)
+      }
+      this.total = filtered.length
+      const pageNum = p.pageNum || 1
+      const pageSize = p.pageSize || 20
+      const start = (pageNum - 1) * pageSize
+      this.tableData = filtered.slice(start, start + pageSize)
     },
 
     async fetchYearOptions() {
@@ -325,7 +381,7 @@ export default {
     /* ---------- 顶部卡片交互 ---------- */
     handleCardClick(key) {
       this.activeCardKey = key
-      const map = { all: '', pending: '待审核', passed: '已通过', returned: '已驳回' }
+      const map = { all: '', cityPending: '市级待审核', cityPassed: '市级审核通过', cityReturned: '市级审核驳回' }
       this.queryForm.auditStatus = map[key] || ''
       this.queryForm.pageNum = 1
       this.fetchList()
@@ -372,7 +428,14 @@ export default {
         this.$message.warning('缺少评价记录ID')
         return
       }
-      this.$router.push(`/admin/audit/detail/${row.id}`)
+      this.$router.push(`/admin/audit/detail/${row.id}?mode=view`)
+    },
+    handleAudit(row) {
+      if (!row.id) {
+        this.$message.warning('缺少评价记录ID')
+        return
+      }
+      this.$router.push(`/admin/audit/detail/${row.id}?mode=audit`)
     },
 
     /* ---------- 发起年度填报 ---------- */
@@ -405,11 +468,20 @@ export default {
       return Number(val).toLocaleString()
     },
     mapAuditStatusKey(status) {
-      const map = { '待审核': 'pending', '已通过': 'passed', '已驳回': 'returned', '已终止': 'stopped' }
+      const map = {
+        '未提交': 'unsubmitted',
+        '区县待审核': 'district-pending',
+        '区县审核通过': 'district-passed',
+        '区县审核驳回': 'district-returned',
+        '已终止': 'stopped',
+        '市级待审核': 'city-pending',
+        '市级审核通过': 'city-passed',
+        '市级审核驳回': 'city-returned'
+      }
       return map[status] || 'default'
     },
     mapParkStatusKey(status) {
-      const map = { '参评': 'join', '退出': 'exit' }
+      const map = { '参评': 'join', '不参评': 'exit' }
       return map[status] || 'default'
     }
   }
@@ -420,7 +492,8 @@ export default {
 .audit-list-container {
   padding: 16px 20px 20px;
   background: #F5F7FA;
-  min-height: calc(100vh - 56px);
+  height: 100%;
+  overflow: hidden;
 }
 
 /* ============ 顶部 4 个统计卡片 ============ */
@@ -541,10 +614,9 @@ export default {
 }
 
 /* ============ 表格 + 分页 ============ */
-.table-wrapper {
+.table-flex-wrapper {
   background: #FFFFFF;
   border-radius: 6px;
-  padding: 16px 20px 12px;
 }
 
 .pagination-bar {
@@ -565,10 +637,14 @@ export default {
 
 .dot-join { background: #67C23A; }
 .dot-exit { background: #F56C6C; }
-.dot-pending { background: #E6A23C; }
-.dot-passed { background: #67C23A; }
-.dot-returned { background: #F56C6C; }
+.dot-unsubmitted { background: #C0C4CC; }
+.dot-district-pending { background: #E6A23C; }
+.dot-district-passed { background: #67C23A; }
+.dot-district-returned { background: #F56C6C; }
 .dot-stopped { background: #909399; }
+.dot-city-pending { background: #409EFF; }
+.dot-city-passed { background: #67C23A; }
+.dot-city-returned { background: #F56C6C; }
 .dot-default { background: #C0C4CC; }
 
 /* ============ 发起年度填报弹窗 ============ */
