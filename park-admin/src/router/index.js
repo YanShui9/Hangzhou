@@ -117,12 +117,19 @@ const routes = [
         component: () => import('@/views/park/result/list.vue'),
         meta: { title: '评价结果', icon: 'el-icon-trophy', roles: [3] }
       },
-      // 系统设置 - 用户管理（直接作为顶级路由）
+      // 系统设置 - 用户管理
       {
         path: 'system/users',
         name: 'UserManage',
         component: () => import('@/views/admin/system/user.vue'),
         meta: { title: '用户管理', icon: 'el-icon-setting', roles: [1] }
+      },
+      // 区县端系统设置 - 园区管理员管理
+      {
+        path: 'district/system/users',
+        name: 'DistrictUserManage',
+        component: () => import('@/views/district/system/user.vue'),
+        meta: { title: '园区管理员', icon: 'el-icon-setting', roles: [2] }
       }
     ]
   }

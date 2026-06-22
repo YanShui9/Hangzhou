@@ -94,6 +94,18 @@
           <span slot="title">用户管理</span>
         </el-menu-item>
       </el-submenu>
+
+      <!-- 区县端系统设置 -->
+      <el-submenu v-if="hasRole([2])" index="district-system">
+        <template slot="title">
+          <i class="el-icon-setting"></i>
+          <span>系统设置</span>
+        </template>
+        <el-menu-item index="/district/system/users" @click="$router.push('/district/system/users')">
+          <i class="el-icon-user"></i>
+          <span slot="title">园区管理员</span>
+        </el-menu-item>
+      </el-submenu>
     </el-menu>
   </div>
 </template>
