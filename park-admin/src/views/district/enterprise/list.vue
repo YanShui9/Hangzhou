@@ -109,10 +109,15 @@
 import { getEnterpriseList } from '@/api/enterprise'
 import { getParkList } from '@/api/park'
 
+/**
+ * 区县端入驻企业列表页面
+ * @author park-team
+ */
 export default {
   name: 'DistrictEnterpriseList',
   data() {
     return {
+      /** 查询参数 */
       queryParams: {
         pageNum: 1,
         pageSize: 10,
@@ -120,10 +125,15 @@ export default {
         parkId: undefined,
         industryName: ''
       },
+      /** 企业列表 */
       enterpriseList: [],
+      /** 总记录数 */
       total: 0,
+      /** 加载状态 */
       loading: false,
+      /** 园区选项 */
       parkOptions: [],
+      /** 行业选项 */
       industryOptions: [
         '软件和信息技术服务业',
         '计算机、通信和其他电子设备制造业',
@@ -134,11 +144,17 @@ export default {
       ]
     }
   },
+  /**
+   * 页面创建时加载数据
+   */
   created() {
     this.getList()
     this.getParkOptions()
   },
   methods: {
+    /**
+     * 获取企业列表
+     */
     getList() {
       this.loading = true
       getEnterpriseList(this.queryParams).then(response => {
@@ -152,15 +168,24 @@ export default {
         this.loading = false
       })
     },
+    /**
+     * 获取园区选项
+     */
     getParkOptions() {
       getParkList({ pageNum: 1, pageSize: 100 }).then(res => {
         this.parkOptions = res.data.records || []
       })
     },
+    /**
+     * 搜索
+     */
     handleQuery() {
       this.queryParams.pageNum = 1
       this.getList()
     },
+    /**
+     * 重置搜索条件
+     */
     resetQuery() {
       this.queryParams = {
         pageNum: 1,
@@ -171,14 +196,27 @@ export default {
       }
       this.getList()
     },
+    /**
+     * 每页条数改变
+     * @param {Number} val - 每页条数
+     */
     handleSizeChange(val) {
       this.queryParams.pageSize = val
       this.getList()
     },
+    /**
+     * 当前页改变
+     * @param {Number} val - 当前页码
+     */
     handleCurrentChange(val) {
       this.queryParams.pageNum = val
       this.getList()
     },
+    /**
+     * 根据园区ID获取园区名称
+     * @param {Number} parkId - 园区ID
+     * @returns {String} 园区名称
+     */
     getParkName(parkId) {
       const park = this.parkOptions.find(item => item.id === parkId)
       return park ? park.parkName : '-'

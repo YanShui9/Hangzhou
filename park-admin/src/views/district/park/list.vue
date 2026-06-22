@@ -81,25 +81,39 @@
 <script>
 import { getParkList } from '@/api/park'
 
+/**
+ * 区县端园区列表页面
+ * @author park-team
+ */
 export default {
   name: 'DistrictParkList',
   data() {
     return {
+      /** 查询参数 */
       queryParams: {
         parkName: '',
         parkType: null,
         pageNum: 1,
         pageSize: 10
       },
+      /** 园区列表 */
       parkList: [],
+      /** 总记录数 */
       total: 0,
+      /** 加载状态 */
       loading: false
     }
   },
+  /**
+   * 页面创建时加载数据
+   */
   created() {
     this.getList()
   },
   methods: {
+    /**
+     * 获取园区列表
+     */
     getList() {
       this.loading = true
       getParkList(this.queryParams).then(res => {
@@ -109,10 +123,16 @@ export default {
         this.loading = false
       })
     },
+    /**
+     * 搜索
+     */
     handleQuery() {
       this.queryParams.pageNum = 1
       this.getList()
     },
+    /**
+     * 重置搜索条件
+     */
     resetQuery() {
       this.queryParams = {
         parkName: '',
@@ -122,14 +142,26 @@ export default {
       }
       this.getList()
     },
+    /**
+     * 每页条数改变
+     * @param {Number} val - 每页条数
+     */
     handleSizeChange(val) {
       this.queryParams.pageSize = val
       this.getList()
     },
+    /**
+     * 当前页改变
+     * @param {Number} val - 当前页码
+     */
     handleCurrentChange(val) {
       this.queryParams.pageNum = val
       this.getList()
     },
+    /**
+     * 查看园区详情
+     * @param {Object} row - 园区数据
+     */
     handleView(row) {
       this.$router.push(`/district/park/detail/${row.id}`)
     }

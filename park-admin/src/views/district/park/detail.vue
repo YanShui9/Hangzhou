@@ -214,6 +214,10 @@
 <script>
 import { getParkDetail } from '@/api/park'
 
+/**
+ * 园区详情页面
+ * @author park-team
+ */
 export default {
   name: 'ParkDetail',
   data() {
@@ -222,6 +226,9 @@ export default {
     }
   },
   computed: {
+    /**
+     * 获取园区类型标签
+     */
     parkTypeLabel() {
       const typeMap = {
         1: '生产性制造类',
@@ -229,12 +236,18 @@ export default {
       }
       return typeMap[this.parkInfo.parkType] || this.parkInfo.parkType || '-'
     },
+    /**
+     * 计算剩余可租面积
+     */
     remainingArea() {
       const constructed = Number(this.parkInfo.constructedArea) || 0
       const rented = Number(this.parkInfo.rentedArea) || 0
       return constructed - rented
     }
   },
+  /**
+   * 页面挂载时获取园区详情
+   */
   mounted() {
     const id = this.$route.params.id
     if (id) {
@@ -242,6 +255,10 @@ export default {
     }
   },
   methods: {
+    /**
+     * 获取园区详情
+     * @param {Number} id - 园区ID
+     */
     async fetchParkDetail(id) {
       try {
         const res = await getParkDetail(id)
@@ -251,6 +268,9 @@ export default {
         this.$message.error('获取园区详情失败')
       }
     },
+    /**
+     * 返回园区列表页
+     */
     goBack() {
       this.$router.push('/district/park')
     }
