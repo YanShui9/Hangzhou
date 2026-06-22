@@ -1,5 +1,5 @@
 <template>
-  <div class="user-manage">
+  <div class="user-manage-container">
     <!-- 搜索栏 -->
     <el-card class="search-card" shadow="never">
       <el-form :inline="true" :model="queryParams" class="search-form">
@@ -32,7 +32,8 @@
 
     <!-- 操作栏 + 表格 -->
     <el-card class="table-card" shadow="never">
-      <div class="table-header">
+      <div slot="header" class="table-header">
+        <span class="header-title">园区管理员列表</span>
         <el-button type="primary" icon="el-icon-plus" @click="handleAdd">新增园区管理员</el-button>
       </div>
 
@@ -73,17 +74,18 @@
       </el-table>
 
       <!-- 分页 -->
-      <el-pagination
-        v-if="total > 0"
-        class="pagination"
-        :current-page="queryParams.pageNum"
-        :page-size="queryParams.pageSize"
-        :total="total"
-        :page-sizes="[10, 20, 50, 100]"
-        layout="total, sizes, prev, pager, next, jumper"
-        @size-change="handleSizeChange"
-        @current-change="handleCurrentChange"
-      />
+      <div class="pagination-container">
+        <el-pagination
+          v-if="total > 0"
+          :current-page="queryParams.pageNum"
+          :page-size="queryParams.pageSize"
+          :total="total"
+          :page-sizes="[10, 20, 50, 100]"
+          layout="total, sizes, prev, pager, next, jumper"
+          @size-change="handleSizeChange"
+          @current-change="handleCurrentChange"
+        />
+      </div>
     </el-card>
 
     <!-- 新增/编辑弹窗 -->
@@ -118,7 +120,7 @@
             v-model="formData.password"
             type="password"
             placeholder="默认密码：123456"
-            :disabled="true"
+            disabled
           />
         </el-form-item>
         <el-form-item label="状态">
@@ -140,6 +142,11 @@
 </template>
 
 <script>
+/**
+ * 区县端-园区管理员管理页面
+ * @module views/district/system/user
+ * @author park-team
+ */
 import { getParkAdminList, getParkAdminById, addParkAdmin, updateParkAdmin, deleteParkAdmin, resetParkAdminPwd } from '@/api/district/user'
 import { getParkList } from '@/api/park'
 
@@ -147,17 +154,24 @@ export default {
   name: 'DistrictUserManage',
   data() {
     return {
+      /** 加载状态 */
       loading: false,
+      /** 用户列表 */
       userList: [],
+      /** 总记录数 */
       total: 0,
+      /** 查询参数 */
       queryParams: {
         pageNum: 1,
         pageSize: 10,
         username: '',
         status: ''
       },
+      /** 弹窗可见性 */
       dialogVisible: false,
+      /** 弹窗标题 */
       dialogTitle: '',
+      /** 表单数据 */
       formData: {
         id: null,
         username: '',
@@ -167,7 +181,9 @@ export default {
         password: '',
         status: '1'
       },
+      /** 园区列表 */
       parkList: [],
+      /** 表单验证规则 */
       formRules: {
         username: [
           { required: true, message: '请输入用户名', trigger: 'blur' },
@@ -185,17 +201,22 @@ export default {
       }
     }
   },
+  /**
+   * 页面挂载时加载数据
+   */
   mounted() {
     this.fetchList()
     this.fetchParkList()
   },
   methods: {
-    /** 获取园区管理员列表 */
+    /**
+     * 获取园区管理员列表
+     */
     async fetchList() {
       this.loading = true
       try {
         const res = await getParkAdminList(this.queryParams)
-        this.userList = res.data.list || []
+        this.userList = res.data.records || []
         this.total = res.data.total || 0
       } catch (e) {
         console.error('获取园区管理员列表失败:', e)
@@ -205,23 +226,29 @@ export default {
       }
     },
 
-    /** 获取园区列表（用于选择所属园区） */
+    /**
+     * 获取园区列表（用于选择所属园区）
+     */
     async fetchParkList() {
       try {
         const res = await getParkList({ pageNum: 1, pageSize: 100 })
-        this.parkList = res.data.list || []
+        this.parkList = res.data.records || []
       } catch (e) {
         console.error('获取园区列表失败:', e)
       }
     },
 
-    /** 搜索 */
+    /**
+     * 搜索
+     */
     handleSearch() {
       this.queryParams.pageNum = 1
       this.fetchList()
     },
 
-    /** 重置 */
+    /**
+     * 重置查询条件
+     */
     handleReset() {
       this.queryParams = {
         pageNum: 1,
@@ -232,19 +259,27 @@ export default {
       this.fetchList()
     },
 
-    /** 每页条数改变 */
+    /**
+     * 每页条数改变
+     * @param {Number} val - 每页条数
+     */
     handleSizeChange(val) {
       this.queryParams.pageSize = val
       this.fetchList()
     },
 
-    /** 当前页改变 */
+    /**
+     * 当前页改变
+     * @param {Number} val - 当前页码
+     */
     handleCurrentChange(val) {
       this.queryParams.pageNum = val
       this.fetchList()
     },
 
-    /** 新增 */
+    /**
+     * 打开新增弹窗
+     */
     handleAdd() {
       this.dialogTitle = '新增园区管理员'
       this.formData = {
@@ -259,7 +294,10 @@ export default {
       this.dialogVisible = true
     },
 
-    /** 编辑 */
+    /**
+     * 打开编辑弹窗
+     * @param {Object} row - 用户数据行
+     */
     async handleEdit(row) {
       this.dialogTitle = '编辑园区管理员'
       try {
@@ -280,13 +318,15 @@ export default {
       }
     },
 
-    /** 提交表单 */
+    /**
+     * 提交表单
+     */
     async handleSubmit() {
       if (!this.$refs.formRef) return
-      
+
       try {
         await this.$refs.formRef.validate()
-        
+
         const data = {
           username: this.formData.username,
           realName: this.formData.realName,
@@ -314,7 +354,10 @@ export default {
       }
     },
 
-    /** 重置密码 */
+    /**
+     * 重置密码
+     * @param {Object} row - 用户数据行
+     */
     async handleResetPwd(row) {
       this.$confirm('确定要将密码重置为123456吗？', '提示', {
         confirmButtonText: '确定',
@@ -333,7 +376,10 @@ export default {
       })
     },
 
-    /** 删除 */
+    /**
+     * 删除用户
+     * @param {Object} row - 用户数据行
+     */
     async handleDelete(row) {
       this.$confirm('确定要删除该园区管理员吗？', '提示', {
         confirmButtonText: '确定',
@@ -356,48 +402,74 @@ export default {
 }
 </script>
 
-<style scoped>
-.user-manage {
+<style scoped lang="scss">
+/**
+ * 页面容器
+ */
+.user-manage-container {
   padding: 20px;
   background-color: #f5f7fa;
+  min-height: calc(100vh - 84px);
 }
 
+/**
+ * 搜索卡片
+ */
 .search-card {
   margin-bottom: 16px;
+  border-radius: 8px;
+
+  .search-form {
+    display: flex;
+    align-items: center;
+  }
 }
 
-.search-form {
-  display: flex;
-  align-items: center;
-}
-
+/**
+ * 表格卡片
+ */
 .table-card {
-  position: relative;
+  border-radius: 8px;
+  border: none;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+
+  .table-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    .header-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: #303133;
+    }
+  }
 }
 
-.table-header {
+/**
+ * 分页容器
+ */
+.pagination-container {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 16px;
+  justify-content: flex-end;
+  margin-top: 20px;
 }
 
-.pagination {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-top: 16px;
+/**
+ * 危险按钮样式
+ */
+.danger-btn {
+  color: #f56c6c !important;
+
+  &:hover {
+    color: #f78989 !important;
+  }
 }
 
+/**
+ * 对话框底部
+ */
 .dialog-footer {
   text-align: right;
-}
-
-.danger-btn {
-  color: #f56c6c;
-}
-
-.danger-btn:hover {
-  color: #f78989;
 }
 </style>
