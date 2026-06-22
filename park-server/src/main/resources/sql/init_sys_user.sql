@@ -8,9 +8,9 @@ CREATE TABLE IF NOT EXISTS `sys_user` (
     `password`    VARCHAR(100) NOT NULL COMMENT '密码（BCrypt加密）',
     `real_name`   VARCHAR(50)  DEFAULT NULL COMMENT '真实姓名',
     `phone`       VARCHAR(20)  DEFAULT NULL COMMENT '手机号',
-    `role`        VARCHAR(20)  NOT NULL COMMENT '角色类型：admin=超级管理员, district=区级管理员, park=公园管理员',
-    `district`    VARCHAR(50)  DEFAULT NULL COMMENT '所属区域',
-    `park_id`     BIGINT       DEFAULT NULL COMMENT '所属公园ID',
+    `role_type`   TINYINT      NOT NULL COMMENT '角色类型：1=市级管理员, 2=区县管理员, 3=园区管理员',
+    `district_id` BIGINT       DEFAULT NULL COMMENT '所属区县ID（关联district_info表）',
+    `park_id`     BIGINT       DEFAULT NULL COMMENT '所属园区ID',
     `status`      TINYINT      NOT NULL DEFAULT 1 COMMENT '账号状态：0=禁用, 1=启用',
     `create_by`   VARCHAR(50)  DEFAULT NULL COMMENT '创建者',
     `create_time` DATETIME     DEFAULT NULL COMMENT '创建时间',
@@ -27,8 +27,8 @@ CREATE TABLE IF NOT EXISTS `sys_user` (
 -- BCrypt hash: $2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9lBOsl7iKTVKIUi
 -- =============================================
 
-INSERT INTO `sys_user` (`username`, `password`, `real_name`, `phone`, `role`, `district`, `park_id`, `status`, `create_by`, `create_time`)
+INSERT INTO `sys_user` (`username`, `password`, `real_name`, `phone`, `role_type`, `district_id`, `park_id`, `status`, `create_by`, `create_time`)
 VALUES
-('admin',    '$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9lBOsl7iKTVKIUi', '系统管理员', '13800000001', 'admin',    NULL,     NULL, 1, 'system', NOW()),
-('district01','$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9lBOsl7iKTVKIUi', '西湖区管理员', '13800000002', 'district', '西湖区', NULL, 1, 'system', NOW()),
-('park01',   '$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9lBOsl7iKTVKIUi', '公园管理员',  '13800000003', 'park',     '西湖区', 1,    1, 'system', NOW());
+('admin',    '$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9lBOsl7iKTVKIUi', '系统管理员', '13800000001', 1, NULL,     NULL, 1, 'system', NOW()),
+('district01','$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9lBOsl7iKTVKIUi', '西湖区管理员', '13800000002', 2, 1,        NULL, 1, 'system', NOW()),
+('park01',   '$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9lBOsl7iKTVKIUi', '公园管理员',  '13800000003', 3, 1,        1,    1, 'system', NOW());

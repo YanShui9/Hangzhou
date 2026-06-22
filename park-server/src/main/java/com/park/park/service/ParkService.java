@@ -7,6 +7,7 @@ import com.park.common.exception.BusinessException;
 import com.park.common.result.ResultCode;
 import com.park.park.dto.ParkQueryDTO;
 import com.park.park.dto.ParkSaveDTO;
+import com.park.park.dto.ParkStatsDTO;
 import com.park.park.entity.ParkInfo;
 import com.park.park.mapper.ParkMapper;
 import lombok.extern.slf4j.Slf4j;
@@ -135,5 +136,39 @@ public class ParkService {
         if (count > 0) {
             throw new BusinessException(ResultCode.PARAM_ERROR, "园区名称已存在");
         }
+    }
+
+    /**
+     * 获取园区统计数据
+     *
+     * @param parkId 园区ID
+     * @return 园区统计数据
+     */
+    public ParkStatsDTO getParkStats(Long parkId) {
+        // 检查园区是否存在
+        getParkById(parkId);
+
+        // 返回模拟统计数据
+        ParkStatsDTO statsDTO = new ParkStatsDTO();
+        statsDTO.setEnterpriseCount(120);
+        statsDTO.setLargeEnterpriseCount(15);
+        statsDTO.setHighTechEnterpriseCount(28);
+        statsDTO.setSmeCount(45);
+        statsDTO.setInnovativeSmeCount(30);
+        statsDTO.setSpecializedSmeCount(8);
+        statsDTO.setEmployeeCount(3500);
+        statsDTO.setNationalTalentCount(5);
+        statsDTO.setProvincialTalentCount(12);
+        statsDTO.setSeniorEngineerCount(85);
+        statsDTO.setEngineerCount(240);
+        statsDTO.setSeniorTechnicianCount(60);
+        statsDTO.setMasterCount(150);
+        statsDTO.setDoctorCount(35);
+        statsDTO.setPatentCount(520);
+        statsDTO.setInventionPatentCount(180);
+        statsDTO.setUtilityModelCount(220);
+        statsDTO.setDesignPatentCount(120);
+
+        return statsDTO;
     }
 }

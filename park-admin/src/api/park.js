@@ -62,3 +62,15 @@ export function deletePark(id) {
     method: 'delete'
   })
 }
+
+/**
+ * 获取园区统计数据
+ * @param {Number} id 园区ID
+ * @returns {Promise}
+ */
+export function getParkStats(id) {
+  return request({
+    url: `/api/parks/${id}/stats`,
+    method: 'get'
+  })
+}

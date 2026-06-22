@@ -29,8 +29,8 @@ public class ParkInfo extends BaseEntity {
     @ApiModelProperty(value = "园区名称")
     private String parkName;
 
-    @ApiModelProperty(value = "园区类型（生产性制造类/生产性服务类）")
-    private String parkType;
+    @ApiModelProperty(value = "园区类型：1=生产性制造类, 2=生产性服务类")
+    private Integer parkType;
 
     @ApiModelProperty(value = "所属区县ID")
     private Long districtId;

@@ -7,6 +7,7 @@ import com.park.common.result.PageResult;
 import com.park.common.result.R;
 import com.park.park.dto.ParkQueryDTO;
 import com.park.park.dto.ParkSaveDTO;
+import com.park.park.dto.ParkStatsDTO;
 import com.park.park.entity.ParkInfo;
 import com.park.park.service.ParkService;
 import com.park.system.entity.DistrictInfo;
@@ -115,6 +116,19 @@ public class ParkController {
     public R<Void> deletePark(@PathVariable Long id) {
         parkService.deletePark(id);
         return R.ok();
+    }
+
+    /**
+     * 获取园区统计数据
+     *
+     * @param id 园区ID
+     * @return 园区统计数据
+     */
+    @GetMapping("/{id}/stats")
+    @ApiOperation(value = "获取园区统计数据", notes = "获取园区的企业、人才、专利等统计信息")
+    public R<ParkStatsDTO> getParkStats(@PathVariable Long id) {
+        ParkStatsDTO statsDTO = parkService.getParkStats(id);
+        return R.ok(statsDTO);
     }
 
     /**

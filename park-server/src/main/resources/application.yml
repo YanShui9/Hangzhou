@@ -26,5 +26,6 @@ mybatis-plus:
   global-config:
     db-config:
       id-type: auto
+      table-underline: true
   configuration:
     map-underscore-to-camel-case: true
