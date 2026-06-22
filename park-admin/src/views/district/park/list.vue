@@ -55,6 +55,11 @@
             <span v-else class="text-muted">未评定</span>
           </template>
         </el-table-column>
+        <el-table-column label="操作" width="100" align="center">
+          <template slot-scope="{ row }">
+            <el-button type="text" icon="el-icon-view" @click="handleView(row)">查看</el-button>
+          </template>
+        </el-table-column>
       </el-table>
 
       <!-- 分页组件 -->
@@ -124,6 +129,9 @@ export default {
     handleCurrentChange(val) {
       this.queryParams.pageNum = val
       this.getList()
+    },
+    handleView(row) {
+      this.$router.push(`/district/park/detail/${row.id}`)
     }
   }
 }

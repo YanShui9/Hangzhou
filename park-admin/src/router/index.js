@@ -54,6 +54,12 @@ const routes = [
         meta: { title: '园区列表', icon: 'el-icon-office-building', roles: [2] }
       },
       {
+        path: 'district/park/detail/:id',
+        name: 'DistrictParkDetail',
+        component: () => import('@/views/district/park/detail.vue'),
+        meta: { title: '园区详情', roles: [2] }
+      },
+      {
         path: 'park/mine',
         name: 'ParkMine',
         component: () => import('@/views/park/mine/index.vue'),
