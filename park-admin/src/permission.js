@@ -35,11 +35,16 @@ router.beforeEach(async(to, from, next) => {
       }
     }
   } else {
-    // 未登录
+    // 未登录 - 避免重复导航到登录页
     if (whiteList.includes(to.path)) {
       next()
     } else {
-      next('/login')
+      // 如果已经在跳转到登录页的过程中，不重复跳转
+      if (to.path !== '/login') {
+        next('/login')
+      } else {
+        next()
+      }
     }
   }
 })

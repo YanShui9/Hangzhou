@@ -49,7 +49,10 @@ service.interceptors.response.use(
       })
       // 清除用户信息并跳转到登录页
       store.dispatch('user/logout').then(() => {
-        router.push('/login')
+        // 避免重复导航到登录页
+        if (router.currentRoute.path !== '/login') {
+          router.push('/login')
+        }
       })
       return Promise.reject(error)
     }
