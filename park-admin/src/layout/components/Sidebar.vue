@@ -18,7 +18,8 @@
       :unique-opened="false"
       mode="vertical"
     >
-      <el-menu-item v-if="hasRole([1])" index="/dashboard" @click="$router.push('/dashboard')">
+      <!-- 数据驾驶舱 - 新窗口打开 -->
+      <el-menu-item v-if="hasRole([1])" index="big-screen" @click.native.stop="openBigScreen">
         <i class="el-icon-data-line"></i>
         <span slot="title">数据驾驶舱</span>
       </el-menu-item>
@@ -156,6 +157,11 @@ export default {
     hasRole(roles) {
       if (!this.userInfo || !this.userInfo.roleType) return false
       return roles.includes(this.userInfo.roleType)
+    },
+    openBigScreen() {
+      const baseUrl = window.location.origin + window.location.pathname
+      const bigScreenUrl = baseUrl.replace(/\/$/, '') + '#/admin/big-screen'
+      window.open(bigScreenUrl, '_blank', 'width=1920,height=1080,top=0,left=0')
     }
   }
 }

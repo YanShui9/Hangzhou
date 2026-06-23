@@ -10,6 +10,13 @@ const routes = [
     component: () => import('@/views/login/index.vue'),
     meta: { title: '登录' }
   },
+  // 数据驾驶舱独立路由（不依赖layout，新窗口打开）
+  {
+    path: '/admin/big-screen',
+    name: 'AdminBigScreen',
+    component: () => import('@/views/admin/dashboard/big-screen.vue'),
+    meta: { title: '杭州市小微园区数据大屏', roles: [1] }
+  },
   {
     path: '/',
     component: () => import('@/layout/index.vue'),
