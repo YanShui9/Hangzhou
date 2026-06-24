@@ -8,6 +8,8 @@ import com.park.common.exception.BusinessException;
 import com.park.common.result.PageResult;
 import com.park.common.result.R;
 import com.park.common.result.ResultCode;
+import com.park.audit.entity.AuditRecord;
+import com.park.audit.service.AuditService;
 import com.park.evaluation.dto.EvaluationQueryDTO;
 import com.park.evaluation.dto.EvaluationSaveDTO;
 import com.park.evaluation.entity.EvaluationRecord;
@@ -22,7 +24,10 @@ import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.validation.Valid;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -45,6 +50,21 @@ public class EvaluationController {
     @Autowired
     private ParkMapper parkMapper;
 
+    @Autowired
+    private AuditService auditService;
+
+    /**
+     * 状态码 → 中文审核状态
+     */
+    private static final Map<Integer, String> AUDIT_STATUS_MAP = new LinkedHashMap<>();
+    static {
+        AUDIT_STATUS_MAP.put(0, "未提交");
+        AUDIT_STATUS_MAP.put(1, "区县待审核");
+        AUDIT_STATUS_MAP.put(2, "市级待审核");
+        AUDIT_STATUS_MAP.put(3, "市级审核通过");
+        AUDIT_STATUS_MAP.put(4, "市级审核驳回");
+    }
+
     /**
      * 分页查询评价记录列表
      *
@@ -54,7 +74,7 @@ public class EvaluationController {
      */
     @GetMapping
     @ApiOperation(value = "分页查询评价记录", notes = "根据条件分页查询评价记录列表")
-    public R<PageResult<EvaluationRecord>> getEvaluationPage(
+    public R<PageResult<Map<String, Object>>> getEvaluationPage(
             EvaluationQueryDTO queryDTO,
             HttpServletRequest request) {
 
@@ -63,13 +83,104 @@ public class EvaluationController {
 
         IPage<EvaluationRecord> page = evaluationService.getEvaluationPage(queryDTO);
         List<EvaluationRecord> records = page.getRecords();
-        PageResult<EvaluationRecord> pageResult = PageResult.of(
-                records,
+
+        // 关联 park_info 补充 parkName/districtName/parkType，状态码转中文
+        List<Long> parkIds = records.stream()
+                .map(EvaluationRecord::getParkId)
+                .distinct()
+                .collect(Collectors.toList());
+        Map<Long, ParkInfo> parkMap = new java.util.HashMap<>();
+        if (!parkIds.isEmpty()) {
+            List<ParkInfo> parks = parkMapper.selectBatchIds(parkIds);
+            for (ParkInfo p : parks) parkMap.put(p.getId(), p);
+        }
+
+        List<Map<String, Object>> voList = new ArrayList<>();
+        for (EvaluationRecord r : records) {
+            Map<String, Object> vo = new LinkedHashMap<>();
+            vo.put("id", r.getId());
+            vo.put("parkId", r.getParkId());
+            vo.put("year", r.getYear());
+            vo.put("status", r.getStatus());
+            vo.put("totalScore", r.getTotalScore());
+            vo.put("grade", r.getGrade());
+            vo.put("createTime", r.getCreateTime());
+            vo.put("updateTime", r.getUpdateTime());
+            vo.put("scoreDetail", r.getScoreDetail());
+            vo.put("rejectCategories", r.getRejectCategories());
+            vo.put("auditStatus", AUDIT_STATUS_MAP.getOrDefault(r.getStatus(), "未提交"));
+            ParkInfo park = parkMap.get(r.getParkId());
+            if (park != null) {
+                vo.put("parkName", park.getParkName());
+                vo.put("districtName", park.getDistrictName());
+                vo.put("parkType", park.getParkType());
+            }
+            voList.add(vo);
+        }
+
+        PageResult<Map<String, Object>> pageResult = PageResult.of(
+                voList,
                 page.getTotal(),
                 (int) page.getCurrent(),
                 (int) page.getSize()
         );
         return R.ok(pageResult);
+    }
+
+    /**
+     * 发起年度填报（仅市级管理员）
+     *
+     * @param body    请求体 { year: 2025 }
+     * @param request HTTP请求
+     * @return 操作结果
+     */
+    @PostMapping("/init")
+    @ApiOperation(value = "发起年度填报", notes = "为所有园区创建该年度的评价记录（仅市级管理员）")
+    public R<Void> initEvaluationByYear(@RequestBody Map<String, Object> body, HttpServletRequest request) {
+        checkCityAdmin(request);
+        Integer year = body.get("year") != null ? Integer.valueOf(body.get("year").toString()) : null;
+        if (year == null) {
+            throw new BusinessException(ResultCode.PARAM_ERROR, "年度参数不能为空");
+        }
+        evaluationService.initEvaluationByYear(year);
+        return R.ok("发起成功", null);
+    }
+
+    /**
+     * 获取年度可选项
+     *
+     * @return 年度选项列表
+     */
+    @GetMapping("/year-options")
+    @ApiOperation(value = "获取年度选项", notes = "获取可发起年度填报的年度列表")
+    public R<List<Map<String, Object>>> getYearOptions() {
+        List<Map<String, Object>> options = new ArrayList<>();
+        int currentYear = java.time.Year.now().getValue();
+        for (int i = 0; i < 3; i++) {
+            int year = currentYear - i;
+            Map<String, Object> option = new LinkedHashMap<>();
+            option.put("value", year);
+            option.put("label", year + "年度");
+            options.add(option);
+        }
+        return R.ok(options);
+    }
+
+    /**
+     * 评价审核概览统计
+     *
+     * @param request HTTP请求
+     * @return 统计数据
+     */
+    @GetMapping("/summary")
+    @ApiOperation(value = "评价审核概览统计", notes = "获取全部/市级待审核/市级通过/市级驳回数量")
+    public R<Map<String, Integer>> getEvaluationSummary(HttpServletRequest request) {
+        EvaluationQueryDTO queryDTO = new EvaluationQueryDTO();
+        applyDataPermission(queryDTO, request);
+        Map<String, Integer> summary = evaluationService.getEvaluationSummary(
+                queryDTO.getParkId(), queryDTO.getParkIds()
+        );
+        return R.ok(summary);
     }
 
     /**
@@ -83,6 +194,27 @@ public class EvaluationController {
     public R<EvaluationRecord> getEvaluationById(@PathVariable Long id) {
         EvaluationRecord record = evaluationService.getEvaluationById(id);
         return R.ok(record);
+    }
+
+    @GetMapping("/{id}/history")
+    @ApiOperation(value = "查询审核历史", notes = "获取某条评价记录的审核历史列表")
+    public R<List<Map<String, Object>>> getAuditHistory(@PathVariable Long id) {
+        List<AuditRecord> records = auditService.getAuditHistory(id);
+        List<Map<String, Object>> history = new ArrayList<>();
+        for (int i = 0; i < records.size(); i++) {
+            AuditRecord record = records.get(i);
+            Map<String, Object> item = new LinkedHashMap<>();
+
+            String role = record.getAuditorRole() == 1 ? "市级管理员" : "区县管理员";
+            String action = record.getAction() == 1 ? "审核通过" : "审核驳回";
+            String content = record.getAuditorName() + "(" + role + ")" + action + "了评价材料";
+
+            item.put("content", content);
+            item.put("time", record.getCreateTime());
+            item.put("active", i == 0);
+            history.add(item);
+        }
+        return R.ok(history);
     }
 
     /**
@@ -109,6 +241,21 @@ public class EvaluationController {
     @ApiOperation(value = "修改评价记录", notes = "修改草稿状态的评价记录")
     public R<Void> updateEvaluation(@Valid @RequestBody EvaluationSaveDTO saveDTO) {
         evaluationService.saveEvaluation(saveDTO);
+        return R.ok();
+    }
+
+    /**
+     * 保存审核打分详情（市级/区县审核时保存打分）
+     *
+     * @param id   评价记录ID
+     * @param body 请求体 { "scoreDetail": "{...}" }
+     * @return 操作结果
+     */
+    @PutMapping("/{id}/score")
+    @ApiOperation(value = "保存审核打分", notes = "保存市级/区县审核时的打分详情JSON")
+    public R<Void> saveAuditDetail(@PathVariable Long id, @RequestBody Map<String, Object> body) {
+        String scoreDetail = body.get("scoreDetail") != null ? body.get("scoreDetail").toString() : null;
+        evaluationService.saveAuditDetail(id, scoreDetail);
         return R.ok();
     }
 
@@ -248,6 +395,13 @@ public class EvaluationController {
         Integer roleType = (Integer) request.getAttribute("roleType");
         if (roleType == null || !roleType.equals(requiredRoleType)) {
             throw new BusinessException(ResultCode.FORBIDDEN, "无审核权限");
+        }
+    }
+
+    private void checkCityAdmin(HttpServletRequest request) {
+        Integer roleType = (Integer) request.getAttribute("roleType");
+        if (roleType == null || roleType != 1) {
+            throw new BusinessException(ResultCode.FORBIDDEN, "仅市级管理员可操作");
         }
     }
 }

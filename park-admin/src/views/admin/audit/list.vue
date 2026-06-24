@@ -156,7 +156,7 @@
     </div>
 
     <!-- ============ 分页 ============ -->
-    <div class="pagination-bar">
+    <div class="pagination-bar" v-if="total > queryForm.pageSize">
         <el-pagination
           class="pagination"
           background
@@ -492,8 +492,6 @@ export default {
 .audit-list-container {
   padding: 16px 20px 20px;
   background: #F5F7FA;
-  height: 100%;
-  overflow: hidden;
 }
 
 /* ============ 顶部 4 个统计卡片 ============ */
@@ -615,6 +613,9 @@ export default {
 
 /* ============ 表格 + 分页 ============ */
 .table-flex-wrapper {
+  flex: 1 1 0;
+  min-height: 0;
+  overflow: auto;
   background: #FFFFFF;
   border-radius: 6px;
 }

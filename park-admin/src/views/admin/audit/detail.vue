@@ -31,6 +31,12 @@
           </div>
           <div class="header-actions">
             <el-button
+              v-if="!isAuditMode"
+              size="small"
+              icon="el-icon-back"
+              @click="goBackToList"
+            >返回列表</el-button>
+            <el-button
               v-if="isAuditMode"
               type="primary"
               size="small"
@@ -481,22 +487,88 @@
                 <span class="rule-num">③</span>
                 贯彻落实集约发展理念，通过改造提升实现工业上楼、效益提升的，得5分。
               </p>
+              <p class="rule-text">
+                <span class="rule-num">④</span>
+                税收增长率达到全市平均水平的，按比例计分，最高5分。
+              </p>
+              <p class="rule-text">
+                <span class="rule-num">⑤</span>
+                GDP增长率达到全市平均水平的，按比例计分，最高5分。
+              </p>
+              <p class="rule-text">
+                <span class="rule-num">⑥</span>
+                单位能耗产出达到全市平均水平的，按比例计分，最高5分。
+              </p>
             </div>
 
-            <div class="file-section">
-              <div class="section-subtitle">项目名称</div>
-              <div class="file-item-row">
-                <span class="file-icon"><i class="el-icon-document"></i></span>
-                <span class="file-name">2025年高新技术企业名单.pdf</span>
-                <span class="file-preview">预览</span>
-                <div class="score-input-inline">
-                  <el-input
-                    v-model="formData.benefitScore"
-                    placeholder="请输入得分"
-                    size="small"
-                    style="width: 180px;"
-                    :disabled="!isAuditMode"
-                  />
+            <!-- 双栏输入区 ①② -->
+            <div class="two-col-section">
+              <div class="col-item">
+                <div class="section-subtitle">①亩均税收贡献</div>
+                <div class="file-item-row">
+                  <span class="file-icon"><i class="el-icon-document"></i></span>
+                  <span class="file-name">亩均税收数据</span>
+                  <div class="score-input-inline">
+                    <el-input v-model="formData.benefitScore1" placeholder="请输入得分" size="small" style="width: 180px;" :disabled="!isAuditMode" />
+                  </div>
+                </div>
+              </div>
+              <div class="col-item">
+                <div class="section-subtitle">②亩均营收贡献</div>
+                <div class="file-item-row">
+                  <span class="file-icon"><i class="el-icon-document"></i></span>
+                  <span class="file-name">亩均营收数据</span>
+                  <div class="score-input-inline">
+                    <el-input v-model="formData.benefitScore2" placeholder="请输入得分" size="small" style="width: 180px;" :disabled="!isAuditMode" />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 双栏输入区 ③④ -->
+            <div class="two-col-section" style="margin-top: 12px;">
+              <div class="col-item">
+                <div class="section-subtitle">③工业上楼效益提升</div>
+                <div class="file-item-row">
+                  <span class="file-icon"><i class="el-icon-document"></i></span>
+                  <span class="file-name">工业上楼材料</span>
+                  <div class="score-input-inline">
+                    <el-input v-model="formData.benefitScore3" placeholder="请输入得分" size="small" style="width: 180px;" :disabled="!isAuditMode" />
+                  </div>
+                </div>
+              </div>
+              <div class="col-item">
+                <div class="section-subtitle">④税收增长率</div>
+                <div class="file-item-row">
+                  <span class="file-icon"><i class="el-icon-document"></i></span>
+                  <span class="file-name">税收增长数据</span>
+                  <div class="score-input-inline">
+                    <el-input v-model="formData.benefitScore4" placeholder="请输入得分" size="small" style="width: 180px;" :disabled="!isAuditMode" />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 双栏输入区 ⑤⑥ -->
+            <div class="two-col-section" style="margin-top: 12px;">
+              <div class="col-item">
+                <div class="section-subtitle">⑤GDP增长率</div>
+                <div class="file-item-row">
+                  <span class="file-icon"><i class="el-icon-document"></i></span>
+                  <span class="file-name">GDP增长数据</span>
+                  <div class="score-input-inline">
+                    <el-input v-model="formData.benefitScore5" placeholder="请输入得分" size="small" style="width: 180px;" :disabled="!isAuditMode" />
+                  </div>
+                </div>
+              </div>
+              <div class="col-item">
+                <div class="section-subtitle">⑥单位能耗产出</div>
+                <div class="file-item-row">
+                  <span class="file-icon"><i class="el-icon-document"></i></span>
+                  <span class="file-name">能耗产出数据</span>
+                  <div class="score-input-inline">
+                    <el-input v-model="formData.benefitScore6" placeholder="请输入得分" size="small" style="width: 180px;" :disabled="!isAuditMode" />
+                  </div>
                 </div>
               </div>
             </div>
@@ -700,7 +772,7 @@
 </template>
 
 <script>
-import { getAuditDetail, updateAuditDetail, getAuditHistory } from '@/api/audit'
+import { getAuditDetail, updateAuditDetail, getAuditHistory, saveEvaluationScore } from '@/api/audit'
 
 export default {
   name: 'AdminAuditDetail',
@@ -741,7 +813,12 @@ export default {
         serviceOpinion3: '',
         serviceScore7: '',
         serviceOpinion4: '',
-        benefitScore: '',
+        benefitScore1: '',
+        benefitScore2: '',
+        benefitScore3: '',
+        benefitScore4: '',
+        benefitScore5: '',
+        benefitScore6: '',
         benefitOpinion: '',
         safetyScore1: '',
         safetyScore2: '',
@@ -846,7 +923,12 @@ export default {
         serviceOpinion3: '服务活动开展正常',
         serviceScore7: '2',
         serviceOpinion4: '合作项目推进顺利',
-        benefitScore: '6',
+        benefitScore1: '6',
+        benefitScore2: '5',
+        benefitScore3: '4',
+        benefitScore4: '3',
+        benefitScore5: '2',
+        benefitScore6: '1',
         benefitOpinion: '亩均效益达到全市平均水平',
         safetyScore1: '',
         safetyScore2: '',
@@ -956,7 +1038,7 @@ export default {
       }
       this.saveLoading = true
       try {
-        await updateAuditDetail({ id, ...this.formData })
+        await saveEvaluationScore(id, this.formData)
         this.$message.success('已保存审核进度')
         this.$router.push('/admin/audit')
       } catch (e) {
@@ -970,7 +1052,7 @@ export default {
         { label: '3-企业培育', field: 'enterpriseScore', index: 'enterprise' },
         { label: '4-科技创新', field: 'techScore2', index: 'tech' },
         { label: '5-服务能力', field: 'serviceScore1', index: 'service' },
-        { label: '6-效益产出', field: 'benefitScore', index: 'benefit' },
+        { label: '6-效益产出', field: 'benefitScore1', index: 'benefit' },
         { label: '7-安全生产', field: 'safetyScore1', index: 'safety' },
         { label: '8-其他', field: 'otherScore1', index: 'other' },
         { label: '9-审核结果', field: 'result1', index: 'result' }
@@ -1022,7 +1104,7 @@ export default {
           return
         }
         this.saveLoading = true
-        await updateAuditDetail({ id, ...this.formData })
+        await saveEvaluationScore(id, this.formData)
         this.$message.success('审核完成')
         this.$router.push('/admin/audit')
       } catch (e) {
