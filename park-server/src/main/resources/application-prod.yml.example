@@ -1,0 +1,44 @@
+# ==================== 生产环境配置模板 ====================
+# 使用方法：
+# 1. 复制此文件并重命名为 application-prod.yml
+# 2. 填入实际的配置值
+# 3. 设置环境变量或直接修改配置值
+
+# 数据源配置
+spring:
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://your-db-host:3306/park_evaluation?useUnicode=true&characterEncoding=utf-8&useSSL=true&serverTimezone=Asia/Shanghai
+    username: your-db-username
+    password: your-db-password
+    hikari:
+      minimum-idle: 5
+      maximum-pool-size: 20
+      idle-timeout: 300000
+      max-lifetime: 1800000
+      connection-timeout: 30000
+
+# JWT 配置
+jwt:
+  secret: your-256-bit-random-secret-key-here
+  expiration: 3600000  # 1小时
+  token-prefix: "Bearer "
+  header: Authorization
+
+# Swagger 配置（生产环境关闭）
+swagger:
+  enabled: false
+
+# 日志配置
+logging:
+  level:
+    com.park: warn
+    org.springframework: warn
+    root: warn
+  file:
+    name: ./logs/park-server.log
+  logback:
+    rollingpolicy:
+      max-file-size: 100MB
+      max-history: 30
+      total-size-cap: 3GB

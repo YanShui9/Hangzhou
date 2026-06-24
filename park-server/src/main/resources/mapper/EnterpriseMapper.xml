@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.park.enterprise.mapper.EnterpriseMapper">
+
+    <resultMap id="enterpriseResultMap" type="com.park.enterprise.entity.EnterpriseInfo">
+        <id column="id" property="id"/>
+        <result column="enterprise_name" property="enterpriseName"/>
+        <result column="credit_code" property="creditCode"/>
+        <result column="park_id" property="parkId"/>
+        <result column="industry_code" property="industryCode"/>
+        <result column="industry_name" property="industryName"/>
+        <result column="status" property="status"/>
+        <result column="register_status" property="registerStatus"/>
+        <result column="register_date" property="registerDate"/>
+        <result column="legal_person" property="legalPerson"/>
+        <result column="registered_capital" property="registeredCapital"/>
+        <result column="contact_name" property="contactName"/>
+        <result column="contact_phone" property="contactPhone"/>
+        <result column="is_participate" property="isParticipate"/>
+        <result column="participate_reason" property="participateReason"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="district_name" property="districtName"/>
+        <result column="park_name" property="parkName"/>
+        <result column="honor" property="honor"/>
+        <result column="business_scope" property="businessScope"/>
+        <result column="entry_start_time" property="entryStartTime"/>
+        <result column="entry_end_time" property="entryEndTime"/>
+        <result column="remark" property="remark"/>
+    </resultMap>
+
+    <select id="selectEnterprisePageWithJoin" resultMap="enterpriseResultMap">
+        SELECT e.*, p.park_name, p.district_name 
+        FROM enterprise_info e
+        LEFT JOIN park_info p ON e.park_id = p.id
+        <where>
+            <if test="keyword != null and keyword != ''">
+                AND (e.enterprise_name LIKE CONCAT('%', #{keyword}, '%') 
+                     OR e.credit_code LIKE CONCAT('%', #{keyword}, '%') 
+                     OR e.legal_person LIKE CONCAT('%', #{keyword}, '%')
+                     OR e.contact_name LIKE CONCAT('%', #{keyword}, '%'))
+            </if>
+            <if test="enterpriseName != null and enterpriseName != ''">
+                AND e.enterprise_name LIKE CONCAT('%', #{enterpriseName}, '%')
+            </if>
+            <if test="parkId != null">
+                AND e.park_id = #{parkId}
+            </if>
+            <if test="parkIds != null and parkIds.size() > 0">
+                AND e.park_id IN
+                <foreach collection="parkIds" item="parkId" open="(" separator="," close=")">
+                    #{parkId}
+                </foreach>
+            </if>
+            <if test="districtId != null">
+                AND p.district_id = #{districtId}
+            </if>
+            <if test="industryName != null and industryName != ''">
+                AND e.industry_name = #{industryName}
+            </if>
+            <if test="honor != null and honor != ''">
+                AND e.honor LIKE CONCAT('%', #{honor}, '%')
+            </if>
+            <if test="status != null and status != ''">
+                AND e.status = #{status}
+            </if>
+            <if test="registerStatus != null and registerStatus != ''">
+                AND e.register_status = #{registerStatus}
+            </if>
+            <if test="isParticipate != null">
+                AND e.is_participate = #{isParticipate}
+            </if>
+        </where>
+        ORDER BY e.create_time DESC
+    </select>
+
+    <select id="selectEnterpriseByIdWithJoin" resultMap="enterpriseResultMap">
+        SELECT e.*, p.park_name, p.district_name 
+        FROM enterprise_info e
+        LEFT JOIN park_info p ON e.park_id = p.id
+        WHERE e.id = #{id}
+    </select>
+
+</mapper>

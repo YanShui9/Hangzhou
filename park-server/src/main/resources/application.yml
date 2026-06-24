@@ -1,0 +1,43 @@
+# ==================== 公共配置 ====================
+# 敏感信息请在 application-dev.yml 或 application-prod.yml 中配置
+
+# 服务端口
+server:
+  port: 8080
+
+# Spring 配置
+spring:
+  application:
+    name: park-server
+  # 默认使用开发环境
+  profiles:
+    active: dev
+  # Jackson 配置（公共）
+  jackson:
+    date-format: yyyy-MM-dd HH:mm:ss
+    time-zone: GMT+8
+    serialization:
+      write-dates-as-timestamps: false
+
+# MyBatis-Plus 配置（公共）
+mybatis-plus:
+  mapper-locations: classpath:mapper/**/*.xml
+  type-aliases-package: com.park.common.entity,com.park.auth.entity,com.park.park.entity,com.park.enterprise.entity,com.park.audit.entity,com.park.operation.entity,com.park.system.entity
+  global-config:
+    db-config:
+      id-type: auto
+  configuration:
+    map-underscore-to-camel-case: true
+
+# 文件上传配置
+park:
+  file:
+    upload-path: D:/高级课设/23级实训/hangzhouxiaowei/Hangzhou/park-server/uploads/
+    access-prefix: /api/files/preview/
+    template-path: D:/高级课设/23级实训/hangzhouxiaowei/Hangzhou/park-server/template/
+
+# Spring MVC 上传文件大小限制
+spring.servlet.multipart:
+  enabled: true
+  max-file-size: 50MB
+  max-request-size: 100MB
