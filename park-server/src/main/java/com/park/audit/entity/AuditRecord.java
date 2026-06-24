@@ -51,6 +51,12 @@ public class AuditRecord implements Serializable {
     @ApiModelProperty(value = "审核意见")
     private String opinion;
 
+    @ApiModelProperty(value = "变更前状态")
+    private String fromStatus;
+
+    @ApiModelProperty(value = "变更后状态")
+    private String toStatus;
+
     @ApiModelProperty(value = "审核时间")
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime createTime;

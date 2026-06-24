@@ -1,0 +1,73 @@
+# 知识卡导出索引文件
+schema_version: 1
+locale: zh-CN
+branch: feature/park-management
+nodes_managed: true
+exported_at: "2026-06-23T07:14:07Z"
+modules:
+    "":
+        dir_name: Hangzhou
+        title: Hangzhou
+        scope: []
+        source_files: []
+        children:
+            - docs
+            - park_admin_frontend
+            - park_server_backend
+        depends_on: []
+        related_to: []
+    docs:
+        dir_name: docs
+        title: docs
+        scope:
+            - docs/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to: []
+    park_admin_frontend:
+        dir_name: park_admin_frontend
+        title: park_admin_frontend
+        scope:
+            - park-admin/
+        source_files: []
+        children:
+            - park_admin_frontend/admin_area
+            - park_admin_frontend/core
+        depends_on: []
+        related_to: []
+    park_admin_frontend/admin_area:
+        dir_name: 后台管理API接口层
+        title: 后台管理API接口层
+        scope:
+            - park-admin/src/api/audit.js
+            - park-admin/src/api/dashboard.js
+            - park-admin/src/api/enterprise.js
+            - park-admin/src/api/park.js
+            - park-admin/src/api/system.js
+        source_files: []
+        children: []
+        depends_on: []
+        related_to: []
+    park_admin_frontend/core:
+        dir_name: 前端核心架构与权限控制
+        title: 前端核心架构与权限控制
+        scope:
+            - park-admin/src/api/auth.js
+            - park-admin/src/api/user.js
+            - park-admin/src/App.vue
+            - park-admin/src/main.js
+            - park-admin/src/permission.js
+        source_files: []
+        children: []
+        depends_on: []
+        related_to: []
+    park_server_backend:
+        dir_name: 智慧公园后端服务
+        title: 智慧公园后端服务
+        scope:
+            - park-server/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to: []

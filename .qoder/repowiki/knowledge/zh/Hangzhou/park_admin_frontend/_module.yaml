@@ -1,0 +1,8 @@
+schema_version: 1
+module_path: park_admin_frontend
+title: park_admin_frontend
+scope:
+    - park-admin/
+source_files: []
+depends_on: []
+related_to: []

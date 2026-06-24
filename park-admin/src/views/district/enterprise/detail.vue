@@ -129,6 +129,8 @@
 </template>
 
 <script>
+import { getEnterpriseDetail } from '@/api/enterprise'
+
 export default {
   name: 'DistrictEnterpriseDetail',
   data() {
@@ -141,51 +143,18 @@ export default {
     this.loadData()
   },
   methods: {
-    loadData() {
-      // 模拟数据
-      this.enterpriseData = {
-        enterpriseName: '杭州创新科技有限公司',
-        unifiedCreditCode: '91330100MA27YXYM23',
-        district: '西湖区',
-        parkName: '创新科技园',
-        address: '杭州市西湖区文三路188号',
-        industryName: '芯片',
-        status: '在营',
-        entryTime: '2015-12-18',
-        legalPerson: '张一峰',
-        contactName: '徐二丽',
-        contactPhone: '188****5666',
-        registeredCapital: '1000万元',
-        registerDate: '2012-12-08',
-        businessScope: '从事智能设备的研发、生产和销售',
-        remark: '从事智能设备的研发、生产和销售',
-        isHighTech: 1,
-        isLittleGiant: 1,
-        isLeading: 1,
-        isProvincialTech: 1,
-        isProvincialSme: 1
-      }
-
-      this.changeRecords = [
-        {
-          changeDate: '2025-11-06',
-          changeType: '经营范围',
-          changeBefore: '',
-          changeAfter: '从事智能设备的研发、生产和销售'
-        },
-        {
-          changeDate: '2022-08-16',
-          changeType: '企业地址',
-          changeBefore: '浙江省杭州市滨江区西兴街道江陵路88号3幢',
-          changeAfter: '浙江省杭州市滨江区西兴街道江陵路88号3幢'
-        },
-        {
-          changeDate: '2021-10-02',
-          changeType: '企业地址',
-          changeBefore: '浙江省杭州市滨江区西兴街道江陵路88号万轮科技园3号楼',
-          changeAfter: '浙江省杭州市滨江区西兴街道江陵路88号万轮科技园3号楼'
+    async loadData() {
+      const id = this.$route.params.id
+      try {
+        // 获取企业详情
+        const detailResponse = await getEnterpriseDetail(id)
+        if (detailResponse.code === 200 && detailResponse.data) {
+          this.enterpriseData = detailResponse.data
         }
-      ]
+      } catch (error) {
+        console.error('获取企业数据失败', error)
+        this.$message.error('获取企业数据失败')
+      }
     }
   }
 }

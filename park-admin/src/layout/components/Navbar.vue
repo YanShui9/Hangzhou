@@ -31,6 +31,12 @@ export default {
       return name.charAt(0)
     },
     currentTitle() {
+      // 优先使用路由 meta 中的 title
+      if (this.$route.meta && this.$route.meta.title) {
+        return this.$route.meta.title
+      }
+      
+      // 备用方案：使用路径映射
       const path = this.$route.path
       const titleMap = {
         '/dashboard': '数据驾驶舱',
@@ -48,6 +54,7 @@ export default {
         '/admin/result': '评价结果',
         '/district/result': '评价结果',
         '/park/result': '评价结果',
+        '/district/result/enterprise': '企业指标',
         '/system/settings': '系统设置'
       }
       return titleMap[path] || '首页'

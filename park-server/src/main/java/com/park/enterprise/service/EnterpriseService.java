@@ -41,9 +41,12 @@ public class EnterpriseService {
         // 构建查询条件
         LambdaQueryWrapper<EnterpriseInfo> queryWrapper = new LambdaQueryWrapper<>();
 
-        // 企业名称模糊查询
+        // 企业名称或信用代码模糊查询
         if (StringUtils.hasText(queryDTO.getEnterpriseName())) {
-            queryWrapper.like(EnterpriseInfo::getEnterpriseName, queryDTO.getEnterpriseName());
+            queryWrapper.and(wrapper -> wrapper
+                .like(EnterpriseInfo::getEnterpriseName, queryDTO.getEnterpriseName())
+                .or()
+                .like(EnterpriseInfo::getCreditCode, queryDTO.getEnterpriseName()));
         }
 
         // 园区筛选
@@ -63,6 +66,11 @@ public class EnterpriseService {
         // 状态筛选
         if (StringUtils.hasText(queryDTO.getStatus())) {
             queryWrapper.eq(EnterpriseInfo::getEnterpriseStatus, queryDTO.getStatus());
+        }
+
+        // 企业荣誉筛选
+        if (StringUtils.hasText(queryDTO.getEnterpriseHonor())) {
+            queryWrapper.eq(EnterpriseInfo::getHonor, queryDTO.getEnterpriseHonor());
         }
 
         // 参评筛选（使用园区ID作为替代）

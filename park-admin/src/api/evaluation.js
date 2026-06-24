@@ -70,3 +70,15 @@ export function exportEvaluations(params) {
     responseType: 'blob'
   })
 }
+
+/**
+ * 更新评价记录的参评状态
+ * @param {Number} id 评价记录ID
+ * @param {Number} status 目标状态：0=不参评, 1=参评
+ */
+export function updateEvaluationStatus(id, status) {
+  return request({
+    url: `/api/evaluations/${id}/status?status=${status}`,
+    method: 'put'
+  })
+}

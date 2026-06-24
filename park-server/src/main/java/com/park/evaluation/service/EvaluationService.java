@@ -59,8 +59,8 @@ public class EvaluationService {
         if (queryDTO.getParkIds() != null && !queryDTO.getParkIds().isEmpty()) {
             wrapper.in(EvaluationRecord::getParkId, queryDTO.getParkIds());
         }
-        if (queryDTO.getYear() != null) {
-            wrapper.eq(EvaluationRecord::getYear, queryDTO.getYear());
+        if (queryDTO.getEvalYear() != null) {
+            wrapper.eq(EvaluationRecord::getEvalYear, queryDTO.getEvalYear());
         }
         if (queryDTO.getStatus() != null) {
             wrapper.eq(EvaluationRecord::getStatus, queryDTO.getStatus());
@@ -96,7 +96,7 @@ public class EvaluationService {
         // 检查同一园区、年份是否已存在评价记录（排除自身）
         LambdaQueryWrapper<EvaluationRecord> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(EvaluationRecord::getParkId, saveDTO.getParkId())
-                .eq(EvaluationRecord::getYear, saveDTO.getYear());
+                .eq(EvaluationRecord::getEvalYear, saveDTO.getEvalYear());
         if (saveDTO.getId() != null) {
             wrapper.ne(EvaluationRecord::getId, saveDTO.getId());
         }
@@ -125,7 +125,7 @@ public class EvaluationService {
             record.setStatus(0); // 0=草稿
             evaluationMapper.insert(record);
             log.info("评价记录新增成功：parkId={}, year={}",
-                    saveDTO.getParkId(), saveDTO.getYear());
+                    saveDTO.getParkId(), saveDTO.getEvalYear());
         }
     }
 
@@ -190,6 +190,35 @@ public class EvaluationService {
     }
 
     /**
+     * 更新参评状态
+     * 0=不参评, 1=参评
+     *
+     * @param id     评价记录ID
+     * @param status 目标状态
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public void updateParticipateStatus(Long id, Integer status) {
+        EvaluationRecord record = evaluationMapper.selectById(id);
+        if (record == null) {
+            throw new BusinessException(ResultCode.DATA_NOT_FOUND, "评价记录不存在");
+        }
+        if (status != 0 && status != 1) {
+            throw new BusinessException(ResultCode.PARAM_ERROR, "参评状态必须为 0(不参评) 或 1(参评)");
+        }
+        record.setEvalStatus(status);
+        // 如果从参评变为不参评，同时将审核状态重置为草稿
+        if (status == 0) {
+            record.setStatus(0);
+        }
+        // 如果从不参评变为参评，同时将审核状态设为待区县审
+        if (status == 1 && record.getStatus() == 0) {
+            record.setStatus(1);
+        }
+        evaluationMapper.updateById(record);
+        log.info("评价记录参评状态更新：id={}, evalStatus={}, auditStatus={}", id, status, record.getStatus());
+    }
+
+    /**
      * 更新评价记录状态
      *
      * @param id             评价记录ID
@@ -227,8 +256,8 @@ public class EvaluationService {
         if (queryDTO.getParkIds() != null && !queryDTO.getParkIds().isEmpty()) {
             wrapper.in(EvaluationRecord::getParkId, queryDTO.getParkIds());
         }
-        if (queryDTO.getYear() != null) {
-            wrapper.eq(EvaluationRecord::getYear, queryDTO.getYear());
+        if (queryDTO.getEvalYear() != null) {
+            wrapper.eq(EvaluationRecord::getEvalYear, queryDTO.getEvalYear());
         }
         if (queryDTO.getStatus() != null) {
             wrapper.eq(EvaluationRecord::getStatus, queryDTO.getStatus());
@@ -317,7 +346,7 @@ public class EvaluationService {
 
                 // 评价年份
                 Cell cell3 = row.createCell(3);
-                cell3.setCellValue(record.getYear() != null ? record.getYear() + "年" : "-");
+                cell3.setCellValue(record.getEvalYear() != null ? record.getEvalYear() + "年" : "-");
                 cell3.setCellStyle(dataStyle);
 
                 // 评价总分

@@ -4,8 +4,7 @@
 USE park_evaluation;
 
 -- 1. 区县信息表
-DROP TABLE IF EXISTS district_info;
-CREATE TABLE district_info (
+CREATE TABLE IF NOT EXISTS district_info (
     id BIGINT NOT NULL AUTO_INCREMENT,
     district_code VARCHAR(20) NOT NULL,
     district_name VARCHAR(100) NOT NULL,
@@ -19,6 +18,7 @@ CREATE TABLE district_info (
     UNIQUE KEY uk_district_name (district_name)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='区县信息表';
 
+-- 仅在表为空时插入数据
 INSERT INTO district_info (district_code, district_name, city, province, sort_order) VALUES
 ('330102', '上城区', '杭州市', '浙江省', 1),
 ('330105', '拱墅区', '杭州市', '浙江省', 2),
@@ -32,12 +32,12 @@ INSERT INTO district_info (district_code, district_name, city, province, sort_or
 ('330114', '钱塘区', '杭州市', '浙江省', 10),
 ('330122', '桐庐县', '杭州市', '浙江省', 11),
 ('330127', '淳安县', '杭州市', '浙江省', 12),
-('330182', '建德市', '杭州市', '浙江省', 13);
+('330182', '建德市', '杭州市', '浙江省', 13)
+ON DUPLICATE KEY UPDATE district_name=district_name;
 
 
 -- 2. 园区基础信息表
-DROP TABLE IF EXISTS park_info;
-CREATE TABLE park_info (
+CREATE TABLE IF NOT EXISTS park_info (
     id BIGINT NOT NULL AUTO_INCREMENT,
     park_code VARCHAR(50) DEFAULT NULL,
     park_name VARCHAR(200) NOT NULL,
@@ -101,17 +101,3 @@ CREATE TABLE park_info (
     KEY idx_park_code (park_code),
     KEY idx_park_name (park_name)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='园区基础信息表';
-
-
--- 3. 修改用户表
-ALTER TABLE sys_user ADD COLUMN IF NOT EXISTS district_id BIGINT DEFAULT NULL COMMENT '所属区县ID' AFTER district;
-ALTER TABLE sys_user ADD COLUMN IF NOT EXISTS role_type TINYINT DEFAULT NULL COMMENT '角色类型：1=市级, 2=区县, 3=园区' AFTER role;
-
-UPDATE sys_user SET role_type = 1 WHERE role = 'admin';
-UPDATE sys_user SET role_type = 2 WHERE role = 'district';
-UPDATE sys_user SET role_type = 3 WHERE role = 'park';
-
-UPDATE sys_user u
-INNER JOIN district_info d ON u.district = d.district_name
-SET u.district_id = d.id
-WHERE u.district IS NOT NULL;

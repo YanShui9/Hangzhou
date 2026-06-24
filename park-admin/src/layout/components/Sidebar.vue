@@ -70,30 +70,6 @@
         <span slot="title">评价列表</span>
       </el-menu-item>
 
-      <el-menu-item v-if="hasRole([1])" index="/admin/result" @click="handleMenuClick('/admin/result')">
-        <i class="el-icon-s-data"></i>
-        <span slot="title">评价结果</span>
-      </el-menu-item>
-      <!-- 区县端评价结果（下拉菜单） -->
-      <el-submenu v-if="hasRole([2])" index="district-result">
-        <template slot="title">
-          <i class="el-icon-s-data"></i>
-          <span>评价结果</span>
-        </template>
-        <el-menu-item index="/district/result" @click="handleMenuClick('/district/result')">
-          <i class="el-icon-office-building"></i>
-          <span slot="title">园区评价</span>
-        </el-menu-item>
-        <el-menu-item index="/district/result/enterprise" @click="handleMenuClick('/district/result/enterprise')">
-          <i class="el-icon-user"></i>
-          <span slot="title">企业指标</span>
-        </el-menu-item>
-      </el-submenu>
-      <el-menu-item v-if="hasRole([3])" index="/park/result" @click="handleMenuClick('/park/result')">
-        <i class="el-icon-s-data"></i>
-        <span slot="title">评价结果</span>
-      </el-menu-item>
-
       </el-menu>
   </div>
 </template>

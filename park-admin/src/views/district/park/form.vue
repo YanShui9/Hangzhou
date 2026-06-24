@@ -89,7 +89,15 @@
                 </div>
                 <div class="info-row">
                   <label class="info-label">开发模式</label>
-                  <el-input v-model="formData.developmentMode" placeholder="请输入" class="info-input" />
+                  <el-select v-model="formData.devMode" placeholder="请选择开发模式" class="info-input">
+                    <el-option label="政府主导开发" value="政府主导开发" />
+                    <el-option label="工业地产开发" value="工业地产开发" />
+                    <el-option label="企业联合开发" value="企业联合开发" />
+                    <el-option label="龙头企业开发" value="龙头企业开发" />
+                    <el-option label="专业机构开发" value="专业机构开发" />
+                    <el-option label="村集体联合开发" value="村集体联合开发" />
+                    <el-option label="政企合作" value="政企合作" />
+                  </el-select>
                 </div>
               </div>
 
@@ -397,7 +405,7 @@ export default {
         address: '',
         isUpgrade: null,
         upgradeContent: '',
-        developmentMode: '',
+        devMode: '',
         landSource: '',
         district: '',
         parkType: null,

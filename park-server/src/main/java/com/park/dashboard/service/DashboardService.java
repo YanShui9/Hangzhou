@@ -106,7 +106,7 @@ public class DashboardService {
             LambdaQueryWrapper<EvaluationRecord> evalQuery = new LambdaQueryWrapper<>();
             evalQuery.eq(EvaluationRecord::getParkId, park.getId());
             evalQuery.eq(EvaluationRecord::getStatus, 3); // 3=通过
-            evalQuery.orderByDesc(EvaluationRecord::getYear);
+            evalQuery.orderByDesc(EvaluationRecord::getEvalYear);
             evalQuery.last("LIMIT 1");
             EvaluationRecord latestEval = evaluationMapper.selectOne(evalQuery);
 

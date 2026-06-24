@@ -49,7 +49,7 @@ public class AuthService {
             throw new BusinessException(ResultCode.USER_NOT_FOUND);
         }
 
-        // 2. 验证密码（BCrypt）
+        // 2. 验证密码（使用BCrypt验证）
         if (user.getPassword() == null || !passwordEncoder.matches(loginDTO.getPassword(), user.getPassword())) {
             log.warn("登录失败：密码错误 - {}", loginDTO.getUsername());
             throw new BusinessException(ResultCode.USER_PASSWORD_ERROR);

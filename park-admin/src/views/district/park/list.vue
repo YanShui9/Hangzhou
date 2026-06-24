@@ -4,45 +4,38 @@
     <el-card class="search-card" shadow="never">
       <div class="search-header">
         <el-form :model="queryParams" inline>
-          <el-form-item label="园区名称">
+          <el-form-item>
             <el-input
               v-model="queryParams.parkName"
-              placeholder="请输入园区名称"
+              placeholder="园区名称"
               clearable
               @keyup.enter.native="handleQuery"
+              style="width: 200px;"
             />
           </el-form-item>
-          <el-form-item label="园区类型">
-            <el-select v-model="queryParams.parkType" placeholder="请选择类型" clearable>
+          <el-form-item>
+            <el-select v-model="queryParams.parkType" placeholder="园区类型" clearable style="width: 160px;">
               <el-option label="制造类" :value="1" />
               <el-option label="服务类" :value="2" />
             </el-select>
           </el-form-item>
-          <el-form-item label="园区状态">
-            <el-select v-model="queryParams.parkStatus" placeholder="请选择状态" clearable>
-              <el-option label="规划中" :value="1" />
-              <el-option label="建设中" :value="2" />
-              <el-option label="已投运" :value="3" />
-            </el-select>
-          </el-form-item>
-          <el-form-item label="所属区域">
-            <el-select v-model="queryParams.district" placeholder="请选择区域" clearable>
-              <el-option label="上城区" value="上城区" />
-              <el-option label="下城区" value="下城区" />
-              <el-option label="西湖区" value="西湖区" />
-              <el-option label="拱墅区" value="拱墅区" />
-              <el-option label="江干区" value="江干区" />
-              <el-option label="滨江区" value="滨江区" />
-              <el-option label="萧山区" value="萧山区" />
-              <el-option label="余杭区" value="余杭区" />
+          <el-form-item>
+            <el-select v-model="queryParams.starLevel" placeholder="星级认定" clearable style="width: 160px;">
+              <el-option label="全部星级" value="" />
+              <el-option label="五星级" :value="5" />
+              <el-option label="四星级" :value="4" />
+              <el-option label="三星级" :value="3" />
+              <el-option label="二星级" :value="2" />
+              <el-option label="一星级" :value="1" />
             </el-select>
           </el-form-item>
           <el-form-item>
-            <el-button type="primary" icon="el-icon-search" @click="handleQuery">搜索</el-button>
-            <el-button icon="el-icon-refresh" @click="resetQuery">重置</el-button>
+            <el-button type="primary" icon="el-icon-search" @click="handleQuery">查询</el-button>
+          </el-form-item>
+          <el-form-item>
+            <el-button type="success" icon="el-icon-plus" @click="handleAdd">新增园区</el-button>
           </el-form-item>
         </el-form>
-        <el-button type="primary" icon="el-icon-plus" @click="handleAdd">新增园区</el-button>
       </div>
     </el-card>
 
@@ -63,36 +56,38 @@
             </template>
           </el-table-column>
           <el-table-column prop="parkCode" label="园区代码" width="120" align="center" />
-          <el-table-column prop="district" label="所属区域" width="100" align="center" />
-          <el-table-column label="园区认定" width="100" align="center">
+          <el-table-column prop="districtName" label="所属区域" width="100" align="center" />
+          <el-table-column label="园区认定" width="140" align="center">
             <template slot-scope="{ row }">
-              <el-tag :type="row.isCertified === '1' ? 'success' : 'warning'">
-                {{ row.isCertified === '1' ? '已认定' : '未认定' }}
+              <el-tag v-if="row.recognition && row.recognition !== '-'" :type="row.recognition.includes('国家') ? 'danger' : row.recognition.includes('省') ? 'success' : 'warning'" size="small">
+                {{ row.recognition }}
               </el-tag>
+              <span v-else class="text-muted">未认定</span>
             </template>
           </el-table-column>
-          <el-table-column label="星级评定" width="100" align="center">
+          <el-table-column label="星级评定" width="120" align="center">
             <template slot-scope="{ row }">
-              <span v-if="row.starLevel && row.starLevel !== '-'">{{ row.starLevel }}</span>
-              <span v-else class="text-muted">-</span>
+              <span v-if="row.starLevel && row.starLevel > 0" style="color: #E6A23C;">
+                <i v-for="n in row.starLevel" :key="n" class="el-icon-star-on" style="font-size: 14px;"></i>
+              </span>
+              <span v-else class="text-muted">未评定</span>
             </template>
           </el-table-column>
           <el-table-column label="园区状态" width="100" align="center">
             <template slot-scope="{ row }">
-              <el-tag :type="getStatusType(row.parkStatus)" :effect="row.parkStatus === '2' ? 'dark' : 'plain'">
-                <i :class="getStatusIcon(row.parkStatus)" :style="getStatusIconStyle(row.parkStatus)"></i>
-                {{ getStatusText(row.parkStatus) }}
+              <el-tag :type="getStatusType(row.parkStatus)" size="small">
+                {{ row.parkStatus || '-' }}
               </el-tag>
             </template>
           </el-table-column>
           <el-table-column label="园区类型" width="100" align="center">
             <template slot-scope="{ row }">
-              <el-tag :type="row.parkType === '1' ? 'primary' : 'success'">
-                {{ row.parkType === '1' ? '制造类' : '服务类' }}
+              <el-tag :type="row.parkType === 1 ? 'primary' : 'success'" size="small">
+                {{ row.parkType === 1 ? '制造类' : '服务类' }}
               </el-tag>
             </template>
           </el-table-column>
-          <el-table-column prop="developmentMode" label="开发模式" width="120" align="center" />
+          <el-table-column prop="devMode" label="开发模式" width="120" align="center" />
           <el-table-column prop="landSource" label="土地来源" width="100" align="center" />
           <el-table-column prop="landNature" label="土地性质" width="100" align="center" />
           <el-table-column label="操作" width="80" align="center">
@@ -139,8 +134,7 @@ export default {
       queryParams: {
         parkName: '',
         parkType: null,
-        parkStatus: null,
-        district: '',
+        starLevel: null,
         pageNum: 1,
         pageSize: 20
       },
@@ -158,48 +152,24 @@ export default {
   methods: {
     getList() {
       this.loading = true
-      getParkList(this.queryParams).then(res => {
-        this.parkList = res.data.records || this.getMockData()
-        this.total = res.data.total || 104
+      const params = {
+        pageNum: this.queryParams.pageNum,
+        pageSize: this.queryParams.pageSize
+      }
+      if (this.queryParams.parkName) params.parkName = this.queryParams.parkName
+      if (this.queryParams.parkType) params.parkType = this.queryParams.parkType
+      if (this.queryParams.starLevel) params.starLevel = this.queryParams.starLevel
+
+      getParkList(params).then(res => {
+        this.parkList = res.data.records || []
+        this.total = res.data.total || 0
       }).catch(() => {
-        this.parkList = this.getMockData()
-        this.total = 104
+        this.parkList = []
+        this.total = 0
+        this.$message.error('获取园区列表失败')
       }).finally(() => {
         this.loading = false
       })
-    },
-    getMockData() {
-      const data = []
-      const districts = ['滨江区', '萧山区', '钱塘区', '西湖区', '余杭区']
-      const statuses = ['3', '1', '2']
-      const types = ['2', '1']
-      const modes = ['政府主导', '企业自建', '政企合作', '政府引导', '市场运营']
-      const landSources = ['划拨', '出让', '租赁']
-      const landNatures = ['工业用地', '商业用地', '商务用地']
-      const stars = ['五星级', '四星级', '三星级', '-']
-      const names = [
-        '万轮科技园', '传化国际科创园', '和达药谷中心', '颐高创业园',
-        '天明国际产业园', '乐富海邦园', '银海科创中心', '杭州湾信息港',
-        '钱塘生物港（一期）', '菜鸟智谷产业园'
-      ]
-
-      for (let i = 1; i <= 17; i++) {
-        const idx = (i - 1) % names.length
-        data.push({
-          id: i,
-          parkName: names[idx] + (i > names.length ? i : ''),
-          parkCode: 'DS2026' + String(i).padStart(3, '0'),
-          district: districts[Math.floor(Math.random() * districts.length)],
-          isCertified: Math.random() > 0.3 ? '1' : '0',
-          starLevel: stars[Math.floor(Math.random() * stars.length)],
-          parkStatus: statuses[Math.floor(Math.random() * statuses.length)],
-          parkType: types[Math.floor(Math.random() * types.length)],
-          developmentMode: modes[Math.floor(Math.random() * modes.length)],
-          landSource: landSources[Math.floor(Math.random() * landSources.length)],
-          landNature: landNatures[Math.floor(Math.random() * landNatures.length)]
-        })
-      }
-      return data
     },
     handleQuery() {
       this.queryParams.pageNum = 1
@@ -209,8 +179,7 @@ export default {
       this.queryParams = {
         parkName: '',
         parkType: null,
-        parkStatus: null,
-        district: '',
+        starLevel: null,
         pageNum: 1,
         pageSize: 20
       }
@@ -248,37 +217,13 @@ export default {
         this.deleteDialogVisible = false
       })
     },
-    getStatusText(status) {
-      const map = {
-        '1': '规划中',
-        '2': '建设中',
-        '3': '已投运'
-      }
-      return map[status] || '-'
-    },
     getStatusType(status) {
       const map = {
-        '1': 'warning',
-        '2': 'primary',
-        '3': 'success'
+        '已投运': 'success',
+        '在建': 'warning',
+        '规划中': 'info'
       }
       return map[status] || 'info'
-    },
-    getStatusIcon(status) {
-      const map = {
-        '1': 'el-icon-warning',
-        '2': 'el-icon-info',
-        '3': 'el-icon-check'
-      }
-      return map[status] || 'el-icon-circle'
-    },
-    getStatusIconStyle(status) {
-      const map = {
-        '1': 'color: #E6A23C; margin-right: 4px;',
-        '2': 'color: #409EFF; margin-right: 4px;',
-        '3': 'color: #67C23A; margin-right: 4px;'
-      }
-      return map[status] || 'margin-right: 4px;'
     }
   }
 }

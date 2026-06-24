@@ -8,6 +8,9 @@ const service = axios.create({
   timeout: 15000
 })
 
+// 防止重复处理401错误
+let isRefreshing = false
+
 // 请求拦截器
 service.interceptors.request.use(
   config => {
@@ -28,6 +31,20 @@ service.interceptors.response.use(
   response => {
     const res = response.data
     if (res.code && res.code !== 200) {
+      // 处理业务错误码：1001表示用户不存在，需要退出登录
+      if (res.code === 1001) {
+        Message({
+          message: '用户不存在，请重新登录',
+          type: 'warning',
+          duration: 2000
+        })
+        // 清除用户信息并跳转到登录页
+        store.dispatch('user/logout').then(() => {
+          window.location.href = '/login'
+        })
+        return Promise.reject(new Error(res.message || '用户不存在'))
+      }
+      
       Message({
         message: res.message || '请求失败',
         type: 'error',
@@ -42,6 +59,12 @@ service.interceptors.response.use(
 
     // 处理 401 未授权（Token 过期或无效）
     if (error.response && error.response.status === 401) {
+      // 防止重复处理401
+      if (isRefreshing) {
+        return Promise.reject(error)
+      }
+      isRefreshing = true
+
       Message({
         message: '登录已过期，请重新登录',
         type: 'warning',
@@ -49,10 +72,9 @@ service.interceptors.response.use(
       })
       // 清除用户信息并跳转到登录页
       store.dispatch('user/logout').then(() => {
-        // 避免重复导航到登录页
-        if (router.currentRoute.path !== '/login') {
-          router.push('/login')
-        }
+        window.location.href = '/login'
+      }).finally(() => {
+        isRefreshing = false
       })
       return Promise.reject(error)
     }

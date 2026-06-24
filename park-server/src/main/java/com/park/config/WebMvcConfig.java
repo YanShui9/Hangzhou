@@ -2,10 +2,13 @@ package com.park.config;
 
 import com.park.common.filter.JwtAuthenticationFilter;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
+
+import java.io.File;
 
 /**
  * Web MVC 配置
@@ -18,6 +21,9 @@ public class WebMvcConfig implements WebMvcConfigurer {
     @Autowired
     private JwtAuthenticationFilter jwtAuthenticationFilter;
 
+    @Value("${file.upload-dir:./uploads}")
+    private String uploadDir;
+
     /**
      * 配置静态资源映射
      */
@@ -28,6 +34,11 @@ public class WebMvcConfig implements WebMvcConfigurer {
                 .addResourceLocations("classpath:/META-INF/resources/");
         registry.addResourceHandler("/webjars/**")
                 .addResourceLocations("classpath:/META-INF/resources/webjars/");
+        
+        // 文件上传目录静态资源映射
+        String uploadPath = new File(uploadDir).getAbsolutePath();
+        registry.addResourceHandler("/api/files/**")
+                .addResourceLocations("file:" + uploadPath + File.separator);
     }
 
     /**
@@ -45,7 +56,9 @@ public class WebMvcConfig implements WebMvcConfigurer {
                         "/swagger-ui.html",
                         "/webjars/**",
                         "/v3/api-docs/**",
-                        "/favicon.ico"
+                        "/favicon.ico",
+                        "/api/files/**",
+                        "/api/documents/**"
                 );
     }
 }

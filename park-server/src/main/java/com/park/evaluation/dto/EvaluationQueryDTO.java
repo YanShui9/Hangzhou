@@ -25,7 +25,7 @@ public class EvaluationQueryDTO extends PageQuery {
     private List<Long> parkIds;
 
     @ApiModelProperty(value = "评价年份")
-    private Integer year;
+    private Integer evalYear;
 
     @ApiModelProperty(value = "状态：0=草稿, 1=待区县审, 2=待市局审, 3=通过, 4=驳回")
     private Integer status;

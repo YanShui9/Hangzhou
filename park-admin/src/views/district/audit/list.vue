@@ -9,7 +9,7 @@
 
     <!-- 统计卡片 -->
     <div class="stats-cards">
-      <div class="stat-card">
+      <div class="stat-card" :class="{ active: activeCard === 'all' }" @click="handleCardClick('all', '')">
         <div class="stat-icon all">
           <div class="icon-inner">
             <i class="el-icon-office-building"></i>
@@ -19,8 +19,11 @@
           <span class="stat-value">{{ stats.total }}</span>
           <span class="stat-label">全部</span>
         </div>
+        <div class="stat-action">
+          <i class="el-icon-refresh" @click.stop="fetchList"></i>
+        </div>
       </div>
-      <div class="stat-card">
+      <div class="stat-card" :class="{ active: activeCard === 'pending' }" @click="handleCardClick('pending', '1')">
         <div class="stat-icon pending">
           <div class="icon-inner">
             <i class="el-icon-clock"></i>
@@ -28,10 +31,10 @@
         </div>
         <div class="stat-info">
           <span class="stat-value">{{ stats.pending }}</span>
-          <span class="stat-label">待审核</span>
+          <span class="stat-label">区县待审核</span>
         </div>
       </div>
-      <div class="stat-card">
+      <div class="stat-card" :class="{ active: activeCard === 'passed' }" @click="handleCardClick('passed', '2')">
         <div class="stat-icon passed">
           <div class="icon-inner">
             <i class="el-icon-check-circle"></i>
@@ -39,10 +42,10 @@
         </div>
         <div class="stat-info">
           <span class="stat-value">{{ stats.passed }}</span>
-          <span class="stat-label">已通过</span>
+          <span class="stat-label">区县审核通过</span>
         </div>
       </div>
-      <div class="stat-card">
+      <div class="stat-card" :class="{ active: activeCard === 'rejected' }" @click="handleCardClick('rejected', '4')">
         <div class="stat-icon rejected">
           <div class="icon-inner">
             <i class="el-icon-circle-close"></i>
@@ -50,7 +53,7 @@
         </div>
         <div class="stat-info">
           <span class="stat-value">{{ stats.rejected }}</span>
-          <span class="stat-label">已驳回</span>
+          <span class="stat-label">区县审核驳回</span>
         </div>
       </div>
     </div>
@@ -65,44 +68,51 @@
         />
         <el-select 
           v-model="queryForm.district" 
-          placeholder="全部区域" 
-          class="filter-select"
-          clearable
-        >
-          <el-option label="全部区域" value="" />
-          <el-option label="上城区" value="上城区" />
-          <el-option label="下城区" value="下城区" />
-          <el-option label="西湖区" value="西湖区" />
-          <el-option label="拱墅区" value="拱墅区" />
-          <el-option label="江干区" value="江干区" />
-          <el-option label="滨江区" value="滨江区" />
-          <el-option label="萧山区" value="萧山区" />
-          <el-option label="余杭区" value="余杭区" />
-        </el-select>
-        <el-select 
-          v-model="queryForm.parkType" 
-          placeholder="全部类型" 
+          placeholder="园区类型" 
           class="filter-select"
           clearable
         >
           <el-option label="全部类型" value="" />
-          <el-option label="服务类" value="服务类" />
-          <el-option label="制造类" value="制造类" />
+          <el-option label="生产性服务类" value="1" />
+          <el-option label="制造类" value="2" />
         </el-select>
         <el-select 
-          v-model="queryForm.auditStatus" 
+          v-model="queryForm.parkType" 
           placeholder="全部审核状态" 
           class="filter-select"
           clearable
         >
           <el-option label="全部审核状态" value="" />
-          <el-option label="待审核" value="1" />
-          <el-option label="已通过" value="3" />
-          <el-option label="已驳回" value="4" />
+          <el-option label="未提交" value="0" />
+          <el-option label="区县待审核" value="1" />
+          <el-option label="区县审核通过" value="3" />
+          <el-option label="区县审核驳回" value="4" />
+          <el-option label="已终止" value="6" />
+        </el-select>
+        <el-select 
+          v-model="queryForm.auditStatus" 
+          placeholder="全部参评状态" 
+          class="filter-select"
+          clearable
+        >
+          <el-option label="全部参评状态" value="" />
+          <el-option label="参评" value="1" />
+          <el-option label="不参评" value="2" />
+        </el-select>
+        <el-select 
+          v-model="queryForm.evaluationYear" 
+          placeholder="评价年份" 
+          class="filter-select"
+          clearable
+        >
+          <el-option label="全部年份" value="" />
+          <el-option label="2025" value="2025" />
+          <el-option label="2024" value="2024" />
+          <el-option label="2023" value="2023" />
         </el-select>
         <el-button type="primary" icon="el-icon-search" @click="handleSearch">查询</el-button>
         <el-button @click="handleReset">重置</el-button>
-        <el-button type="success" icon="el-icon-document" @click="handleExport">发布年度通报</el-button>
+        <el-button type="primary" icon="el-icon-upload" @click="handleBatchUpload">一键上报</el-button>
       </div>
     </el-card>
 
@@ -113,39 +123,64 @@
         border 
         style="width: 100%;" 
         v-loading="loading"
+        max-height="500"
+        :header-cell-style="{ position: 'sticky', top: '0', zIndex: 1, background: '#fff' }"
+        @selection-change="handleSelectionChange"
       >
+        <el-table-column type="selection" width="50" align="center" />
         <el-table-column type="index" label="序号" width="60" align="center" />
         <el-table-column prop="parkName" label="园区名称" min-width="180" />
         <el-table-column prop="districtName" label="所属区域" width="120" align="center" />
-        <el-table-column prop="parkType" label="园区类型" width="100" align="center">
+        <el-table-column prop="parkType" label="园区类型" width="140" align="center">
           <template slot-scope="scope">
-            <span>{{ scope.row.parkType === '1' ? '制造类' : '服务类' }}</span>
+            <span>{{ scope.row.parkType === 1 ? '生产性服务类' : '制造类' }}</span>
           </template>
         </el-table-column>
+        <el-table-column prop="evaluationYear" label="评价年份" width="100" align="center" />
         <el-table-column prop="evaluationStatus" label="参评状态" width="100" align="center">
           <template slot-scope="scope">
-            <el-tag :type="getEvaluationStatusType(scope.row.evaluationStatus)">
-              {{ getEvaluationStatusLabel(scope.row.evaluationStatus) }}
-            </el-tag>
+            <span :class="scope.row.evaluationStatus === 1 ? 'status-dot success' : 'status-dot inactive'"></span>
+            <span>{{ scope.row.evaluationStatus === 1 ? '参评' : '不参评' }}</span>
           </template>
         </el-table-column>
-        <el-table-column prop="auditStatus" label="审核状态" width="100" align="center">
+        <el-table-column prop="auditStatus" label="审核状态" width="140" align="center">
           <template slot-scope="scope">
-            <el-tag :type="getAuditStatusType(scope.row.auditStatus)">
-              {{ getAuditStatusLabel(scope.row.auditStatus) }}
-            </el-tag>
+            <span>{{ getAuditStatusLabel(scope.row.auditStatus) }}</span>
           </template>
         </el-table-column>
-        <el-table-column prop="createTime" label="创建时间" width="180" align="center" />
-        <el-table-column label="操作" width="100" align="center">
+        <el-table-column label="操作" width="220" align="center">
           <template slot-scope="scope">
-            <el-button 
-              type="text" 
-              size="small" 
-              @click="handleAudit(scope.row)"
-              :disabled="scope.row.auditStatus !== 1"
-              :class="{ 'disabled-btn': scope.row.auditStatus !== 1 }"
-            >审核</el-button>
+            <!-- 参评状态（evaluationStatus === 1） -->
+            <template v-if="scope.row.evaluationStatus === 1">
+              <!-- 未提交(0)或已终止(2)：审核按钮灰色禁用，但仍允许不参评 -->
+              <template v-if="scope.row.auditStatus === 0 || scope.row.auditStatus === 2">
+                <el-button type="text" size="small" disabled style="color: #c0c4cc; cursor: not-allowed;">审核</el-button>
+                <el-button type="text" size="small" style="color: #E6A23C;" @click="handleNotParticipate(scope.row)">不参评</el-button>
+              </template>
+              <!-- 区县待审核(1)：审核按钮可点（蓝色），不参评按钮可点（橙色） -->
+              <template v-else-if="scope.row.auditStatus === 1">
+                <el-button type="text" size="small" style="color: #409EFF;" @click="handleAudit(scope.row)">审核</el-button>
+                <el-button type="text" size="small" style="color: #E6A23C;" @click="handleNotParticipate(scope.row)">不参评</el-button>
+              </template>
+              <!-- 区县审核通过(3) / 区县审核驳回(4)：审核按钮灰色禁用，仍允许不参评 -->
+              <template v-else>
+                <el-button type="text" size="small" disabled style="color: #c0c4cc; cursor: not-allowed;">审核</el-button>
+                <el-button type="text" size="small" style="color: #E6A23C;" @click="handleNotParticipate(scope.row)">不参评</el-button>
+              </template>
+            </template>
+            <!-- 不参评状态（evaluationStatus !== 1） -->
+            <template v-else>
+              <!-- 未提交(0)或已终止(2)：行文文件按钮可点（蓝色），参评按钮可点（绿色） -->
+              <template v-if="scope.row.auditStatus === 0 || scope.row.auditStatus === 2">
+                <el-button type="text" size="small" style="color: #409EFF;" @click="handleDocumentFile(scope.row)">行文文件</el-button>
+                <el-button type="text" size="small" style="color: #67C23A;" @click="handleParticipate(scope.row)">参评</el-button>
+              </template>
+              <!-- 区县审核通过(3) / 区县审核驳回(4)：行文文件按钮可点（蓝色），参评按钮可点（绿色） -->
+              <template v-else>
+                <el-button type="text" size="small" style="color: #409EFF;" @click="handleDocumentFile(scope.row)">行文文件</el-button>
+                <el-button type="text" size="small" style="color: #67C23A;" @click="handleParticipate(scope.row)">参评</el-button>
+              </template>
+            </template>
           </template>
         </el-table-column>
       </el-table>
@@ -190,11 +225,122 @@
         <el-button type="primary" :loading="auditSubmitting" @click="confirmAudit">确 定</el-button>
       </div>
     </el-dialog>
+
+    <!-- 确认不参评对话框 -->
+    <el-dialog 
+      title="确认不参评" 
+      :visible.sync="confirmNotParticipateVisible" 
+      width="480px" 
+      :close-on-click-modal="false"
+    >
+      <div class="confirm-content">
+        <div class="warning-icon">
+          <i class="el-icon-warning" style="font-size: 24px; color: #E6A23C;"></i>
+        </div>
+        <p>确认将"{{ currentParkName }}"修改为不参评状态？确认后需上传行文文件并保存后生效。</p>
+      </div>
+      <div slot="footer" class="dialog-footer">
+        <el-button @click="confirmNotParticipateVisible = false">取消</el-button>
+        <el-button type="primary" @click="confirmNotParticipate">确定</el-button>
+      </div>
+    </el-dialog>
+
+    <!-- 行文文件对话框 -->
+    <el-dialog 
+      title="行文文件" 
+      :visible.sync="documentDialogVisible" 
+      width="600px" 
+      :close-on-click-modal="false"
+    >
+      <div class="document-content">
+        <!-- 警告提示条 -->
+        <div class="warning-box">
+          <i class="el-icon-warning" style="font-size: 16px; color: #E6A23C;"></i>
+          <span>设为不参评必须上传行文文件，上传完成后请点击下方保存按钮确认</span>
+        </div>
+        
+        <div class="upload-section">
+          <div class="upload-btn-wrapper">
+            <el-button type="primary" size="small" icon="el-icon-upload" @click="handleFileUpload">上传文件</el-button>
+            <input type="file" class="file-input" ref="documentFileInput" @change="handleDocumentFileChange" accept=".doc,.docx,.xls,.xlsx,.pdf,.png,.jpg,.jpeg" />
+          </div>
+          <p class="upload-tip">请上传区县盖章行文文件，支持 .doc,.docx,.xls,.xlsx,.pdf,.png,.jpg,.jpeg 格式</p>
+        </div>
+        
+        <div class="file-list">
+          <div v-if="uploadedFiles.length === 0" class="empty-tip">暂无上传文件</div>
+          <div v-else>
+            <div 
+              v-for="(file, index) in uploadedFiles" 
+              :key="index" 
+              class="file-item"
+            >
+              <i class="el-icon-file-text"></i>
+              <span class="file-name">{{ file.name }}</span>
+              <span class="file-size">{{ file.size }}</span>
+              <a href="javascript:void(0)" class="preview-link" @click="previewFile(file)">预览</a>
+              <a href="javascript:void(0)" class="delete-link" @click="deleteFile(index)">删除</a>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div slot="footer" class="dialog-footer">
+        <el-button @click="documentDialogVisible = false">取消</el-button>
+        <el-button 
+          type="primary" 
+          :disabled="uploadedFiles.length === 0"
+          @click="saveDocument"
+        >确定</el-button>
+      </div>
+    </el-dialog>
+
+    <!-- 文件预览对话框 -->
+    <el-dialog 
+      :title="previewDialogTitle" 
+      :visible.sync="previewDialogVisible" 
+      width="800px"
+      height="600px"
+      :close-on-click-modal="false"
+    >
+      <div class="preview-content">
+        <div class="document-preview">
+          <p class="preview-title">{{ currentPreviewFile?.name || '文件预览' }}</p>
+          <div class="preview-body">
+            <!-- 图片预览 -->
+            <img 
+              v-if="isImageFile" 
+              :src="previewUrl" 
+              alt="图片预览" 
+              class="preview-image"
+            />
+            <!-- PDF预览 -->
+            <iframe 
+              v-else-if="isPdfFile" 
+              :src="previewUrl" 
+              class="preview-iframe"
+              frameborder="0"
+            ></iframe>
+            <!-- 其他文件类型下载链接 -->
+            <div v-else class="preview-download">
+              <p>该文件类型不支持在线预览，请下载查看</p>
+              <a :href="previewUrl" target="_blank" class="download-link">
+                <i class="el-icon-download"></i> 下载文件
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div slot="footer" class="dialog-footer">
+        <el-button @click="previewDialogVisible = false">关闭</el-button>
+      </div>
+    </el-dialog>
   </div>
 </template>
 
 <script>
-import { getAuditList, submitAudit } from '@/api/audit'
+import { getAuditList, submitAudit, getParkFiles, uploadParkFile, deleteParkFile, getFilePreviewUrl } from '@/api/audit'
+import { getParkList } from '@/api/park'
+import { updateEvaluationStatus } from '@/api/evaluation'
 
 export default {
   name: 'DistrictAuditList',
@@ -203,19 +349,24 @@ export default {
       loading: false,
       tableData: [],
       total: 0,
+      parkMap: {}, // 园区ID → 园区信息 映射缓存
+      activeCard: 'all', // 当前激活的统计卡片
+      cardStatus: '', // 卡片筛选状态（发给后端的 status 参数）
       stats: {
         total: 0,
         pending: 0,
         passed: 0,
         rejected: 0
       },
+      selectedRows: [], // 选中的行数据
       queryForm: {
         pageNum: 1,
         pageSize: 20,
         parkName: '',
         district: '',
         parkType: '',
-        auditStatus: ''
+        auditStatus: '',
+        evaluationYear: ''
       },
       auditDialogVisible: false,
       auditDialogTitle: '审核',
@@ -225,33 +376,125 @@ export default {
         parkName: '',
         action: null,
         opinion: ''
-      }
+      },
+      // 不参评相关
+      confirmNotParticipateVisible: false,
+      documentDialogVisible: false,
+      previewDialogVisible: false,
+      currentParkName: '',
+      currentParkId: null,
+      uploadedFiles: [],
+      currentPreviewFile: null,
+      previewDialogTitle: '',
+      previewUrl: ''
+    }
+  },
+  computed: {
+    isImageFile() {
+      if (!this.currentPreviewFile?.name) return false
+      const ext = this.currentPreviewFile.name.substring(this.currentPreviewFile.name.lastIndexOf('.')).toLowerCase()
+      return ['.png', '.jpg', '.jpeg', '.gif', '.bmp'].includes(ext)
+    },
+    isPdfFile() {
+      if (!this.currentPreviewFile?.name) return false
+      const ext = this.currentPreviewFile.name.substring(this.currentPreviewFile.name.lastIndexOf('.')).toLowerCase()
+      return ext === '.pdf'
     }
   },
   created() {
+    this.loadParkMap()
     this.fetchList()
+    this.fetchStats()
   },
   methods: {
+    async loadParkMap() {
+      try {
+        const res = await getParkList({ pageNum: 1, pageSize: 200 })
+        const records = res.data.records || res.data || []
+        records.forEach(p => { this.parkMap[p.id] = p })
+      } catch (e) {
+        console.warn('加载园区信息失败', e)
+      }
+    },
+
     async fetchList() {
       this.loading = true
       try {
-        const res = await getAuditList(this.queryForm)
-        this.tableData = res.data.records || this.getMockData()
-        this.total = res.data.total || 125
+        const params = {
+          pageNum: this.queryForm.pageNum,
+          pageSize: this.queryForm.pageSize
+        }
+        // 添加园区名称筛选 - 后端参数名是name
+        if (this.queryForm.parkName) {
+          params.name = this.queryForm.parkName
+        }
+        // 添加园区类型筛选（queryForm.district实际是园区类型）- 后端参数名是parkType
+        if (this.queryForm.district) {
+          params.parkType = this.queryForm.district
+        }
+        // 添加审核状态筛选（queryForm.parkType实际是审核状态）
+        if (this.queryForm.parkType) {
+          params.status = this.queryForm.parkType
+        }
+        // 添加参评状态筛选（queryForm.auditStatus实际是参评状态）
+        if (this.queryForm.auditStatus) {
+          params.evaluationStatus = parseInt(this.queryForm.auditStatus)
+        }
+        // 添加评价年份筛选
+        if (this.queryForm.evaluationYear) {
+          params.evaluationYear = parseInt(this.queryForm.evaluationYear)
+        }
+        // 卡片筛选状态优先级最高
+        if (this.cardStatus) {
+          params.status = this.cardStatus
+        }
+        const res = await getAuditList(params)
+        let records = res.data.records || []
+        this.tableData = records.map(item => this.mapItem(item))
+        this.total = res.data.total || 0
+
+        // 统计卡片始终显示全量数据，不随筛选变化
       } catch (e) {
         console.error('获取审核列表失败', e)
-        this.tableData = this.getMockData()
-        this.total = 125
+        this.tableData = []
+        this.total = 0
+        this.$message.error('获取审核列表失败')
       } finally {
         this.loading = false
-        this.calculateStats()
+      }
+    },
+
+    // 单独加载全量统计数字
+    async fetchStats() {
+      try {
+        const res = await getAuditList({ pageNum: 1, pageSize: 200 })
+        const records = res.data.records || []
+        const mapped = records.map(item => this.mapItem(item))
+        this.stats = {
+          total: records.length,
+          pending: mapped.filter(i => i.auditStatus === 1).length,
+          passed: mapped.filter(i => i.auditStatus === 2 || i.auditStatus === 3).length,
+          rejected: mapped.filter(i => i.auditStatus === 4 || i.auditStatus === 6).length
+        }
+      } catch (e) {
+        console.warn('加载统计数字失败', e)
+      }
+    },
+
+    // 将后端 AuditListItemDTO 字段映射为前端展示字段
+    mapItem(item) {
+      return {
+        ...item,
+        parkType: item.parkType != null ? item.parkType : null,
+        evaluationStatus: item.evaluationStatus != null ? item.evaluationStatus : 1,
+        auditStatus: item.auditStatus != null ? item.auditStatus : 1
       }
     },
 
     calculateStats() {
-      const pending = this.tableData.filter(item => item.auditStatus === '1').length
-      const passed = this.tableData.filter(item => item.auditStatus === '3').length
-      const rejected = this.tableData.filter(item => item.auditStatus === '4').length
+      const pending = this.tableData.filter(item => item.auditStatus === 1).length
+      const passed = this.tableData.filter(item => item.auditStatus === 2 || item.auditStatus === 3).length
+      const rejected = this.tableData.filter(item => item.auditStatus === 4).length
       this.stats = {
         total: this.tableData.length,
         pending: pending,
@@ -260,38 +503,35 @@ export default {
       }
     },
 
-    getMockData() {
-      const data = []
-      // 待审核 18条
-      for (let i = 1; i <= 18; i++) {
-        data.push({ id: i, parkName: '园区' + i, districtName: '滨江区', parkType: '1', evaluationStatus: '1', auditStatus: '1', createTime: '2025-11-25 10:25' })
-      }
-      // 已通过 80条
-      for (let i = 19; i <= 98; i++) {
-        data.push({ id: i, parkName: '园区' + i, districtName: '西湖区', parkType: '2', evaluationStatus: '1', auditStatus: '3', createTime: '2025-11-25 10:25' })
-      }
-      // 已驳回 27条
-      for (let i = 99; i <= 125; i++) {
-        data.push({ id: i, parkName: '园区' + i, districtName: '萧山区', parkType: '1', evaluationStatus: '2', auditStatus: '4', createTime: '2025-11-25 10:25' })
-      }
-      return data
-    },
-
     handleSearch() {
       this.queryForm.pageNum = 1
       this.fetchList()
     },
 
     handleReset() {
+      this.activeCard = 'all'
+      this.cardStatus = ''
       this.queryForm = {
         pageNum: 1,
         pageSize: 20,
         parkName: '',
         district: '',
         parkType: '',
-        auditStatus: ''
+        auditStatus: '',
+        evaluationYear: ''
       }
       this.fetchList()
+      this.fetchStats()
+    },
+
+    handleCardClick(card, status) {
+      this.activeCard = card
+      this.cardStatus = status
+      // 同步更新下拉框显示状态
+      this.queryForm.parkType = status
+      this.queryForm.pageNum = 1
+      this.fetchList()
+      // 统计卡片显示全量数据，不随筛选变化
     },
 
     handleExport() {
@@ -299,13 +539,203 @@ export default {
     },
 
     handleAudit(row) {
-      this.auditForm = {
-        evaluationId: row.id,
-        parkName: row.parkName,
-        action: null,
-        opinion: ''
+      this.$router.push(`/district/audit/detail/${row.id}`)
+    },
+
+    // 点击不参评
+    handleNotParticipate(row) {
+      this.currentParkName = row.parkName
+      this.currentParkId = row.id
+      this.confirmNotParticipateVisible = true
+    },
+    
+    // 点击行文文件
+    handleDocumentFile(row) {
+      this.currentParkName = row.parkName
+      this.currentParkId = row.id
+      // 加载已上传的文件
+      this.loadUploadedFiles(row.id)
+      this.documentDialogVisible = true
+    },
+
+    // 确认不参评
+    confirmNotParticipate() {
+      this.confirmNotParticipateVisible = false
+      // 加载已上传的文件
+      this.loadUploadedFiles(this.currentParkId)
+      this.documentDialogVisible = true
+    },
+
+    // 加载已上传的文件列表
+    async loadUploadedFiles(parkId) {
+      try {
+        const response = await getParkFiles(parkId)
+        if (response.code === 200 && response.data) {
+          // 转换文件列表格式
+          this.uploadedFiles = response.data.map(doc => {
+            let size = doc.fileSize
+            let unit = 'B'
+            if (size >= 1024 * 1024) {
+              size = (size / (1024 * 1024)).toFixed(2)
+              unit = 'MB'
+            } else if (size >= 1024) {
+              size = (size / 1024).toFixed(2)
+              unit = 'KB'
+            }
+            return {
+              id: doc.id,
+              name: doc.fileName,
+              size: `${size} ${unit}`,
+              fileUrl: doc.fileUrl
+            }
+          })
+        } else {
+          this.uploadedFiles = []
+        }
+      } catch (error) {
+        console.error('加载已上传文件失败', error)
+        this.uploadedFiles = []
       }
-      this.auditDialogVisible = true
+    },
+
+    // 点击行文文件
+    handleDocument(row) {
+      this.currentParkName = row.parkName
+      this.currentParkId = row.id
+      // 加载已上传文件
+      this.loadUploadedFiles(row.id)
+      this.documentDialogVisible = true
+    },
+
+    // 点击参评
+    handleParticipate(row) {
+      this.$confirm(`确定将“${row.parkName}”修改为参评状态？`, '确认', {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }).then(async () => {
+        try {
+          await updateEvaluationStatus(row.id, 1)
+          this.$message.success('已修改为参评状态')
+          // 从后端刷新数据
+          this.fetchList()
+          this.fetchStats()
+        } catch (e) {
+          console.error('修改参评状态失败', e)
+          this.$message.error('修改失败，请重试')
+        }
+      }).catch(() => {})
+    },
+
+    // 点击上传文件
+    handleFileUpload() {
+      this.$refs.documentFileInput.click()
+    },
+
+    // 文件选择处理
+    async handleDocumentFileChange(event) {
+      const file = event.target.files[0]
+      if (file) {
+        // 检查文件大小（50MB）
+        const maxSize = 50 * 1024 * 1024
+        if (file.size > maxSize) {
+          this.$message.error('文件大小不能超过50MB')
+          return
+        }
+        // 检查文件类型
+        const allowedTypes = ['.doc', '.docx', '.xls', '.xlsx', '.pdf', '.png', '.jpg', '.jpeg']
+        const ext = file.name.substring(file.name.lastIndexOf('.')).toLowerCase()
+        if (!allowedTypes.includes(ext)) {
+          this.$message.error('支持格式:.doc,.docx,.xls,.xlsx,.pdf,.png,.jpg,.jpeg')
+          return
+        }
+        
+        try {
+          // 构建表单数据
+          const formData = new FormData()
+          formData.append('file', file)
+          
+          // 上传文件到后端
+          const response = await uploadParkFile(this.currentParkId, formData)
+          if (response.code === 200 && response.data) {
+            const doc = response.data
+            // 转换文件大小显示
+            let size = doc.fileSize
+            let unit = 'B'
+            if (size >= 1024 * 1024) {
+              size = (size / (1024 * 1024)).toFixed(2)
+              unit = 'MB'
+            } else if (size >= 1024) {
+              size = (size / 1024).toFixed(2)
+              unit = 'KB'
+            }
+            // 添加到已上传列表
+            this.uploadedFiles.push({
+              id: doc.id,
+              name: doc.fileName,
+              size: `${size} ${unit}`,
+              fileUrl: doc.fileUrl
+            })
+            this.$message.success('文件上传成功')
+          }
+        } catch (error) {
+          console.error('文件上传失败', error)
+          this.$message.error('文件上传失败，请重试')
+        }
+        
+        // 清空文件输入
+        event.target.value = ''
+      }
+    },
+
+    // 预览文件
+    previewFile(file) {
+      this.currentPreviewFile = file
+      this.previewDialogTitle = `文件预览 - ${file.name}`
+      // 设置预览URL
+      if (file.id) {
+        this.previewUrl = getFilePreviewUrl(file.id)
+      } else {
+        this.previewUrl = file.fileUrl || ''
+      }
+      this.previewDialogVisible = true
+    },
+
+    // 删除文件
+    async deleteFile(index) {
+      const file = this.uploadedFiles[index]
+      this.$confirm('确定删除该文件吗？', '确认', {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }).then(async () => {
+        try {
+          // 如果有文件ID，调用后端删除
+          if (file.id) {
+            await deleteParkFile(file.id)
+          }
+          this.uploadedFiles.splice(index, 1)
+          this.$message.success('删除成功')
+        } catch (error) {
+          console.error('删除文件失败', error)
+          this.$message.error('删除文件失败，请重试')
+        }
+      }).catch(() => {})
+    },
+
+    // 保存行文文件
+    async saveDocument() {
+      try {
+        await updateEvaluationStatus(this.currentParkId, 0)
+        this.$message.success('保存成功')
+        this.documentDialogVisible = false
+        // 从后端刷新数据
+        this.fetchList()
+        this.fetchStats()
+      } catch (e) {
+        console.error('保存失败', e)
+        this.$message.error('保存失败，请重试')
+      }
     },
 
     async confirmAudit() {
@@ -324,11 +754,14 @@ export default {
           action: this.auditForm.action,
           opinion: this.auditForm.opinion
         })
-        this.$message.success(this.auditForm.action === 1 ? '审核通过成功' : '审核驳回成功')
+        this.$message.success(this.auditForm.action === 1 ? '区县审核通过成功' : '区县审核驳回成功')
         this.auditDialogVisible = false
+        // 从后端刷新数据
         this.fetchList()
+        this.fetchStats()
       } catch (e) {
         console.error('审核操作失败', e)
+        this.$message.error('审核操作失败，请重试')
       } finally {
         this.auditSubmitting = false
       }
@@ -366,19 +799,62 @@ export default {
     getAuditStatusType(status) {
       const map = {
         '1': 'warning',
+        '2': 'info',
         '3': 'success',
-        '4': 'danger'
+        '4': 'danger',
+        '5': 'info',
+        '6': 'danger'
       }
       return map[status] || 'info'
     },
 
     getAuditStatusLabel(status) {
       const map = {
-        '1': '待审核',
-        '3': '已通过',
-        '4': '已驳回'
+        0: '未提交',
+        1: '区县待审核',
+        2: '区县审核通过',
+        3: '区县审核通过',
+        4: '区县审核驳回',
+        5: '已上报',
+        6: '已终止'
       }
       return map[status] || '-'
+    },
+
+    // 表格选择事件处理
+    handleSelectionChange(rows) {
+      this.selectedRows = rows
+    },
+
+    // 一键上报
+    handleBatchUpload() {
+      if (this.selectedRows.length === 0) {
+        this.$message.warning('请先选择要上报的园区')
+        return
+      }
+      
+      this.$confirm(`确认将选中的${this.selectedRows.length}条记录上报管理端？`, '提示', {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning',
+        iconClass: 'el-icon-warning'
+      }).then(() => {
+        // 模拟上报操作
+        this.$message.success('上报成功')
+        // 更新选中园区的审核状态为"已上报"
+        this.selectedRows.forEach(row => {
+          const item = this.tableData.find(i => i.id === row.id)
+          if (item) {
+            item.auditStatus = '5' // 已上报状态
+          }
+        })
+        // 清空选中状态
+        this.selectedRows = []
+        // 更新统计数据
+        this.calculateStats()
+      }).catch(() => {
+        // 用户取消
+      })
     }
   }
 }
@@ -416,6 +892,21 @@ export default {
   background: #fff;
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  position: relative;
+  cursor: pointer;
+  border: 2px solid transparent;
+  transition: all 0.25s ease;
+}
+
+.stat-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  transform: translateY(-2px);
+}
+
+.stat-card.active {
+  border-color: #409EFF;
+  background: #f0f7ff;
+  box-shadow: 0 4px 12px rgba(64, 158, 255, 0.15);
 }
 
 .stat-icon {
@@ -487,6 +978,47 @@ export default {
   color: #909399;
 }
 
+.stat-action {
+  position: absolute;
+  right: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #e8f4fd;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.stat-action i {
+  color: #409EFF;
+  font-size: 16px;
+}
+
+/* 状态点 */
+.status-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 6px;
+}
+
+.status-dot.success {
+  background: #67c23a;
+}
+
+.status-dot.warning {
+  background: #e6a23c;
+}
+
+.status-dot.inactive {
+  background: #c0c4cc;
+}
+
 /* 筛选卡片 */
 .filter-card {
   margin-bottom: 16px;
@@ -529,5 +1061,188 @@ export default {
 
 .table-card .el-table td {
   padding: 10px 8px;
+}
+
+/* 确认不参评对话框 */
+.confirm-content {
+  padding: 20px 0;
+  text-align: center;
+}
+
+.warning-icon {
+  margin-bottom: 16px;
+}
+
+.confirm-content p {
+  color: #606266;
+  font-size: 14px;
+  line-height: 1.8;
+}
+
+/* 行文文件对话框 */
+.document-content {
+  padding: 16px 0;
+}
+
+.warning-box {
+  display: flex;
+  align-items: center;
+  padding: 12px 16px;
+  background: #fdf6ec;
+  border-radius: 4px;
+  margin-bottom: 20px;
+}
+
+.warning-box i {
+  margin-right: 8px;
+}
+
+.warning-box span {
+  color: #e6a23c;
+  font-size: 14px;
+}
+
+.upload-section {
+  margin-bottom: 20px;
+}
+
+.upload-btn-wrapper {
+  position: relative;
+  margin-bottom: 8px;
+}
+
+.file-input {
+  display: none;
+}
+
+.upload-tip {
+  font-size: 13px;
+  color: #909399;
+  margin: 0;
+}
+
+.file-list {
+  border: 1px dashed #d9d9d9;
+  border-radius: 4px;
+  min-height: 100px;
+  padding: 12px;
+}
+
+.empty-tip {
+  text-align: center;
+  color: #c0c4cc;
+  font-size: 14px;
+  line-height: 100px;
+}
+
+.file-item {
+  display: flex;
+  align-items: center;
+  padding: 10px 12px;
+  background: #fafafa;
+  border-radius: 4px;
+  margin-bottom: 8px;
+}
+
+.file-item:last-child {
+  margin-bottom: 0;
+}
+
+.file-item i {
+  font-size: 18px;
+  color: #409EFF;
+  margin-right: 12px;
+}
+
+.file-name {
+  flex: 1;
+  font-size: 14px;
+  color: #303133;
+}
+
+.file-size {
+  font-size: 13px;
+  color: #909399;
+  margin-right: 16px;
+}
+
+.preview-link {
+  color: #409EFF;
+  font-size: 14px;
+  margin-right: 16px;
+  cursor: pointer;
+}
+
+.delete-link {
+  color: #f56c6c;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+/* 文件预览对话框 */
+.preview-content {
+  padding: 16px 0;
+}
+
+.document-preview {
+  border: 1px solid #ebeef5;
+  border-radius: 4px;
+  min-height: 300px;
+}
+
+.preview-title {
+  padding: 12px 16px;
+  background: #fafafa;
+  border-bottom: 1px solid #ebeef5;
+  margin: 0;
+  font-size: 14px;
+  font-weight: 500;
+  color: #303133;
+}
+
+.preview-body {
+  padding: 20px;
+  min-height: 400px;
+  color: #606266;
+  font-size: 14px;
+  line-height: 1.8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.preview-image {
+  max-width: 100%;
+  max-height: 400px;
+  object-fit: contain;
+  border-radius: 4px;
+}
+
+.preview-iframe {
+  width: 100%;
+  height: 400px;
+  border-radius: 4px;
+}
+
+.preview-download {
+  text-align: center;
+  color: #909399;
+}
+
+.download-link {
+  display: inline-flex;
+  align-items: center;
+  margin-top: 16px;
+  color: #409EFF;
+  font-size: 14px;
+  text-decoration: none;
+}
+
+.download-link:hover {
+  text-decoration: underline;
+}
+
+.download-link i {
+  margin-right: 8px;
 }
 </style>

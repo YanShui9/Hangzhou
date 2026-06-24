@@ -25,7 +25,7 @@ public class EvaluationSaveDTO {
 
     @NotNull(message = "评价年份不能为空")
     @ApiModelProperty(value = "评价年份", required = true)
-    private Integer year;
+    private Integer evalYear;
 
     @ApiModelProperty(value = "评价总分")
     private BigDecimal totalScore;

@@ -128,6 +128,8 @@ const routes = [
         component: () => import('@/views/district/audit/detail.vue'),
         meta: { title: '审核详情', roles: [2] }
       },
+      // 评价结果模块 - 已隐藏
+      /*
       // 评价结果 - 园区评价
       {
         path: 'admin/result',
@@ -154,6 +156,7 @@ const routes = [
         component: () => import('@/views/district/result/enterprise.vue'),
         meta: { title: '企业指标', roles: [2] }
       }
+      */
     ]
   }
 ]

@@ -1,5 +1,6 @@
 package com.park.evaluation.entity;
 
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.park.common.entity.BaseEntity;
 import io.swagger.annotations.ApiModel;
@@ -27,7 +28,8 @@ public class EvaluationRecord extends BaseEntity {
     private Long parkId;
 
     @ApiModelProperty(value = "评价年度")
-    private Integer year;
+    @TableField("year")
+    private Integer evalYear;
 
     /**
      * 状态值：
@@ -48,4 +50,13 @@ public class EvaluationRecord extends BaseEntity {
 
     @ApiModelProperty(value = "驳回类别")
     private String rejectCategory;
+
+    /**
+     * 参评状态：
+     * 0 - 不参评
+     * 1 - 参评
+     */
+    @ApiModelProperty(value = "参评状态：0=不参评, 1=参评")
+    @TableField("eval_status")
+    private Integer evalStatus;
 }

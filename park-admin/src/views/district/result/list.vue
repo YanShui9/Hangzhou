@@ -1,30 +1,18 @@
 <template>
   <div class="app-container">
-    <!-- 顶部提示条 -->
-    <div class="top-tip">
-      <i class="el-icon-info"></i>
-      <span>导出功能开发中</span>
-    </div>
-
     <el-card>
-      <div slot="header" class="clearfix">
-        <span>园区评价汇总表（简版）</span>
-      </div>
-
       <!-- 筛选条件 -->
       <div class="filter-container">
-        <el-select v-model="query.year" placeholder="选择年份" style="width: 140px;" clearable>
+        <el-select v-model="query.year" placeholder="选择年份" style="width: 140px;">
           <el-option v-for="y in yearOptions" :key="y" :label="y + '年度'" :value="y" />
         </el-select>
-        <el-select v-model="query.parkName" placeholder="园区名称（模糊搜索）" style="width: 220px;" clearable>
-          <el-option v-for="park in parkOptions" :key="park.id" :label="park.name" :value="park.name" />
-        </el-select>
-        <el-select v-model="query.parkType" placeholder="全部类型" style="width: 140px;" clearable>
+        <el-input v-model="query.parkName" placeholder="园区名称（模糊搜索）" style="width: 220px;" />
+        <el-select v-model="query.parkType" placeholder="全部类型" style="width: 140px;">
           <el-option label="全部类型" value="" />
           <el-option label="制造类" value="1" />
           <el-option label="服务类" value="2" />
         </el-select>
-        <el-button type="primary" icon="el-icon-search" class="query-btn" @click="fetchList">查询</el-button>
+        <el-button type="primary" icon="el-icon-search" class="query-btn" @click="handleSearch">查询</el-button>
         <el-button type="success" icon="el-icon-download" class="export-btn" @click="handleExport">导出</el-button>
       </div>
 
@@ -75,24 +63,16 @@
 </template>
 
 <script>
+import { getEvaluationPage } from '@/api/evaluation'
 export default {
   name: 'DistrictResultList',
   data() {
     const currentYear = new Date().getFullYear()
     return {
       yearOptions: [currentYear, currentYear - 1, currentYear - 2],
-      parkOptions: [
-        { id: 1, name: '传化国际科创园' },
-        { id: 2, name: '万轮科创园' },
-        { id: 3, name: '杭州湾信息港' },
-        { id: 4, name: '尚达药谷中心' },
-        { id: 5, name: '颐高创业园' },
-        { id: 6, name: '天和国际产业园' },
-        { id: 7, name: '富春湾科创园' },
-        { id: 8, name: '银湖科创中心' }
-      ],
       loading: false,
       list: [],
+      allData: [],
       total: 0,
       query: {
         pageNum: 1,
@@ -100,7 +80,9 @@ export default {
         year: currentYear,
         parkName: '',
         parkType: ''
-      }
+      },
+      // 当前用户所属区域（西湖区管理员）
+      currentDistrict: '西湖区'
     }
   },
   created() {
@@ -110,148 +92,30 @@ export default {
     async fetchList() {
       this.loading = true
       try {
-        this.list = this.getMockData()
-        this.total = 134
+        const response = await getEvaluationPage({
+          year: this.query.year,
+          parkName: this.query.parkName,
+          parkType: this.query.parkType,
+          pageNum: this.query.pageNum,
+          pageSize: this.query.pageSize
+        })
+        
+        if (response.code === 200 && response.data) {
+          this.list = response.data.records || response.data.list || []
+          this.total = response.data.total || this.list.length
+          this.allData = this.list
+        }
       } catch (e) {
         console.error('获取园区评价列表失败', e)
+        this.$message.error('获取数据失败')
       } finally {
         this.loading = false
       }
     },
 
-    getMockData() {
-      return [
-        {
-          parkName: '万轮科创园',
-          muRevenue: 122.11,
-          muTax: 18.52,
-          industryDev: 4.5,
-          enterpriseCult: 4.5,
-          techInnov: 4.5,
-          serviceAbility: 4.5,
-          benefitOutput: 4.5,
-          safetyProd: 4.5,
-          other: 4.5,
-          totalScore: 31.5
-        },
-        {
-          parkName: '传化国际科创园',
-          muRevenue: 138.42,
-          muTax: 21.33,
-          industryDev: 4.8,
-          enterpriseCult: 4.8,
-          techInnov: 4.8,
-          serviceAbility: 4.8,
-          benefitOutput: 4.8,
-          safetyProd: 4.8,
-          other: 4.8,
-          totalScore: 33.6
-        },
-        {
-          parkName: '尚达药谷中心',
-          muRevenue: 96.88,
-          muTax: 10.20,
-          industryDev: 4.4,
-          enterpriseCult: 4.4,
-          techInnov: 4.4,
-          serviceAbility: 4.4,
-          benefitOutput: 4.4,
-          safetyProd: 4.4,
-          other: 4.4,
-          totalScore: 30.8
-        },
-        {
-          parkName: '颐高创业园',
-          muRevenue: 122.11,
-          muTax: 8.96,
-          industryDev: 3.6,
-          enterpriseCult: 3.6,
-          techInnov: 3.6,
-          serviceAbility: 3.6,
-          benefitOutput: 3.6,
-          safetyProd: 3.6,
-          other: 3.6,
-          totalScore: 32.2
-        },
-        {
-          parkName: '天和国际产业园',
-          muRevenue: 108.42,
-          muTax: 18.52,
-          industryDev: 4.0,
-          enterpriseCult: 4.0,
-          techInnov: 4.0,
-          serviceAbility: 4.0,
-          benefitOutput: 4.0,
-          safetyProd: 4.0,
-          other: 4.0,
-          totalScore: 28.0
-        },
-        {
-          parkName: '富春湾科创园',
-          muRevenue: 96.88,
-          muTax: 11.33,
-          industryDev: 4.5,
-          enterpriseCult: 4.5,
-          techInnov: 4.5,
-          serviceAbility: 4.5,
-          benefitOutput: 4.5,
-          safetyProd: 4.5,
-          other: 4.5,
-          totalScore: 31.5
-        },
-        {
-          parkName: '银湖科创中心',
-          muRevenue: 122.11,
-          muTax: 10.20,
-          industryDev: 4.8,
-          enterpriseCult: 4.8,
-          techInnov: 4.8,
-          serviceAbility: 4.8,
-          benefitOutput: 4.8,
-          safetyProd: 4.8,
-          other: 4.8,
-          totalScore: 33.6
-        },
-        {
-          parkName: '杭州湾信息港',
-          muRevenue: 138.42,
-          muTax: 8.96,
-          industryDev: 4.4,
-          enterpriseCult: 4.4,
-          techInnov: 4.4,
-          serviceAbility: 4.4,
-          benefitOutput: 4.4,
-          safetyProd: 4.4,
-          other: 4.4,
-          totalScore: 30.8
-        },
-        {
-          parkName: '杭州生物医药（一期）',
-          muRevenue: 96.88,
-          muTax: 18.52,
-          industryDev: 3.6,
-          enterpriseCult: 3.6,
-          techInnov: 3.6,
-          serviceAbility: 3.6,
-          benefitOutput: 3.6,
-          safetyProd: 3.6,
-          other: 3.6,
-          totalScore: 32.2
-        },
-        {
-          parkName: '星河智谷产业园',
-          muRevenue: 122.11,
-          muTax: 11.33,
-          industryDev: 4.0,
-          enterpriseCult: 4.0,
-          techInnov: 4.0,
-          serviceAbility: 4.0,
-          benefitOutput: 4.0,
-          safetyProd: 4.0,
-          other: 4.0,
-          totalScore: 28.0
-        }
-      ]
+    handleSearch() {
+      this.query.pageNum = 1
+      this.fetchList()
     },
 
     formatNumber(value) {
@@ -261,15 +125,63 @@ export default {
 
     handlePageChange(page) {
       this.query.pageNum = page
-      this.fetchList()
+      this.handleSearch()
     },
+
     handleSizeChange(size) {
       this.query.pageSize = size
       this.query.pageNum = 1
-      this.fetchList()
+      this.handleSearch()
     },
+
     handleExport() {
-      this.$message.info('导出功能开发中')
+      let exportData = [...this.allData]
+      
+      // 应用筛选条件
+      if (this.query.parkName) {
+        exportData = exportData.filter(item => 
+          item.parkName.includes(this.query.parkName)
+        )
+      }
+      
+      if (this.query.parkType) {
+        exportData = exportData.filter(item => 
+          item.parkType === this.query.parkType
+        )
+      }
+      
+      // 构建CSV内容
+      const headers = ['序号', '园区名称', '亩均营收（万元）', '亩均税收（万元）', '产业发展', '企业培育', '科技创新', '服务能力', '效益产出', '安全生产', '其他', '总得分']
+      const rows = exportData.map((item, index) => [
+        index + 1,
+        item.parkName,
+        item.muRevenue,
+        item.muTax,
+        item.industryDev,
+        item.enterpriseCult,
+        item.techInnov,
+        item.serviceAbility,
+        item.benefitOutput,
+        item.safetyProd,
+        item.other,
+        item.totalScore
+      ])
+      
+      // 添加BOM头支持中文
+      const csvContent = '\uFEFF' + [headers, ...rows].map(row => row.join(',')).join('\n')
+      
+      // 创建下载链接
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+      const link = document.createElement('a')
+      const url = URL.createObjectURL(blob)
+      link.setAttribute('href', url)
+      link.setAttribute('download', `园区评价汇总表_${this.query.year}年度.csv`)
+      link.style.visibility = 'hidden'
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      
+      this.$message.success('导出成功')
     }
   }
 }

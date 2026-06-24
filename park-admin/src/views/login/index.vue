@@ -104,9 +104,11 @@ export default {
     },
     fillAccount(type) {
       const accountMap = {
-        'admin':    { username: 'admin',     password: '123456', roleType: 1 },
-        'district': { username: 'district01', password: '123456', roleType: 2 },
-        'park':     { username: 'park01',    password: '123456', roleType: 3 }
+        'admin':    { username: 'admin',         password: '123456', roleType: 1 },
+        'district': { username: 'district',      password: '123456', roleType: 2 },
+        'park':     { username: 'park',          password: '123456', roleType: 3 },
+        'district_bj': { username: 'district_bj', password: '123456', roleType: 2 },
+        'district_yh': { username: 'district_yh', password: '123456', roleType: 2 }
       }
       const account = accountMap[type] || accountMap['admin']
       this.loginForm.username = account.username

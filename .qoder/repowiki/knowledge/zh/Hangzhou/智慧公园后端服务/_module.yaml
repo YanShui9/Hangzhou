@@ -1,0 +1,8 @@
+schema_version: 1
+module_path: park_server_backend
+title: 智慧公园后端服务
+scope:
+    - park-server/
+source_files: []
+depends_on: []
+related_to: []

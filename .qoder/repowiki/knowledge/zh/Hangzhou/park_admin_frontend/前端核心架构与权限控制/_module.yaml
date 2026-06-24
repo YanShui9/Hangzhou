@@ -1,0 +1,12 @@
+schema_version: 1
+module_path: park_admin_frontend/core
+title: 前端核心架构与权限控制
+scope:
+    - park-admin/src/api/auth.js
+    - park-admin/src/api/user.js
+    - park-admin/src/App.vue
+    - park-admin/src/main.js
+    - park-admin/src/permission.js
+source_files: []
+depends_on: []
+related_to: []

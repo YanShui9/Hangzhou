@@ -19,6 +19,12 @@ const mutations = {
 const actions = {
   login({ commit }, loginForm) {
     return new Promise((resolve, reject) => {
+      // 登录前先清除旧的用户信息，避免使用过期的Token
+      commit('SET_TOKEN', '')
+      commit('SET_USER_INFO', {})
+      localStorage.removeItem('token')
+      localStorage.removeItem('userInfo')
+      
       login(loginForm).then(response => {
         const { data } = response
         commit('SET_TOKEN', data.token)

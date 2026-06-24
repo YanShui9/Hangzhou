@@ -18,7 +18,7 @@ import java.util.List;
 @ApiModel(description = "企业查询条件")
 public class EnterpriseQueryDTO extends PageQuery {
 
-    @ApiModelProperty(value = "企业名称（模糊查询）")
+    @ApiModelProperty(value = "企业名称或统一信用代码（模糊查询）")
     private String enterpriseName;
 
     @ApiModelProperty(value = "所属园区ID")
@@ -35,4 +35,7 @@ public class EnterpriseQueryDTO extends PageQuery {
 
     @ApiModelProperty(value = "是否参评：0=不参评, 1=参评")
     private Integer isParticipate;
+
+    @ApiModelProperty(value = "企业荣誉")
+    private String enterpriseHonor;
 }

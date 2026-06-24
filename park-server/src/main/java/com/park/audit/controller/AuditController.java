@@ -2,11 +2,16 @@ package com.park.audit.controller;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.park.audit.dto.AuditDTO;
+import com.park.audit.dto.AuditListItemDTO;
 import com.park.audit.entity.AuditRecord;
 import com.park.audit.service.AuditService;
+import com.park.auth.entity.SysUser;
+import com.park.auth.service.AuthService;
 import com.park.common.result.PageResult;
 import com.park.common.result.R;
 import com.park.evaluation.entity.EvaluationRecord;
+import com.park.system.entity.DistrictInfo;
+import com.park.system.mapper.DistrictMapper;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import lombok.extern.slf4j.Slf4j;
@@ -31,31 +36,48 @@ public class AuditController {
     @Autowired
     private AuditService auditService;
 
+    @Autowired
+    private AuthService authService;
+
+    @Autowired
+    private DistrictMapper districtMapper;
+
     /**
      * 获取审核列表（待审核 + 已审核）
      *
-     * @param pageNum  页码
-     * @param pageSize 每页数量
-     * @param status   状态筛选：pending/audited（可选）
-     * @param request  HTTP请求（用于获取当前用户角色类型）
+     * @param pageNum         页码
+     * @param pageSize        每页数量
+     * @param status          状态筛选：pending/audited（可选）
+     * @param name            园区名称（可选）
+     * @param parkType        园区类型（可选）
+     * @param evaluationStatus 参评状态（可选）
+     * @param evaluationYear  评价年份（可选）
+     * @param request         HTTP请求（用于获取当前用户角色类型）
      * @return 分页结果
      */
     @GetMapping
-    @ApiOperation(value = "查询审核列表", notes = "查询待审核和已审核的评价记录列表")
-    public R<PageResult<EvaluationRecord>> getAuditList(
+    @ApiOperation(value = "查询审核列表", notes = "查询待审核和已审核的评价记录列表（包含园区信息）")
+    public R<PageResult<AuditListItemDTO>> getAuditList(
             @RequestParam(defaultValue = "1") Integer pageNum,
             @RequestParam(defaultValue = "10") Integer pageSize,
             @RequestParam(required = false) String status,
+            @RequestParam(required = false) String name,
+            @RequestParam(required = false) String parkType,
+            @RequestParam(required = false) Integer evaluationStatus,
+            @RequestParam(required = false) Integer evaluationYear,
             HttpServletRequest request) {
         Integer roleType = getRoleType(request);
         Integer auditLevel = getAuditLevel(roleType);
+        String districtName = getDistrictName(request);
 
-        IPage<EvaluationRecord> page = auditService.getAuditPage(pageNum, pageSize, status, auditLevel);
-        PageResult<EvaluationRecord> pageResult = PageResult.of(
-                page.getRecords(),
-                page.getTotal(),
-                (int) page.getCurrent(),
-                (int) page.getSize()
+        List<AuditListItemDTO> records = auditService.getAuditListWithParkInfo(pageNum, pageSize, status, auditLevel, districtName, name, parkType, evaluationStatus, evaluationYear);
+        Long total = auditService.getAuditCount(status, auditLevel, districtName, name, parkType, evaluationStatus, evaluationYear);
+        
+        PageResult<AuditListItemDTO> pageResult = PageResult.of(
+                records,
+                total,
+                pageNum,
+                pageSize
         );
         return R.ok(pageResult);
     }
@@ -76,8 +98,9 @@ public class AuditController {
             HttpServletRequest request) {
         Integer roleType = getRoleType(request);
         Integer auditLevel = getAuditLevel(roleType);
+        String districtName = getDistrictName(request);
 
-        IPage<EvaluationRecord> page = auditService.getPendingAuditPage(pageNum, pageSize, auditLevel);
+        IPage<EvaluationRecord> page = auditService.getPendingAuditPage(pageNum, pageSize, auditLevel, districtName);
         PageResult<EvaluationRecord> pageResult = PageResult.of(
                 page.getRecords(),
                 page.getTotal(),
@@ -103,8 +126,9 @@ public class AuditController {
             HttpServletRequest request) {
         Integer roleType = getRoleType(request);
         Integer auditLevel = getAuditLevel(roleType);
+        String districtName = getDistrictName(request);
 
-        IPage<EvaluationRecord> page = auditService.getAuditedPage(pageNum, pageSize, auditLevel);
+        IPage<EvaluationRecord> page = auditService.getAuditedPage(pageNum, pageSize, auditLevel, districtName);
         PageResult<EvaluationRecord> pageResult = PageResult.of(
                 page.getRecords(),
                 page.getTotal(),
@@ -181,5 +205,33 @@ public class AuditController {
             return 2; // 区县初审
         }
         return 2; // 默认区县级别
+    }
+
+    /**
+     * 从请求中获取用户所属区县名称
+     *
+     * @param request HTTP请求
+     * @return 区县名称
+     */
+    private String getDistrictName(HttpServletRequest request) {
+        Object userIdObj = request.getAttribute("userId");
+        Long userId = null;
+        if (userIdObj instanceof Integer) {
+            userId = ((Integer) userIdObj).longValue();
+        } else if (userIdObj instanceof Long) {
+            userId = (Long) userIdObj;
+        }
+
+        if (userId == null) {
+            return null;
+        }
+
+        SysUser user = authService.getUserById(userId);
+        if (user == null || user.getDistrictId() == null) {
+            return null;
+        }
+
+        DistrictInfo district = districtMapper.selectById(user.getDistrictId());
+        return district != null ? district.getDistrictName() : null;
     }
 }

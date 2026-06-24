@@ -19,7 +19,7 @@
           <!-- 待审核表格 -->
           <el-table :data="pendingList" border stripe style="width: 100%;" v-loading="pendingLoading">
             <el-table-column prop="parkId" label="园区ID" width="100" align="center" />
-            <el-table-column prop="year" label="年份" width="100" align="center" />
+            <el-table-column prop="evalYear" label="年份" width="100" align="center" />
             <el-table-column prop="totalScore" label="总分" width="120" align="center">
               <template slot-scope="scope">
                 <span style="font-weight: bold; color: #409EFF;">{{ scope.row.totalScore || '-' }}</span>
@@ -76,7 +76,7 @@
           <!-- 已审核表格 -->
           <el-table :data="auditedList" border stripe style="width: 100%;" v-loading="auditedLoading">
             <el-table-column prop="parkId" label="园区ID" width="100" align="center" />
-            <el-table-column prop="year" label="年份" width="100" align="center" />
+            <el-table-column prop="evalYear" label="年份" width="100" align="center" />
             <el-table-column prop="totalScore" label="总分" width="120" align="center" />
             <el-table-column prop="grade" label="绩效分档" width="100" align="center">
               <template slot-scope="scope">
@@ -267,7 +267,8 @@ export default {
       this.auditSubmitting = true
       try {
         await submitAudit(this.auditForm)
-        this.$message.success(this.auditForm.action === 1 ? '审核通过成功' : '审核驳回成功')
+        const msgMap = { 1: '审核通过成功', 2: '审核驳回成功', 3: '直接判D档成功' }
+        this.$message.success(msgMap[this.auditForm.action] || '审核完成')
         this.auditDialogVisible = false
         this.fetchPendingList()
       } catch (e) {

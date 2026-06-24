@@ -117,10 +117,13 @@
                       :disabled="!isEditMode"
                       placeholder="请选择开发模式"
                     >
-                      <el-option label="政府主导" value="政府主导" />
-                      <el-option label="企业主导" value="企业主导" />
+                      <el-option label="政府主导开发" value="政府主导开发" />
+                      <el-option label="工业地产开发" value="工业地产开发" />
+                      <el-option label="企业联合开发" value="企业联合开发" />
+                      <el-option label="龙头企业开发" value="龙头企业开发" />
+                      <el-option label="专业机构开发" value="专业机构开发" />
+                      <el-option label="村集体联合开发" value="村集体联合开发" />
                       <el-option label="政企合作" value="政企合作" />
-                      <el-option label="政府主导+市场化运营" value="政府主导+市场化运营" />
                     </el-select>
                   </el-form-item>
                 </el-col>
@@ -669,15 +672,12 @@ export default {
     async fetchParkDetail(id) {
       try {
         const res = await getParkDetail(id)
-        this.parkInfo = res.data || this.getMockData()
+        this.parkInfo = res.data || {}
         this.formData = { ...this.parkInfo }
         this.initImageFileList()
       } catch (e) {
         console.error('获取园区详情失败:', e)
-        this.parkInfo = this.getMockData()
-        this.formData = { ...this.parkInfo }
-        this.initImageFileList()
-        this.$message.error('获取园区详情失败，显示模拟数据')
+        this.$message.error('获取园区详情失败')
       }
     },
     /**
@@ -755,89 +755,18 @@ export default {
     /**
      * 获取运营数据
      */
-    fetchOperationData() {
-      this.operationData = this.getOperationMockData()
-    },
-    /**
-     * 获取运营数据模拟数据
-     */
-    getOperationMockData() {
-      return [
-        { type: '入驻企业', name: '入驻企业总数（家）', q1: '50', q2: '60', q3: '--', q4: '--', change0: null, change1: 'up', change2: null, change3: null },
-        { type: '入驻企业', name: '规模以上企业（家）', q1: '50', q2: '50', q3: '--', q4: '--', change0: null, change1: null, change2: null, change3: null },
-        { type: '入驻企业', name: '高新技术企业（家）', q1: '50', q2: '50', q3: '--', q4: '--', change0: null, change1: null, change2: null, change3: null },
-        { type: '入驻企业', name: '科技型中小企业（家）', q1: '50', q2: '50', q3: '--', q4: '--', change0: null, change1: null, change2: null, change3: null },
-        { type: '入驻企业', name: '隐形冠军及培育企业（家）', q1: '50', q2: '50', q3: '--', q4: '--', change0: null, change1: null, change2: null, change3: null },
-        { type: '入驻企业', name: '专精特新小巨人企业（家）', q1: '50', q2: '50', q3: '--', q4: '--', change0: null, change1: null, change2: null, change3: null },
-        { type: '入驻企业', name: '创新型中小企业（家）', q1: '50', q2: '50', q3: '--', q4: '--', change0: null, change1: null, change2: null, change3: null },
-        { type: '入驻企业', name: '省专精特新中小企业（家）', q1: '50', q2: '50', q3: '--', q4: '--', change0: null, change1: null, change2: null, change3: null },
-        { type: '入驻员工', name: '入驻企业员工总数（人）', q1: '50', q2: '60', q3: '--', q4: '--', change0: null, change1: 'up', change2: null, change3: null },
-        { type: '入驻员工', name: '"国千"人才（人）', q1: '30', q2: '30', q3: '--', q4: '--', change0: null, change1: null, change2: null, change3: null },
-        { type: '入驻员工', name: '"省千"人才（人）', q1: '50', q2: '50', q3: '--', q4: '--', change0: null, change1: null, change2: null, change3: null },
-        { type: '入驻员工', name: '正高级工程师人数（人）', q1: '50', q2: '50', q3: '--', q4: '--', change0: null, change1: null, change2: null, change3: null },
-        { type: '入驻员工', name: '高级工程师人数（人）', q1: '50', q2: '50', q3: '--', q4: '--', change0: null, change1: null, change2: null, change3: null },
-        { type: '入驻员工', name: '高级技师人数（人）', q1: '50', q2: '50', q3: '--', q4: '--', change0: null, change1: null, change2: null, change3: null },
-        { type: '入驻员工', name: '硕士及副高以上人数（人）', q1: '50', q2: '50', q3: '--', q4: '--', change0: null, change1: null, change2: null, change3: null },
-        { type: '入驻员工', name: '硕士以上人数（人）', q1: '50', q2: '50', q3: '--', q4: '--', change0: null, change1: null, change2: null, change3: null },
-        { type: '创新专利', name: '专利总数（件）', q1: '50', q2: '60', q3: '--', q4: '--', change0: null, change1: 'up', change2: null, change3: null },
-        { type: '创新专利', name: '发明专利（件）', q1: '50', q2: '30', q3: '--', q4: '--', change0: null, change1: 'down', change2: null, change3: null },
-        { type: '创新专利', name: '实用新型专利（件）', q1: '50', q2: '50', q3: '--', q4: '--', change0: null, change1: null, change2: null, change3: null },
-        { type: '创新专利', name: '外观设计专利（件）', q1: '50', q2: '50', q3: '--', q4: '--', change0: null, change1: null, change2: null, change3: null }
-      ]
-    },
-    /**
-     * 获取模拟数据
-     */
-    getMockData() {
-      return {
-        id: 1,
-        parkName: '杭州钱潮智慧城小微企业产业园',
-        parkStatus: '已运营',
-        landNature: '工业用地',
-        starLevel: '3',
-        address: '杭州市上城区九盛路9号',
-        isUpgrade: '是',
-        upgradeContent: '数字化改造、配套服务升级、绿色节能改造',
-        devMode: '政府主导+市场化运营',
-        landSource: '国有建设用地出让',
-        districtName: '杭州市上城区',
-        parkType: '生产性制造类',
-        mainIndustry: '数字经济、智能制造、科技服务',
-        operationOrgName: '杭州钱潮智慧城运营管理有限公司',
-        operationOrgNature: '国有企业',
-        orgLeader: '张明',
-        orgLeaderPhone: '138****5678',
-        orgContact: '李雷',
-        orgContactPhone: '135****9012',
-        landArea: 86.2,
-        buildArea: 128500,
-        rentedArea: 115900,
-        rentRemainArea: 8700,
-        saleRemainArea: 0,
-        enterpriseCount: 256,
-        aboveScaleCount: 48,
-        highTechCount: 56,
-        techSmeCount: 101,
-        hiddenChampionCount: 18,
-        nationalSrtiCount: 12,
-        innovativeSmeCount: 8,
-        provincialSrtiCount: 15,
-        employeeCount: 2856,
-        nationalTalent: 49,
-        provincialTalent: 85,
-        seniorEngineer: 98,
-        engineer: 356,
-        seniorTechnician: 408,
-        masterAbove: 408,
-        masterDegree: 438,
-        patentTotal: 625,
-        patentInvention: 125,
-        patentUtility: 300,
-        patentDesign: 200,
-        introduction: '杭州钱潮智慧城小微企业产业园位于杭州市上城区，总规划面积86.2亩，建筑面积12.85万平方米。园区以数字经济、智能制造、科技服务为主导产业，致力于打造集研发、生产、办公、配套于一体的现代化小微企业集聚平台。园区配套完善，拥有智能化管理系统、公共服务中心、人才公寓等设施，为入驻企业提供全方位的服务支持。',
-        images: [],
-        publicFacilities: '园区配套有办公楼、生产车间、仓储中心、员工宿舍、食堂、停车场、会议室、展示厅等设施。',
-        publicServices: '提供工商注册、财税咨询、人才招聘、技术支持、投融资服务、知识产权保护、法律咨询等一站式服务。'
+    async fetchOperationData() {
+      try {
+        // 实际项目中应从后端获取运营数据
+        const response = await getParkOperationData(this.parkInfo.id)
+        if (response.code === 200 && response.data) {
+          this.operationData = response.data
+        } else {
+          this.operationData = []
+        }
+      } catch (error) {
+        console.error('获取运营数据失败', error)
+        this.operationData = []
       }
     },
     /**

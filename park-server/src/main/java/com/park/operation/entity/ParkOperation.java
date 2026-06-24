@@ -1,5 +1,6 @@
 package com.park.operation.entity;
 
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.park.common.entity.BaseEntity;
 import io.swagger.annotations.ApiModel;
@@ -27,9 +28,11 @@ public class ParkOperation extends BaseEntity {
     private Long parkId;
 
     @ApiModelProperty(value = "年度")
+    @TableField("`year`")
     private Integer year;
 
     @ApiModelProperty(value = "季度：1/2/3/4")
+    @TableField("`quarter`")
     private Integer quarter;
 
     @ApiModelProperty(value = "入驻企业数")

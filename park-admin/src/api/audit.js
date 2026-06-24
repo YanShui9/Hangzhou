@@ -69,3 +69,49 @@ export function getEvaluationDetail(id) {
     method: 'get'
   })
 }
+
+/**
+ * 查询园区文件列表
+ * @param {Number} parkId 园区ID
+ */
+export function getParkFiles(parkId) {
+  return request({
+    url: `/api/documents/park/${parkId}`,
+    method: 'get'
+  })
+}
+
+/**
+ * 上传园区文件
+ * @param {Number} parkId 园区ID
+ * @param {FormData} formData 表单数据（包含file）
+ */
+export function uploadParkFile(parkId, formData) {
+  return request({
+    url: `/api/documents/park/${parkId}`,
+    method: 'post',
+    data: formData,
+    headers: {
+      'Content-Type': 'multipart/form-data'
+    }
+  })
+}
+
+/**
+ * 删除园区文件
+ * @param {Number} id 文件ID
+ */
+export function deleteParkFile(id) {
+  return request({
+    url: `/api/documents/${id}`,
+    method: 'delete'
+  })
+}
+
+/**
+ * 获取文件预览URL
+ * @param {Number} id 文件ID
+ */
+export function getFilePreviewUrl(id) {
+  return `/api/documents/preview/${id}`
+}

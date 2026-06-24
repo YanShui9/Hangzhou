@@ -1,28 +1,13 @@
 <template>
   <div class="app-container">
-    <!-- 顶部提示条 -->
-    <div class="top-tip">
-      <i class="el-icon-info"></i>
-      <span>导出功能开发中</span>
-    </div>
-
     <el-card>
-      <div slot="header" class="clearfix">
-        <span>企业指标</span>
-      </div>
-
       <!-- 筛选条件 -->
       <div class="filter-container">
-        <el-select v-model="query.year" placeholder="选择年份" style="width: 140px;" clearable>
+        <el-select v-model="query.year" placeholder="选择年份" style="width: 140px;">
           <el-option v-for="y in yearOptions" :key="y" :label="y + '年度'" :value="y" />
         </el-select>
-        <el-select v-model="query.districtName" placeholder="园区名称（模糊搜索）" style="width: 220px;" clearable>
-          <el-option v-for="park in parkOptions" :key="park.id" :label="park.name" :value="park.name" />
-        </el-select>
-        <el-select v-model="query.district" placeholder="所属区域" style="width: 140px;" clearable>
-          <el-option v-for="d in districtOptions" :key="d" :label="d" :value="d" />
-        </el-select>
-        <el-select v-model="query.parkType" placeholder="全部类型" style="width: 140px;" clearable>
+        <el-input v-model="query.districtName" placeholder="园区名称（模糊搜索）" style="width: 220px;" />
+        <el-select v-model="query.parkType" placeholder="全部类型" style="width: 140px;">
           <el-option label="全部类型" value="" />
           <el-option label="制造类" value="1" />
           <el-option label="服务类" value="2" />
@@ -82,25 +67,13 @@
 </template>
 
 <script>
+import { getEnterpriseList } from '@/api/enterprise'
 export default {
   name: 'DistrictResultEnterprise',
   data() {
     const currentYear = new Date().getFullYear()
     return {
       yearOptions: [currentYear, currentYear - 1, currentYear - 2],
-      parkOptions: [
-        { id: 1, name: '传化国际科创园' },
-        { id: 2, name: '万轮科创园' },
-        { id: 3, name: '杭州湾信息港' },
-        { id: 4, name: '尚达药谷中心' },
-        { id: 5, name: '颐高创业园' },
-        { id: 6, name: '天和国际产业园' },
-        { id: 7, name: '富春湾科创园' },
-        { id: 8, name: '银湖科创中心' },
-        { id: 9, name: '尚达创业中心' },
-        { id: 10, name: '富春江科创园' }
-      ],
-      districtOptions: ['滨江区', '萧山区', '余杭区', '上城区', '下城区', '西湖区', '拱墅区', '江干区', '富阳区'],
       loading: false,
       list: [],
       total: 0,
@@ -110,9 +83,10 @@ export default {
         pageSize: 20,
         year: currentYear,
         districtName: '',
-        district: '',
         parkType: ''
-      }
+      },
+      // 当前用户所属区域（西湖区管理员）
+      currentDistrict: '西湖区'
     }
   },
   created() {
@@ -122,293 +96,42 @@ export default {
     async fetchList(showSuccessMsg = true) {
       this.loading = true
       try {
-        // 获取所有数据
-        const allData = this.getMockData()
-        this.allData = allData
+        // 首先尝试从后端API获取数据
+        const response = await getEnterpriseList({
+          year: this.query.year,
+          districtName: this.query.districtName,
+          parkType: this.query.parkType,
+          pageNum: this.query.pageNum,
+          pageSize: this.query.pageSize
+        })
         
-        // 根据筛选条件过滤数据
-        let filteredData = allData
-        
-        // 园区名称筛选（模糊匹配）
-        if (this.query.districtName) {
-          filteredData = filteredData.filter(item => 
-            item.parkName.includes(this.query.districtName)
-          )
+        if (response.code === 200 && response.data) {
+          // 后端返回成功，使用真实数据
+          this.list = response.data.list || response.data
+          this.total = response.data.total || this.list.length
+          // 存储全量数据用于导出
+          this.allData = this.list
+          
+          if (showSuccessMsg) {
+            this.$message.success('查询成功')
+          }
         }
-        
-        // 所属区域筛选
-        if (this.query.district) {
-          filteredData = filteredData.filter(item => 
-            item.district === this.query.district
-          )
-        }
-        
-        // 园区类型筛选
-        if (this.query.parkType) {
-          filteredData = filteredData.filter(item => 
-            item.parkType === this.query.parkType
-          )
-        }
-        
-        // 年份筛选（当前年份默认选中）
-        // 这里可以根据实际需求添加年份筛选逻辑
-        
-        // 分页处理
-        this.total = filteredData.length
-        const start = (this.query.pageNum - 1) * this.query.pageSize
-        const end = start + this.query.pageSize
-        this.list = filteredData.slice(start, end)
-        
-        // 只有用户主动查询时才显示成功提示
-        if (showSuccessMsg) {
-          this.$message.success('查询成功')
-        }
-      } catch (e) {
-        console.error('获取企业指标列表失败', e)
-        this.$message.error('查询失败')
+      } catch (error) {
+        console.error('从后端获取企业指标数据失败', error)
+        this.$message.error('获取数据失败')
       } finally {
         this.loading = false
       }
     },
 
-    getMockData() {
-      return [
-        {
-          parkName: '传化国际科创园',
-          district: '滨江区',
-          parkType: '2',
-          totalEnterprises: 59,
-          aboveScale: 5,
-          highTech: 12,
-          techSme: 28,
-          hiddenChampion: 3,
-          provincialSrti: 8,
-          nationalSrti: 2,
-          innovativeSme: 22,
-          patentTotal: 156,
-          patentInvention: 32,
-          patentUtility: 88,
-          patentDesign: 36,
-          rndInputRatio: 5.2,
-          newProductRevenueRatio: 35.6,
-          employeeCount: 1256,
-          nationalTalent: 8,
-          provincialTalent: 15
-        },
-        {
-          parkName: '万轮科创园',
-          district: '滨江区',
-          parkType: '2',
-          totalEnterprises: 52,
-          aboveScale: 4,
-          highTech: 10,
-          techSme: 24,
-          hiddenChampion: 2,
-          provincialSrti: 6,
-          nationalSrti: 1,
-          innovativeSme: 18,
-          patentTotal: 132,
-          patentInvention: 28,
-          patentUtility: 72,
-          patentDesign: 32,
-          rndInputRatio: 4.8,
-          newProductRevenueRatio: 32.4,
-          employeeCount: 1086,
-          nationalTalent: 6,
-          provincialTalent: 12
-        },
-        {
-          parkName: '杭州湾信息港',
-          district: '萧山区',
-          parkType: '2',
-          totalEnterprises: 68,
-          aboveScale: 6,
-          highTech: 15,
-          techSme: 32,
-          hiddenChampion: 4,
-          provincialSrti: 10,
-          nationalSrti: 3,
-          innovativeSme: 26,
-          patentTotal: 186,
-          patentInvention: 42,
-          patentUtility: 102,
-          patentDesign: 42,
-          rndInputRatio: 5.8,
-          newProductRevenueRatio: 38.2,
-          employeeCount: 1520,
-          nationalTalent: 10,
-          provincialTalent: 18
-        },
-        {
-          parkName: '尚达药谷中心',
-          district: '余杭区',
-          parkType: '1',
-          totalEnterprises: 45,
-          aboveScale: 8,
-          highTech: 18,
-          techSme: 22,
-          hiddenChampion: 5,
-          provincialSrti: 12,
-          nationalSrti: 4,
-          innovativeSme: 15,
-          patentTotal: 208,
-          patentInvention: 56,
-          patentUtility: 112,
-          patentDesign: 40,
-          rndInputRatio: 8.5,
-          newProductRevenueRatio: 45.8,
-          employeeCount: 986,
-          nationalTalent: 12,
-          provincialTalent: 22
-        },
-        {
-          parkName: '颐高创业园',
-          district: '上城区',
-          parkType: '2',
-          totalEnterprises: 55,
-          aboveScale: 4,
-          highTech: 11,
-          techSme: 26,
-          hiddenChampion: 2,
-          provincialSrti: 7,
-          nationalSrti: 2,
-          innovativeSme: 20,
-          patentTotal: 142,
-          patentInvention: 30,
-          patentUtility: 80,
-          patentDesign: 32,
-          rndInputRatio: 4.5,
-          newProductRevenueRatio: 30.8,
-          employeeCount: 1120,
-          nationalTalent: 7,
-          provincialTalent: 14
-        },
-        {
-          parkName: '天和国际产业园',
-          district: '萧山区',
-          parkType: '1',
-          totalEnterprises: 48,
-          aboveScale: 10,
-          highTech: 16,
-          techSme: 24,
-          hiddenChampion: 6,
-          provincialSrti: 11,
-          nationalSrti: 3,
-          innovativeSme: 18,
-          patentTotal: 195,
-          patentInvention: 48,
-          patentUtility: 108,
-          patentDesign: 39,
-          rndInputRatio: 7.2,
-          newProductRevenueRatio: 42.5,
-          employeeCount: 1350,
-          nationalTalent: 9,
-          provincialTalent: 19
-        },
-        {
-          parkName: '富春湾科创园',
-          district: '富阳区',
-          parkType: '1',
-          totalEnterprises: 42,
-          aboveScale: 6,
-          highTech: 12,
-          techSme: 20,
-          hiddenChampion: 3,
-          provincialSrti: 8,
-          nationalSrti: 2,
-          innovativeSme: 16,
-          patentTotal: 168,
-          patentInvention: 38,
-          patentUtility: 92,
-          patentDesign: 38,
-          rndInputRatio: 6.5,
-          newProductRevenueRatio: 38.6,
-          employeeCount: 896,
-          nationalTalent: 6,
-          provincialTalent: 13
-        },
-        {
-          parkName: '银湖科创中心',
-          district: '富阳区',
-          parkType: '2',
-          totalEnterprises: 38,
-          aboveScale: 3,
-          highTech: 9,
-          techSme: 18,
-          hiddenChampion: 2,
-          provincialSrti: 5,
-          nationalSrti: 1,
-          innovativeSme: 14,
-          patentTotal: 118,
-          patentInvention: 24,
-          patentUtility: 66,
-          patentDesign: 28,
-          rndInputRatio: 4.2,
-          newProductRevenueRatio: 28.5,
-          employeeCount: 756,
-          nationalTalent: 4,
-          provincialTalent: 10
-        },
-        {
-          parkName: '尚达创业中心',
-          district: '余杭区',
-          parkType: '1',
-          totalEnterprises: 45,
-          aboveScale: 8,
-          highTech: 18,
-          techSme: 22,
-          hiddenChampion: 5,
-          provincialSrti: 12,
-          nationalSrti: 4,
-          innovativeSme: 15,
-          patentTotal: 208,
-          patentInvention: 56,
-          patentUtility: 112,
-          patentDesign: 40,
-          rndInputRatio: 8.5,
-          newProductRevenueRatio: 45.8,
-          employeeCount: 986,
-          nationalTalent: 12,
-          provincialTalent: 22
-        },
-        {
-          parkName: '富春江科创园',
-          district: '富阳区',
-          parkType: '1',
-          totalEnterprises: 42,
-          aboveScale: 6,
-          highTech: 12,
-          techSme: 20,
-          hiddenChampion: 3,
-          provincialSrti: 8,
-          nationalSrti: 2,
-          innovativeSme: 16,
-          patentTotal: 168,
-          patentInvention: 38,
-          patentUtility: 92,
-          patentDesign: 38,
-          rndInputRatio: 6.5,
-          newProductRevenueRatio: 38.6,
-          employeeCount: 896,
-          nationalTalent: 6,
-          provincialTalent: 13
-        }
-      ]
-    },
-
     handleExport() {
-      // 获取所有符合条件的数据
+      // 获取所有符合条件的数据（已按当前区域过滤）
       let exportData = this.allData
       
       // 根据当前筛选条件过滤数据
       if (this.query.districtName) {
         exportData = exportData.filter(item => 
           item.parkName.includes(this.query.districtName)
-        )
-      }
-      if (this.query.district) {
-        exportData = exportData.filter(item => 
-          item.district === this.query.district
         )
       }
       if (this.query.parkType) {

@@ -192,6 +192,21 @@ public class EvaluationController {
     }
 
     /**
+     * 更新评价记录的参评状态
+     * status: 0=不参评(草稿), 1=参评(待区县审)
+     *
+     * @param id     评价记录ID
+     * @param status 目标状态
+     * @return 操作结果
+     */
+    @PutMapping("/{id}/status")
+    @ApiOperation(value = "更新参评状态", notes = "更新评价记录的参评/不参评状态")
+    public R<Void> updateParticipateStatus(@PathVariable Long id, @RequestParam Integer status) {
+        evaluationService.updateParticipateStatus(id, status);
+        return R.ok();
+    }
+
+    /**
      * 应用数据权限控制
      * 市级管理员：查看所有
      * 区县管理员：查看本区县的评价记录
@@ -276,7 +291,7 @@ public class EvaluationController {
         byte[] excelData = evaluationService.exportEvaluations(queryDTO);
 
         String fileName = "园区评价记录_" + System.currentTimeMillis() + ".xlsx";
-        String encodedFileName = URLEncoder.encode(fileName, StandardCharsets.UTF_8)
+        String encodedFileName = java.net.URLEncoder.encode(fileName, "UTF-8")
                 .replaceAll("\\+", "%20");
 
         HttpHeaders headers = new HttpHeaders();

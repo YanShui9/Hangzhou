@@ -1,0 +1,12 @@
+schema_version: 1
+module_path: park_admin_frontend/admin_area
+title: 后台管理API接口层
+scope:
+    - park-admin/src/api/audit.js
+    - park-admin/src/api/dashboard.js
+    - park-admin/src/api/enterprise.js
+    - park-admin/src/api/park.js
+    - park-admin/src/api/system.js
+source_files: []
+depends_on: []
+related_to: []
