@@ -203,3 +203,58 @@ export function getAuditHistory(id) {
     method: 'get'
   })
 }
+
+/**
+ * 区县端：查询待审核列表（status=1 待区县审）
+ * @method GET /api/evaluations
+ * @param {Object} params
+ * @param {Integer} params.pageNum
+ * @param {Integer} params.pageSize
+ * @returns {Promise} 返回分页 { records, total }
+ */
+export function getPendingAuditList(params) {
+  return request({
+    url: '/api/evaluations',
+    method: 'get',
+    params: { ...params, status: 1 }
+  })
+}
+
+/**
+ * 区县端：查询已审核列表（status=3 已通过 或 status=4 已驳回）
+ * @method GET /api/evaluations
+ * @param {Object} params
+ * @param {Integer} params.pageNum
+ * @param {Integer} params.pageSize
+ * @param {Integer} [params.status] 不传则查 3/4 全部
+ * @returns {Promise} 返回分页 { records, total }
+ */
+export function getAuditedList(params) {
+  // 后端 status 接收整数，这里用后端 OR 查询：通过前端做合并
+  // 简化方案：后端如未提供 in 语法，则传 status=3，前端分两次取后合并
+  return request({
+    url: '/api/evaluations',
+    method: 'get',
+    params: { ...params }
+  })
+}
+
+/**
+ * 区县端：提交审核（通过/驳回）
+ * @method POST /api/evaluations/:id/district-pass | /district-reject
+ * @param {Object} data
+ * @param {Long}    data.evaluationId 评价记录ID
+ * @param {Integer} data.action       1=通过 / 2=驳回
+ * @param {String}  [data.opinion]    审核意见
+ * @returns {Promise}
+ */
+export function submitAudit(data) {
+  const url = data.action === 1
+    ? `/api/evaluations/${data.evaluationId}/district-pass`
+    : `/api/evaluations/${data.evaluationId}/district-reject`
+  return request({
+    url,
+    method: 'post',
+    data: { opinion: data.opinion || '' }
+  })
+}

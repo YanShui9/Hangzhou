@@ -146,6 +146,106 @@ public class ParkController {
     }
 
     /**
+     * 批量删除园区
+     */
+    @DeleteMapping("/batch")
+    @ApiOperation(value = "批量删除园区", notes = "根据ID数组批量删除")
+    public R<Void> batchDeletePark(@RequestBody java.util.List<Long> ids) {
+        parkService.batchDeletePark(ids);
+        return R.ok();
+    }
+
+    /**
+     * 批量导入园区
+     */
+    @PostMapping("/import")
+    @ApiOperation(value = "批量导入园区", notes = "上传 Excel 批量创建")
+    public R<java.util.Map<String, Object>> importParks(@RequestParam("file") org.springframework.web.multipart.MultipartFile file,
+                                                         HttpServletRequest request) {
+        checkAdmin(request);
+        java.util.Map<String, Object> result = parkService.importParks(file);
+        return R.ok(result);
+    }
+
+    /**
+     * 下载园区导入模板
+     */
+    @GetMapping("/template")
+    @ApiOperation(value = "下载园区导入模板", notes = "返回 Excel 模板")
+    public void downloadTemplate(javax.servlet.http.HttpServletResponse response) {
+        parkService.downloadTemplate(response);
+    }
+
+    /**
+     * 导出园区列表
+     */
+    @GetMapping("/export")
+    @ApiOperation(value = "导出园区列表", notes = "按查询条件导出 Excel")
+    public void exportParks(ParkQueryDTO queryDTO,
+                            HttpServletRequest request,
+                            javax.servlet.http.HttpServletResponse response) {
+        applyDataPermission(queryDTO, request);
+        parkService.exportParks(queryDTO, response);
+    }
+
+    /**
+     * 园区端编辑季度运营数据
+     */
+    @PutMapping("/{id}/operation")
+    @ApiOperation(value = "园区端编辑季度运营数据", notes = "园区管理员编辑季度运营数据，回写到 park_info")
+    public R<Void> updateOperation(@PathVariable Long id,
+                                    @RequestBody java.util.Map<String, Object> data,
+                                    HttpServletRequest request) {
+        checkParkAdmin(request, id);
+        parkService.updateOperation(id, data);
+        return R.ok();
+    }
+
+    /**
+     * 获取园区季度填报状态
+     */
+    @GetMapping("/{id}/quarter-status")
+    @ApiOperation(value = "获取园区季度填报状态", notes = "返回年度各季度填报状态")
+    public R<java.util.List<java.util.Map<String, Object>>> getQuarterStatus(@PathVariable Long id,
+                                                                               @RequestParam(required = false) Integer year) {
+        return R.ok(parkService.getQuarterStatus(id, year));
+    }
+
+    /**
+     * 获取园区主要产业（企业数量前三）
+     */
+    @GetMapping("/{id}/top-industries")
+    @ApiOperation(value = "获取园区主要产业", notes = "返回园区企业数量前三的产业，用于详情页展示")
+    public R<java.util.List<com.park.park.dto.ParkIndustryStatDTO>> getTopIndustries(@PathVariable Long id) {
+        return R.ok(parkService.getTopIndustries(id));
+    }
+
+    private void checkAdmin(HttpServletRequest request) {
+        Object roleTypeObj = request.getAttribute("roleType");
+        Integer roleType = (roleTypeObj instanceof Integer) ? (Integer) roleTypeObj : null;
+        if (roleType == null || roleType != 1) {
+            throw new com.park.common.exception.BusinessException(
+                    com.park.common.result.ResultCode.FORBIDDEN, "仅市级管理员可操作");
+        }
+    }
+
+    private void checkParkAdmin(HttpServletRequest request, Long parkId) {
+        Object roleTypeObj = request.getAttribute("roleType");
+        Integer roleType = (roleTypeObj instanceof Integer) ? (Integer) roleTypeObj : null;
+        if (roleType == null || roleType != 3) {
+            throw new com.park.common.exception.BusinessException(
+                    com.park.common.result.ResultCode.FORBIDDEN, "仅园区管理员可操作");
+        }
+        Object userIdObj = request.getAttribute("userId");
+        Long userId = userIdObj instanceof Long ? (Long) userIdObj : (userIdObj instanceof Integer ? ((Integer) userIdObj).longValue() : null);
+        com.park.auth.entity.SysUser user = authService.getUserById(userId);
+        if (user == null || user.getParkId() == null || !user.getParkId().equals(parkId)) {
+            throw new com.park.common.exception.BusinessException(
+                    com.park.common.result.ResultCode.FORBIDDEN, "无权操作该园区");
+        }
+    }
+
+    /**
      * 应用数据权限
      * - 市级管理员（roleType=1）：查看所有数据
      * - 区县管理员（roleType=2）：只查看本区县数据

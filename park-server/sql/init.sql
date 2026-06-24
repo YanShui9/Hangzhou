@@ -136,6 +136,48 @@ CREATE TABLE park_operation (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='运营数据表';
 
 -- ============================================================
+-- 7. park_quarter_stat — 园区季度填报状态表
+-- ============================================================
+DROP TABLE IF EXISTS park_quarter_stat;
+CREATE TABLE park_quarter_stat (
+    id               BIGINT      NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+    park_id          BIGINT      NOT NULL                COMMENT '园区ID',
+    year             INT         NOT NULL                COMMENT '年度',
+    quarter          TINYINT     NOT NULL                COMMENT '季度：1/2/3/4',
+    status           TINYINT     NOT NULL DEFAULT 0      COMMENT '填报状态：0=未填报, 1=已填报',
+    enterprise_count INT         DEFAULT NULL            COMMENT '入驻企业数',
+    employee_count   INT         DEFAULT NULL            COMMENT '员工总数',
+    patent_count     INT         DEFAULT NULL            COMMENT '专利总数',
+    report_by        VARCHAR(50) DEFAULT NULL            COMMENT '填报人',
+    report_time      DATETIME    DEFAULT NULL            COMMENT '填报时间',
+    create_time      DATETIME    NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    update_time      DATETIME    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    PRIMARY KEY (id),
+    UNIQUE KEY uk_park_year_quarter (park_id, year, quarter)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='园区季度填报状态表';
+
+-- ============================================================
+-- 8. data_warehouse — 数据仓库表
+-- ============================================================
+DROP TABLE IF EXISTS data_warehouse;
+CREATE TABLE data_warehouse (
+    id              BIGINT       NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+    park_name       VARCHAR(100) NOT NULL                COMMENT '园区名称（匹配 park_info）',
+    recognition     VARCHAR(20)  DEFAULT NULL            COMMENT '园区认定：已认定/未认定',
+    star_level      TINYINT      DEFAULT NULL            COMMENT '星级：3/4/5',
+    leading_industry VARCHAR(255) DEFAULT NULL           COMMENT '主导产业（逗号分隔）',
+    import_year     INT          DEFAULT NULL            COMMENT '导入年度',
+    import_by       VARCHAR(50)  DEFAULT NULL            COMMENT '导入人',
+    import_time     DATETIME     DEFAULT NULL            COMMENT '导入时间',
+    remark          TEXT         DEFAULT NULL            COMMENT '备注',
+    create_time     DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    update_time     DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    PRIMARY KEY (id),
+    KEY idx_park_name (park_name),
+    KEY idx_import_year (import_year)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='数据仓库表（用于园区认定、星级评定、产业方向导入）';
+
+-- ============================================================
 -- 测试数据插入
 -- ============================================================
 
@@ -153,9 +195,9 @@ INSERT INTO sys_user (username, password, real_name, phone, role_type, district_
 -- 园区数据
 -- -----------------------------------------------------------
 INSERT INTO park_info (park_name, park_type, district_id, district_name, address, build_area, land_area, contact_name, contact_phone, introduction, star_level) VALUES
-('西湖科技园',     1, 1, '西湖区', '杭州市西湖区文一西路998号',  350.00, 500.00,  '陈主任', '0571-88000001', '西湖科技园是杭州市重点扶持的科技产业园区', 4),
-('滨江高新技术园', 1, 2, '滨江区', '杭州市滨江区江南大道100号',  600.00, 800.00,  '赵主任', '0571-88000002', '滨江高新技术园聚焦集成电路和生物医药产业', 5),
-('余杭未来产业园', 2, 3, '余杭区', '杭州市余杭区良渚街道200号',  900.00, 1200.00, '刘主任', '0571-88000003', '余杭未来产业园以数字经济和新材料为主导', NULL);
+('西湖科技园',     '生产性制造类', 1, '西湖区', '杭州市西湖区文一西路998号',  350.00, 500.00,  '陈主任', '0571-88000001', '西湖科技园是杭州市重点扶持的科技产业园区', 4),
+('滨江高新技术园', '生产性制造类', 2, '滨江区', '杭州市滨江区江南大道100号',  600.00, 800.00,  '赵主任', '0571-88000002', '滨江高新技术园聚焦集成电路和生物医药产业', 5),
+('余杭未来产业园', '生产性服务类', 3, '余杭区', '杭州市余杭区良渚街道200号',  900.00, 1200.00, '刘主任', '0571-88000003', '余杭未来产业园以数字经济和新材料为主导', NULL);
 
 -- -----------------------------------------------------------
 -- 企业数据

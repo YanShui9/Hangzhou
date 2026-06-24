@@ -9,6 +9,8 @@ import com.park.enterprise.dto.EnterpriseQueryDTO;
 import com.park.enterprise.dto.EnterpriseSaveDTO;
 import com.park.enterprise.entity.EnterpriseInfo;
 import com.park.enterprise.mapper.EnterpriseMapper;
+import com.park.park.entity.ParkInfo;
+import com.park.park.mapper.ParkMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,6 +29,13 @@ public class EnterpriseService {
 
     @Autowired
     private EnterpriseMapper enterpriseMapper;
+
+    @Autowired
+    private ParkMapper parkMapper;
+
+    public EnterpriseMapper getEnterpriseMapper() {
+        return enterpriseMapper;
+    }
 
     /**
      * 分页查询企业列表
@@ -70,6 +79,16 @@ public class EnterpriseService {
             queryWrapper.eq(EnterpriseInfo::getIsParticipate, queryDTO.getIsParticipate());
         }
 
+        // 企业荣誉筛选
+        if (StringUtils.hasText(queryDTO.getEnterpriseHonor())) {
+            queryWrapper.like(EnterpriseInfo::getEnterpriseHonor, queryDTO.getEnterpriseHonor());
+        }
+
+        // 所属区县筛选
+        if (StringUtils.hasText(queryDTO.getDistrictName())) {
+            queryWrapper.like(EnterpriseInfo::getDistrictName, queryDTO.getDistrictName());
+        }
+
         // 按创建时间降序排序
         queryWrapper.orderByDesc(EnterpriseInfo::getCreateTime);
 
@@ -106,6 +125,9 @@ public class EnterpriseService {
         enterprise.setIsParticipate(enterprise.getIsParticipate() != null ? enterprise.getIsParticipate() : 1);
         enterprise.setStatus(enterprise.getStatus() != null ? enterprise.getStatus() : "在营");
 
+        // 同步园区区县名称
+        syncDistrictName(enterprise);
+
         int rows = enterpriseMapper.insert(enterprise);
         if (rows <= 0) {
             throw new BusinessException(ResultCode.DATA_SAVE_ERROR);
@@ -132,6 +154,9 @@ public class EnterpriseService {
 
         // 更新属性
         BeanUtils.copyProperties(saveDTO, existing);
+
+        // 同步园区区县名称
+        syncDistrictName(existing);
 
         int rows = enterpriseMapper.updateById(existing);
         if (rows <= 0) {
@@ -164,6 +189,18 @@ public class EnterpriseService {
      * @param parkId         园区ID
      * @param excludeId      排除的企业ID（修改时使用）
      */
+    /**
+     * 同步园区区县名称到企业实体
+     */
+    private void syncDistrictName(EnterpriseInfo enterprise) {
+        if (enterprise.getParkId() != null) {
+            ParkInfo park = parkMapper.selectById(enterprise.getParkId());
+            if (park != null && StringUtils.hasText(park.getDistrictName())) {
+                enterprise.setDistrictName(park.getDistrictName());
+            }
+        }
+    }
+
     private void checkEnterpriseNameExists(String enterpriseName, Long parkId, Long excludeId) {
         LambdaQueryWrapper<EnterpriseInfo> queryWrapper = new LambdaQueryWrapper<>();
         queryWrapper.eq(EnterpriseInfo::getEnterpriseName, enterpriseName)

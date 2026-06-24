@@ -60,9 +60,19 @@ service.interceptors.response.use(
       return Promise.reject(error)
     }
 
-    const message = error.response
-      ? error.response.data.message || error.response.statusText
-      : '网络异常，请稍后重试'
+    // 安全获取错误消息
+    let message = '网络异常，请稍后重试'
+    if (error.response) {
+      if (error.response.data && error.response.data.message) {
+        message = error.response.data.message
+      } else if (error.response.statusText) {
+        message = error.response.statusText
+      } else if (error.message) {
+        message = error.message
+      }
+    } else if (error.message) {
+      message = error.message
+    }
     Message({
       message,
       type: 'error',

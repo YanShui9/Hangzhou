@@ -53,6 +53,8 @@
         <div class="form-field">
           <label class="field-label">星级评定</label>
           <el-select v-model="formData.starLevel" size="small" placeholder="请选择" style="width: 100%">
+            <el-option label="一星级" :value="1" />
+            <el-option label="二星级" :value="2" />
             <el-option label="三星级" :value="3" />
             <el-option label="四星级" :value="4" />
             <el-option label="五星级" :value="5" />
@@ -334,7 +336,7 @@ export default {
       parkStatusOptions: ['规划中', '建设中', '已投运'],
       landNatureOptions: ['工业用地(M1/M2/M3)', '商业用地(B1)', '商务用地(B2)', '其他'],
       districtOptions: ['滨江区', '萧山区', '余杭区', '西湖区', '上城区', '拱墅区', '钱塘区', '富阳区', '临安区', '桐庐县', '淳安县', '建德市'],
-      parkTypeOptions: ['制造类', '服务类', '科技类', '数字经济'],
+      parkTypeOptions: ['生产性制造类', '生产性服务类'],
       leadingIndustryOptions: ['数字经济', '智能制造', '生物医药', '新材料', '新能源', '集成电路', '科技服务', '其他'],
       operatorNatureOptions: ['国有企业', '民营企业', '事业单位', '其他'],
       saveLoading: false,

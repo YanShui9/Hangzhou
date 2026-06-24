@@ -30,7 +30,7 @@ public class ParkQueryDTO extends PageQuery {
     @ApiModelProperty(value = "园区类型：制造类 / 服务类")
     private String parkType;
 
-    @ApiModelProperty(value = "星级：3(三星级) / 4(四星级) / 5(五星级)")
+    @ApiModelProperty(value = "星级：1(一星级) / 2(二星级) / 3(三星级) / 4(四星级) / 5(五星级)")
     private Integer starLevel;
 
     @ApiModelProperty(value = "园区认定：已认定 / 未认定")

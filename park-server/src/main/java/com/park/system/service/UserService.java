@@ -155,6 +155,19 @@ public class UserService {
     }
 
     /**
+     * 更新用户状态（启用/禁用）
+     *
+     * @param id     用户ID
+     * @param status 1=启用 0=禁用
+     */
+    public void updateStatus(Long id, Integer status) {
+        SysUser user = getUserById(id);
+        user.setStatus(status);
+        userMapper.updateById(user);
+        log.info("更新用户状态: id={}, status={}", id, status);
+    }
+
+    /**
      * 校验用户名唯一
      *
      * @param username  用户名

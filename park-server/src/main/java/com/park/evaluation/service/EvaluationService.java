@@ -3,17 +3,26 @@ package com.park.evaluation.service;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.park.audit.entity.AuditRecord;
+import com.park.audit.mapper.AuditMapper;
+import com.park.auth.entity.SysUser;
+import com.park.auth.service.AuthService;
 import com.park.common.exception.BusinessException;
 import com.park.common.result.ResultCode;
 import com.park.evaluation.dto.EvaluationQueryDTO;
 import com.park.evaluation.dto.EvaluationSaveDTO;
 import com.park.evaluation.entity.EvaluationRecord;
 import com.park.evaluation.mapper.EvaluationMapper;
+import com.park.park.entity.ParkInfo;
+import com.park.park.mapper.ParkMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import javax.servlet.http.HttpServletRequest;
+import java.time.LocalDateTime;
 
 /**
  * 评价服务
@@ -27,6 +36,15 @@ public class EvaluationService {
 
     @Autowired
     private EvaluationMapper evaluationMapper;
+
+    @Autowired
+    private AuditMapper auditMapper;
+
+    @Autowired
+    private AuthService authService;
+
+    @Autowired
+    private ParkMapper parkMapper;
 
     /**
      * 分页查询评价记录
@@ -139,52 +157,44 @@ public class EvaluationService {
     /**
      * 区县审核通过（状态从 1=待区县审 改为 2=待市局审）
      *
-     * @param id 评价记录ID
+     * @param id      评价记录ID
+     * @param request HTTP请求（用于取当前审核人）
+     * @param opinion 审核意见
      */
     @Transactional(rollbackFor = Exception.class)
-    public void districtPass(Long id) {
-        updateStatus(id, 1, 2, "区县审核通过");
+    public void districtPass(Long id, HttpServletRequest request, String opinion) {
+        updateStatus(id, 1, 2, "区县审核通过", request, 2, 1, opinion);
     }
 
     /**
      * 区县审核驳回（状态从 1=待区县审 改为 4=驳回）
-     *
-     * @param id 评价记录ID
      */
     @Transactional(rollbackFor = Exception.class)
-    public void districtReject(Long id) {
-        updateStatus(id, 1, 4, "区县审核驳回");
+    public void districtReject(Long id, HttpServletRequest request, String opinion) {
+        updateStatus(id, 1, 4, "区县审核驳回", request, 2, 2, opinion);
     }
 
     /**
      * 市级审核通过（状态从 2=待市局审 改为 3=通过）
-     *
-     * @param id 评价记录ID
      */
     @Transactional(rollbackFor = Exception.class)
-    public void cityPass(Long id) {
-        updateStatus(id, 2, 3, "市级审核通过");
+    public void cityPass(Long id, HttpServletRequest request, String opinion) {
+        updateStatus(id, 2, 3, "市级审核通过", request, 1, 1, opinion);
     }
 
     /**
      * 市级审核驳回（状态从 2=待市局审 改为 4=驳回）
-     *
-     * @param id 评价记录ID
      */
     @Transactional(rollbackFor = Exception.class)
-    public void cityReject(Long id) {
-        updateStatus(id, 2, 4, "市级审核驳回");
+    public void cityReject(Long id, HttpServletRequest request, String opinion) {
+        updateStatus(id, 2, 4, "市级审核驳回", request, 1, 2, opinion);
     }
 
     /**
      * 更新评价记录状态
-     *
-     * @param id             评价记录ID
-     * @param expectedStatus 期望的当前状态
-     * @param newStatus      新状态
-     * @param actionDesc     操作描述（用于日志）
      */
-    private void updateStatus(Long id, Integer expectedStatus, Integer newStatus, String actionDesc) {
+    private void updateStatus(Long id, Integer expectedStatus, Integer newStatus, String actionDesc,
+                              HttpServletRequest request, Integer auditorRole, Integer action, String opinion) {
         EvaluationRecord record = evaluationMapper.selectById(id);
         if (record == null) {
             throw new BusinessException(ResultCode.DATA_NOT_FOUND, "评价记录不存在");
@@ -196,6 +206,34 @@ public class EvaluationService {
 
         record.setStatus(newStatus);
         evaluationMapper.updateById(record);
+
+        // 写入审核流水
+        try {
+            AuditRecord audit = new AuditRecord();
+            audit.setEvaluationId(id);
+            audit.setAction(action);
+            audit.setOpinion(opinion);
+            audit.setAuditorRole(auditorRole);
+            audit.setCreateTime(LocalDateTime.now());
+            if (request != null) {
+                Object uid = request.getAttribute("userId");
+                Long auditorId = null;
+                if (uid instanceof Long) {
+                    auditorId = (Long) uid;
+                } else if (uid instanceof Integer) {
+                    auditorId = ((Integer) uid).longValue();
+                }
+                audit.setAuditorId(auditorId);
+                SysUser user = auditorId == null ? null : authService.getUserById(auditorId);
+                audit.setAuditorName(user == null ? "系统" : user.getRealName());
+            } else {
+                audit.setAuditorName("系统");
+            }
+            auditMapper.insert(audit);
+        } catch (Exception ex) {
+            log.error("写审核流水失败 id={}", id, ex);
+        }
+
         log.info("评价记录{}：id={}", actionDesc, id);
     }
 }

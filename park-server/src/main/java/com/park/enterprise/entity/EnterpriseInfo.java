@@ -71,10 +71,10 @@ public class EnterpriseInfo extends BaseEntity {
     private transient String parkName;
 
     @ApiModelProperty(value = "所属区县名称")
-    private transient String districtName;
+    private String districtName;
 
     @ApiModelProperty(value = "企业荣誉（国高/小巨人/省专/单项冠军...）")
-    private transient String enterpriseHonor;
+    private String enterpriseHonor;
 
     @ApiModelProperty(value = "备注")
     private transient String remark;
