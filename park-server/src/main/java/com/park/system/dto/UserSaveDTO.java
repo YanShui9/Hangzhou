@@ -45,4 +45,7 @@ public class UserSaveDTO {
     @NotNull(message = "状态不能为空")
     @ApiModelProperty(value = "账号状态：0=禁用, 1=启用", required = true)
     private Integer status;
+
+    @ApiModelProperty(value = "所属部门")
+    private String department;
 }

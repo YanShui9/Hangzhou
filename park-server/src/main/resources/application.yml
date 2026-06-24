@@ -18,6 +18,11 @@ spring:
     time-zone: GMT+8
     serialization:
       write-dates-as-timestamps: false
+  # 文件上传配置
+  servlet:
+    multipart:
+      max-file-size: 50MB
+      max-request-size: 50MB
 
 # MyBatis-Plus 配置（公共）
 mybatis-plus:

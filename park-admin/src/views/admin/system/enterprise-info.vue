@@ -149,12 +149,12 @@
         <template slot-scope="{ row }">{{ row.legalPerson || '--' }}</template>
       </el-table-column>
       <el-table-column
-        prop="contactPerson"
+        prop="contactName"
         label="联系人"
         width="120"
         align="center"
       >
-        <template slot-scope="{ row }">{{ row.contactPerson || '--' }}</template>
+        <template slot-scope="{ row }">{{ row.contactName || '--' }}</template>
       </el-table-column>
       <el-table-column
         prop="contactPhone"
@@ -256,6 +256,8 @@ import {
   importEnterpriseInfo,
   exportEnterpriseInfo
 } from '@/api/enterprise-info'
+import { getDistrictList } from '@/api/district'
+import { getParkList } from '@/api/park'
 
 export default {
   name: 'EnterpriseInfo',
@@ -269,15 +271,7 @@ export default {
         pageNum: 1,
         pageSize: 20
       },
-      districtOptions: [
-        { id: 1, name: '上城区' },
-        { id: 2, name: '滨江区' },
-        { id: 3, name: '萧山区' },
-        { id: 4, name: '余杭区' },
-        { id: 5, name: '富阳区' },
-        { id: 6, name: '临安区' },
-        { id: 7, name: '西湖区' }
-      ],
+      districtOptions: [],
       parkOptions: [],
       statusOptions: [
         { value: 1, label: '参评' },
@@ -294,9 +288,29 @@ export default {
     }
   },
   created() {
+    this.loadDistricts()
+    this.loadParks()
     this.getList()
   },
   methods: {
+    async loadDistricts() {
+      try {
+        const res = await getDistrictList()
+        this.districtOptions = (res.data || []).map(d => ({ id: d.id, name: d.districtName }))
+      } catch (e) {
+        console.error('加载区域列表失败', e)
+      }
+    },
+
+    async loadParks() {
+      try {
+        const res = await getParkList({ pageNum: 1, pageSize: 1000 })
+        this.parkOptions = (res.data.records || []).map(p => ({ id: p.id, parkName: p.parkName }))
+      } catch (e) {
+        console.error('加载园区列表失败', e)
+      }
+    },
+
     async getList() {
       this.loading = true
       try {
@@ -307,49 +321,13 @@ export default {
         if (params.status === null) delete params.status
 
         const res = await getEnterpriseInfoPage(params)
-        if (res.data.records && res.data.records.length > 0 && res.data.records[0].enterpriseName) {
-          this.dataList = res.data.records || []
-          this.total = res.data.total || 0
-        } else {
-          this.applyMockList(params)
-        }
+        this.dataList = res.data.records || []
+        this.total = res.data.total || 0
       } catch (e) {
         console.error('查询企业信息列表失败', e)
-        this.applyMockList(this.queryParams)
       } finally {
         this.loading = false
       }
-    },
-    applyMockList(params) {
-      const allMock = [
-        { id: 1, enterpriseName: '杭州数智科技有限公司', creditCode: '91330100MA2ABCD123', districtName: '余杭区', parkName: '盛惠哈源科创园', industry: '信息技术', status: '参评', createTime: '2026-06-01 09:00:00' },
-        { id: 2, enterpriseName: '浙江生物医药研发有限公司', creditCode: '91330100MA2EFGH456', districtName: '余杭区', parkName: '盛惠哈源科创园', industry: '生物医药', status: '参评', createTime: '2026-06-02 10:00:00' },
-        { id: 3, enterpriseName: '杭州智能装备制造有限公司', creditCode: '91330100MA2IJKL789', districtName: '临平区', parkName: '世创智能制造产业园', industry: '高端装备', status: '参评', createTime: '2026-06-03 11:00:00' },
-        { id: 4, enterpriseName: '浙江新材料科技有限公司', creditCode: '91330100MA2MNOP012', districtName: '桐庐县', parkName: '舒泰富春智创园', industry: '新材料', status: '参评', createTime: '2026-06-04 14:00:00' },
-        { id: 5, enterpriseName: '杭州绿色能源开发有限公司', creditCode: '91330100MA2QRST345', districtName: '桐庐县', parkName: '舒泰富春智创园', industry: '绿色能源', status: '不参评', createTime: '2026-06-05 15:00:00' },
-        { id: 6, enterpriseName: '萧山数字经济产业园有限公司', creditCode: '91330100MA2UVWX678', districtName: '萧山区', parkName: '蜀山未来城', industry: '数字经济', status: '参评', createTime: '2026-06-06 16:00:00' },
-        { id: 7, enterpriseName: '杭州文创设计有限公司', creditCode: '91330100MA2YZA901', districtName: '拱墅区', parkName: '丝联166文创园', industry: '文化创意', status: '参评', createTime: '2026-06-07 08:30:00' },
-        { id: 8, enterpriseName: '杭州云计算服务有限公司', creditCode: '91330100MA2BCDE234', districtName: '临平区', parkName: '算力一期', industry: '信息技术', status: '不参评', createTime: '2026-06-08 09:00:00' }
-      ]
-      let filtered = allMock
-      const p = params || {}
-      if (p.keyword) {
-        const kw = p.keyword.toLowerCase()
-        filtered = filtered.filter(item => item.enterpriseName.includes(kw) || item.creditCode.includes(kw))
-      }
-      if (p.districtId) {
-        // 简化处理：用区县名匹配
-        const districtMap = { 1: '余杭区', 2: '临平区', 3: '桐庐县', 4: '萧山区', 5: '拱墅区' }
-        filtered = filtered.filter(item => item.districtName === districtMap[p.districtId])
-      }
-      if (p.status) {
-        filtered = filtered.filter(item => item.status === p.status)
-      }
-      this.total = filtered.length
-      const pageNum = p.pageNum || 1
-      const pageSize = p.pageSize || 20
-      const start = (pageNum - 1) * pageSize
-      this.dataList = filtered.slice(start, start + pageSize)
     },
 
     handleSearch() {
@@ -393,8 +371,17 @@ export default {
     },
 
     handleDownloadTemplate() {
-      this.$message.info('下载模板功能待接入后端接口')
-      downloadEnterpriseInfoTemplate().then(() => {}).catch(() => {})
+      downloadEnterpriseInfoTemplate().then(blob => {
+        const url = window.URL.createObjectURL(blob)
+        const link = document.createElement('a')
+        link.href = url
+        link.download = '企业信息导入模板.xlsx'
+        document.body.appendChild(link)
+        link.click()
+        document.body.removeChild(link)
+        window.URL.revokeObjectURL(url)
+        this.$message.success('下载成功')
+      }).catch(() => { this.$message.error('下载失败') })
     },
 
     handleImport() {
@@ -414,19 +401,30 @@ export default {
       const formData = new FormData()
       formData.append('file', this.uploadedFile)
       importEnterpriseInfo(formData)
-        .then(() => {
-          this.$message.success('导入成功')
+        .then(res => {
+          const msg = res.data ? `成功${res.data.successCount||0}条，失败${res.data.failCount||0}条` : '导入成功'
+          this.$message.success(msg)
           this.importVisible = false
           this.getList()
         })
+        .catch(() => { this.$message.error('导入失败') })
         .finally(() => {
           this.importLoading = false
         })
     },
 
     handleExport() {
-      this.$message.info('导出数据功能待接入后端接口')
-      exportEnterpriseInfo(this.queryParams).then(() => {}).catch(() => {})
+      exportEnterpriseInfo(this.queryParams).then(blob => {
+        const url = window.URL.createObjectURL(blob)
+        const link = document.createElement('a')
+        link.href = url
+        link.download = '企业信息列表.xlsx'
+        document.body.appendChild(link)
+        link.click()
+        document.body.removeChild(link)
+        window.URL.revokeObjectURL(url)
+        this.$message.success('导出成功')
+      }).catch(() => { this.$message.error('导出失败') })
     },
 
     handleSizeChange(val) {

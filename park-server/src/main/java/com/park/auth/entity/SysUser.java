@@ -46,4 +46,7 @@ public class SysUser extends BaseEntity {
 
     @ApiModelProperty(value = "账号状态：0=禁用, 1=启用")
     private Integer status;
+
+    @ApiModelProperty(value = "所属部门")
+    private String department;
 }

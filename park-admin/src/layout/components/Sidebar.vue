@@ -23,50 +23,50 @@
         <i class="el-icon-data-line"></i>
         <span slot="title">数据驾驶舱</span>
       </el-menu-item>
-      <el-menu-item v-if="hasRole([2])" index="/district/dashboard" @click="$router.push('/district/dashboard')">
+      <el-menu-item v-if="hasRole([2])" index="/district/dashboard" @click="navigateTo('/district/dashboard')">
         <i class="el-icon-data-line"></i>
         <span slot="title">数据看板</span>
       </el-menu-item>
-      <el-menu-item v-if="hasRole([3])" index="/park/dashboard" @click="$router.push('/park/dashboard')">
+      <el-menu-item v-if="hasRole([3])" index="/park/dashboard" @click="navigateTo('/park/dashboard')">
         <i class="el-icon-data-line"></i>
         <span slot="title">数据看板</span>
       </el-menu-item>
 
-      <el-menu-item v-if="hasRole([1])" index="/admin/park" @click="$router.push('/admin/park')">
+      <el-menu-item v-if="hasRole([1])" index="/admin/park" @click="navigateTo('/admin/park')">
         <i class="el-icon-office-building"></i>
         <span slot="title">园区列表</span>
       </el-menu-item>
-      <el-menu-item v-if="hasRole([2])" index="/district/park" @click="$router.push('/district/park')">
+      <el-menu-item v-if="hasRole([2])" index="/district/park" @click="navigateTo('/district/park')">
         <i class="el-icon-office-building"></i>
         <span slot="title">园区列表</span>
       </el-menu-item>
-      <el-menu-item v-if="hasRole([3])" index="/park/mine" @click="$router.push('/park/mine')">
+      <el-menu-item v-if="hasRole([3])" index="/park/mine" @click="navigateTo('/park/mine')">
         <i class="el-icon-office-building"></i>
         <span slot="title">我的园区</span>
       </el-menu-item>
 
-      <el-menu-item v-if="hasRole([1])" index="/admin/enterprise" @click="$router.push('/admin/enterprise')">
+      <el-menu-item v-if="hasRole([1])" index="/admin/enterprise" @click="navigateTo('/admin/enterprise')">
         <i class="el-icon-s-shop"></i>
         <span slot="title">入驻企业</span>
       </el-menu-item>
-      <el-menu-item v-if="hasRole([2])" index="/district/enterprise" @click="$router.push('/district/enterprise')">
+      <el-menu-item v-if="hasRole([2])" index="/district/enterprise" @click="navigateTo('/district/enterprise')">
         <i class="el-icon-s-shop"></i>
         <span slot="title">入驻企业</span>
       </el-menu-item>
-      <el-menu-item v-if="hasRole([3])" index="/park/enterprise" @click="$router.push('/park/enterprise')">
+      <el-menu-item v-if="hasRole([3])" index="/park/enterprise" @click="navigateTo('/park/enterprise')">
         <i class="el-icon-s-shop"></i>
         <span slot="title">入驻企业</span>
       </el-menu-item>
 
-      <el-menu-item v-if="hasRole([1])" index="/admin/audit" @click="$router.push('/admin/audit')">
+      <el-menu-item v-if="hasRole([1])" index="/admin/audit" @click="navigateTo('/admin/audit')">
         <i class="el-icon-s-check"></i>
         <span slot="title">评价审核</span>
       </el-menu-item>
-      <el-menu-item v-if="hasRole([2])" index="/district/audit" @click="$router.push('/district/audit')">
+      <el-menu-item v-if="hasRole([2])" index="/district/audit" @click="navigateTo('/district/audit')">
         <i class="el-icon-s-check"></i>
         <span slot="title">评价审核</span>
       </el-menu-item>
-      <el-menu-item v-if="hasRole([3])" index="/park/evaluation" @click="$router.push('/park/evaluation')">
+      <el-menu-item v-if="hasRole([3])" index="/park/evaluation" @click="navigateTo('/park/evaluation')">
         <i class="el-icon-edit-outline"></i>
         <span slot="title">评价列表</span>
       </el-menu-item>
@@ -77,11 +77,11 @@
           <i class="el-icon-s-data"></i>
           <span>评价结果</span>
         </template>
-        <el-menu-item index="/admin/result/park" @click="$router.push('/admin/result/park')">
+        <el-menu-item index="/admin/result/park" @click="navigateTo('/admin/result/park')">
           <i class="el-icon-office-building"></i>
           <span slot="title">园区评价</span>
         </el-menu-item>
-        <el-menu-item index="/admin/result/enterprise" @click="$router.push('/admin/result/enterprise')">
+        <el-menu-item index="/admin/result/enterprise" @click="navigateTo('/admin/result/enterprise')">
           <i class="el-icon-s-shop"></i>
           <span slot="title">企业指标</span>
         </el-menu-item>
@@ -91,11 +91,11 @@
           <i class="el-icon-s-data"></i>
           <span>评价结果</span>
         </template>
-        <el-menu-item index="/district/result/park" @click="$router.push('/district/result/park')">
+        <el-menu-item index="/district/result/park" @click="navigateTo('/district/result/park')">
           <i class="el-icon-office-building"></i>
           <span slot="title">园区评价</span>
         </el-menu-item>
-        <el-menu-item index="/district/result/enterprise" @click="$router.push('/district/result/enterprise')">
+        <el-menu-item index="/district/result/enterprise" @click="navigateTo('/district/result/enterprise')">
           <i class="el-icon-s-shop"></i>
           <span slot="title">企业指标</span>
         </el-menu-item>
@@ -105,11 +105,11 @@
           <i class="el-icon-s-data"></i>
           <span>评价结果</span>
         </template>
-        <el-menu-item index="/park/result/park" @click="$router.push('/park/result/park')">
+        <el-menu-item index="/park/result/park" @click="navigateTo('/park/result/park')">
           <i class="el-icon-office-building"></i>
           <span slot="title">园区评价</span>
         </el-menu-item>
-        <el-menu-item index="/park/result/enterprise" @click="$router.push('/park/result/enterprise')">
+        <el-menu-item index="/park/result/enterprise" @click="navigateTo('/park/result/enterprise')">
           <i class="el-icon-s-shop"></i>
           <span slot="title">企业指标</span>
         </el-menu-item>
@@ -121,19 +121,23 @@
           <i class="el-icon-setting"></i>
           <span>系统设置</span>
         </template>
-        <el-menu-item index="/system/district-users" @click="$router.push('/system/district-users')">
+        <el-menu-item index="/system/admin-users" @click="navigateTo('/system/admin-users')">
+          <i class="el-icon-user-solid"></i>
+          <span slot="title">管理员账号</span>
+        </el-menu-item>
+        <el-menu-item index="/system/district-users" @click="navigateTo('/system/district-users')">
           <i class="el-icon-user"></i>
           <span slot="title">区县账号</span>
         </el-menu-item>
-        <el-menu-item index="/system/park-users" @click="$router.push('/system/park-users')">
+        <el-menu-item index="/system/park-users" @click="navigateTo('/system/park-users')">
           <i class="el-icon-office-building"></i>
           <span slot="title">园区账号</span>
         </el-menu-item>
-        <el-menu-item index="/system/data-warehouse" @click="$router.push('/system/data-warehouse')">
+        <el-menu-item index="/system/data-warehouse" @click="navigateTo('/system/data-warehouse')">
           <i class="el-icon-wallet"></i>
           <span slot="title">数据仓库</span>
         </el-menu-item>
-        <el-menu-item index="/system/enterprise-info" @click="$router.push('/system/enterprise-info')">
+        <el-menu-item index="/system/enterprise-info" @click="navigateTo('/system/enterprise-info')">
           <i class="el-icon-s-shop"></i>
           <span slot="title">企业信息</span>
         </el-menu-item>
@@ -157,6 +161,10 @@ export default {
     hasRole(roles) {
       if (!this.userInfo || !this.userInfo.roleType) return false
       return roles.includes(this.userInfo.roleType)
+    },
+    navigateTo(path) {
+      if (this.$route.path === path) return
+      this.$router.push(path).catch(() => {})
     },
     openBigScreen() {
       const baseUrl = window.location.origin + window.location.pathname

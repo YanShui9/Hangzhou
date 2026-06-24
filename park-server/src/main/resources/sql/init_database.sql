@@ -107,6 +107,7 @@ CREATE TABLE park_info (
 -- 3. 修改用户表
 ALTER TABLE sys_user ADD COLUMN IF NOT EXISTS district_id BIGINT DEFAULT NULL COMMENT '所属区县ID' AFTER district;
 ALTER TABLE sys_user ADD COLUMN IF NOT EXISTS role_type TINYINT DEFAULT NULL COMMENT '角色类型：1=市级, 2=区县, 3=园区' AFTER role;
+ALTER TABLE sys_user ADD COLUMN IF NOT EXISTS department VARCHAR(100) DEFAULT NULL COMMENT '所属部门' AFTER status;
 
 UPDATE sys_user SET role_type = 1 WHERE role = 'admin';
 UPDATE sys_user SET role_type = 2 WHERE role = 'district';

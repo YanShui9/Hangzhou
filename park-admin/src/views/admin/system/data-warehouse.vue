@@ -20,6 +20,20 @@
           @keyup.enter.native="handleSearch"
         />
         <el-select
+          v-model="queryParams.fileType"
+          placeholder="全部类型"
+          clearable
+          size="small"
+          style="width: 160px; margin-left: 8px;"
+        >
+          <el-option
+            v-for="item in fileTypeOptions"
+            :key="item.value"
+            :label="item.label"
+            :value="item.value"
+          />
+        </el-select>
+        <el-select
           v-model="queryParams.year"
           placeholder="全部年度"
           clearable
@@ -95,17 +109,17 @@
       <el-table-column
         prop="fileName"
         label="附件"
-        min-width="200"
-        align="center"
+        min-width="260"
       >
         <template slot-scope="{ row }">
-          <a
-            v-if="row.fileName"
-            href="javascript:;"
-            class="file-link"
-            @click="handleDownloadAttachment(row)"
-          >{{ row.fileName }}</a>
-          <span v-else>--</span>
+          <span v-if="!row.fileName">--</span>
+          <template v-else>
+            <div class="file-name" :title="row.fileName">{{ row.fileName }}</div>
+            <div class="file-actions">
+              <el-button type="text" size="mini" @click="handlePreview(row)">预览</el-button>
+              <el-button type="text" size="mini" @click="handleDownload(row)">下载</el-button>
+            </div>
+          </template>
         </template>
       </el-table-column>
       <el-table-column
@@ -206,16 +220,18 @@
         </el-form-item>
         <el-form-item label="附件" prop="file">
           <el-upload
+            ref="uploadRef"
             class="upload-inline"
             action=""
             :auto-upload="false"
             :show-file-list="true"
-            :limit="1"
+            accept=".xlsx"
             :on-change="handleFileChange"
             :on-remove="handleFileRemove"
           >
             <el-button size="small" icon="el-icon-upload2">+上传附件</el-button>
           </el-upload>
+          <div class="upload-tip">请使用上方「模板下载」中的对应模板填写数据后上传（仅支持 .xlsx 格式）</div>
         </el-form-item>
       </el-form>
       <div slot="footer" class="dialog-footer">
@@ -228,16 +244,31 @@
         >确 认</el-button>
       </div>
     </el-dialog>
+
+    <!-- 文件预览对话框 -->
+    <el-dialog
+      :title="previewTitle"
+      :visible.sync="previewVisible"
+      width="90%"
+      top="5vh"
+      :close-on-click-modal="false"
+      @closed="handlePreviewClosed"
+    >
+      <div v-loading="previewLoading" style="min-height: 400px;">
+        <div id="luckysheet-preview" style="width: 100%; height: 60vh;"></div>
+      </div>
+    </el-dialog>
   </div>
 </template>
 
 <script>
+import LuckyExcel from 'luckyexcel'
 import {
   getDataWarehousePage,
   saveDataWarehouse,
   deleteDataWarehouse,
   downloadTemplate,
-  downloadAttachment
+  previewFile
 } from '@/api/data-warehouse'
 
 export default {
@@ -246,6 +277,7 @@ export default {
     return {
       queryParams: {
         name: '',
+        fileType: '',
         year: null,
         pageNum: 1,
         pageSize: 20
@@ -255,6 +287,9 @@ export default {
       loading: false,
       dialogVisible: false,
       submitLoading: false,
+      previewVisible: false,
+      previewLoading: false,
+      previewTitle: '文件预览',
       jumpPage: '',
       uploadedFile: null,
       dataForm: {
@@ -265,14 +300,19 @@ export default {
       dataRules: {
         fileType: [{ required: true, message: '请选择文件类型', trigger: 'change' }],
         year: [{ required: true, message: '请选择归属年度', trigger: 'change' }],
-        file: [{ required: true, message: '请上传附件', trigger: 'change' }]
+        file: [{ validator: (rule, value, callback) => {
+          if (!this.uploadedFile) {
+            callback(new Error('请上传附件'))
+          } else {
+            callback()
+          }
+        }, trigger: 'change' }]
       },
       yearOptions: [],
       pageSizeOptions: [10, 20, 50, 100],
       fileTypeOptions: [
         { label: '全市企业荣誉新增汇总', value: 'honor_new' },
         { label: '全市企业荣誉累计汇总', value: 'honor_total' },
-        { label: '全市企业产业方向汇总', value: 'industry_direction' },
         { label: '未上报运营园区名单', value: 'unreported_park' },
         { label: '园区总营税收', value: 'park_total_tax' },
         { label: '主导产业企业的园区营税收', value: 'leading_industry_tax' },
@@ -282,7 +322,6 @@ export default {
       templateList: [
         { key: 'honor_new', name: '全市企业荣誉新增汇总' },
         { key: 'honor_total', name: '全市企业荣誉累计汇总' },
-        { key: 'industry_direction', name: '全市企业产业方向汇总' },
         { key: 'unreported_park', name: '未上报运营园区名单' },
         { key: 'park_total_tax', name: '园区总营税收' },
         { key: 'leading_industry_tax', name: '主导产业企业的园区营税收' },
@@ -311,45 +350,16 @@ export default {
         const params = { ...this.queryParams }
         if (params.year === null) delete params.year
         if (params.name === '') delete params.name
+        if (params.fileType === '') delete params.fileType
 
         const res = await getDataWarehousePage(params)
-        if (res.data.records && res.data.records.length > 0 && res.data.records[0].name) {
-          this.dataList = res.data.records || []
-          this.total = res.data.total || 0
-        } else {
-          this.applyMockList(params)
-        }
+        this.dataList = res.data.records || []
+        this.total = res.data.total || 0
       } catch (e) {
         console.error('查询数据仓库列表失败', e)
-        this.applyMockList(this.queryParams)
       } finally {
         this.loading = false
       }
-    },
-    applyMockList(params) {
-      const allMock = [
-        { id: 1, name: '2025年度园区税收数据', year: 2025, fileSize: '2.3MB', status: '已导入', createTime: '2026-06-15 10:30:00', updateTime: '2026-06-15 10:30:00' },
-        { id: 2, name: '2025年度园区营收数据', year: 2025, fileSize: '1.8MB', status: '已导入', createTime: '2026-06-16 14:20:00', updateTime: '2026-06-16 14:20:00' },
-        { id: 3, name: '2025年度亩均产值统计', year: 2025, fileSize: '856KB', status: '已导入', createTime: '2026-06-17 09:15:00', updateTime: '2026-06-17 09:15:00' },
-        { id: 4, name: '2024年度园区税收数据', year: 2024, fileSize: '2.1MB', status: '已导入', createTime: '2025-06-10 16:00:00', updateTime: '2025-06-10 16:00:00' },
-        { id: 5, name: '2024年度园区营收数据', year: 2024, fileSize: '1.6MB', status: '已导入', createTime: '2025-06-11 11:30:00', updateTime: '2025-06-11 11:30:00' },
-        { id: 6, name: '2025年度企业参评名单', year: 2025, fileSize: '420KB', status: '待导入', createTime: '2026-06-18 08:00:00', updateTime: '2026-06-18 08:00:00' },
-        { id: 7, name: '2025年度园区星级评定', year: 2025, fileSize: '156KB', status: '待导入', createTime: '2026-06-19 09:30:00', updateTime: '2026-06-19 09:30:00' },
-        { id: 8, name: '2024年度亩均产值统计', year: 2024, fileSize: '780KB', status: '已导入', createTime: '2025-06-08 13:00:00', updateTime: '2025-06-08 13:00:00' }
-      ]
-      let filtered = allMock
-      const p = params || {}
-      if (p.name) {
-        filtered = filtered.filter(item => item.name.includes(p.name))
-      }
-      if (p.year) {
-        filtered = filtered.filter(item => item.year === p.year)
-      }
-      this.total = filtered.length
-      const pageNum = p.pageNum || 1
-      const pageSize = p.pageSize || 20
-      const start = (pageNum - 1) * pageSize
-      this.dataList = filtered.slice(start, start + pageSize)
     },
 
     handleSearch() {
@@ -364,7 +374,19 @@ export default {
       })
     },
 
-    handleFileChange(file) {
+    handleFileChange(file, fileList) {
+      // 只保留最新一个文件，模拟 limit=1 的替换效果
+      if (fileList.length > 1) {
+        this.$refs.uploadRef.uploadFiles = fileList.slice(-1)
+      }
+      const isXlsx = file.name.toLowerCase().endsWith('.xlsx')
+      if (!isXlsx) {
+        this.$message.error('只能上传 .xlsx 格式文件，请使用下载的模板')
+        this.$refs.uploadRef.clearFiles()
+        this.uploadedFile = null
+        this.dataForm.file = null
+        return
+      }
       this.uploadedFile = file.raw
       this.dataForm.file = file.raw
       this.$refs.dataForm.validateField('file')
@@ -416,20 +438,90 @@ export default {
       }).catch(() => {})
     },
 
-    handleDownloadAttachment(row) {
-      this.$message.info(`开始下载 ${row.fileName}`)
-      if (row.fileUrl) {
-        downloadAttachment(row.fileUrl).then(() => {
-        }).catch(() => {})
+    async handlePreview(row) {
+      this.previewTitle = row.name || '文件预览'
+      this.previewVisible = true
+      this.previewLoading = true
+      try {
+        const blob = await previewFile(row.id)
+        const arrayBuffer = await blob.arrayBuffer()
+        this.$nextTick(() => {
+          this.renderExcel(arrayBuffer)
+        })
+      } catch (e) {
+        console.error('预览失败', e)
+        this.$message.error('预览失败')
+        this.previewVisible = false
+      }
+    },
+
+    async handleDownload(row) {
+      try {
+        const blob = await previewFile(row.id)
+        const url = window.URL.createObjectURL(blob)
+        const link = document.createElement('a')
+        link.href = url
+        link.download = row.fileName || row.name + '.xlsx'
+        document.body.appendChild(link)
+        link.click()
+        document.body.removeChild(link)
+        window.URL.revokeObjectURL(url)
+      } catch (e) {
+        console.error('下载失败', e)
+      }
+    },
+
+    renderExcel(arrayBuffer) {
+      if (window.luckysheet) {
+        window.luckysheet.destroy()
+      }
+      const file = new File([arrayBuffer], 'preview.xlsx')
+      LuckyExcel.transformExcelToLucky(file, (exportJson) => {
+        this.previewLoading = false
+        if (!exportJson || !exportJson.sheets || exportJson.sheets.length === 0) {
+          this.$message.error('无法解析Excel文件')
+          return
+        }
+        window.luckysheet.create({
+          container: 'luckysheet-preview',
+          data: exportJson.sheets,
+          title: exportJson.info?.name || 'Excel预览',
+          showinfobar: false,
+          showsheetbar: true,
+          showstatisticBar: false,
+          allowCopy: false,
+          allowEdit: false,
+          showtoolbar: false,
+          showConfigWindowResize: false,
+          showsheetbarConfig: { add: false, menu: false },
+          hook: {}
+        })
+      })
+    },
+
+    handlePreviewClosed() {
+      if (window.luckysheet) {
+        window.luckysheet.destroy()
       }
     },
 
     handleDownloadTemplate(templateKey) {
       const template = this.templateList.find(t => t.key === templateKey)
       if (!template) return
-      this.$message.info(`开始下载 "${template.name}" 模板`)
-      downloadTemplate(templateKey).then(() => {
-      }).catch(() => {})
+      const fileName = template.name + '模版.xlsx'
+      downloadTemplate(templateKey).then(blob => {
+        const url = window.URL.createObjectURL(blob)
+        const link = document.createElement('a')
+        link.href = url
+        link.download = fileName
+        document.body.appendChild(link)
+        link.click()
+        document.body.removeChild(link)
+        window.URL.revokeObjectURL(url)
+        this.$message.success('下载成功')
+      }).catch(() => {
+        this.$message.error('下载失败')
+      })
     },
 
     handleDialogClosed() {
@@ -439,6 +531,7 @@ export default {
         file: null
       }
       this.uploadedFile = null
+      this.$refs.uploadRef && this.$refs.uploadRef.clearFiles()
     },
 
     handleSizeChange(val) {
@@ -470,6 +563,13 @@ export default {
 .data-warehouse-page {
   height: 100%;
   overflow: hidden;
+}
+
+.upload-tip {
+  font-size: 12px;
+  color: #909399;
+  margin-top: 4px;
+  line-height: 1.4;
 }
 
 /* 顶部操作栏 */
@@ -513,17 +613,6 @@ export default {
   align-items: center;
 }
 
-/* 附件链接 */
-.file-link {
-  color: #1E40AF;
-  text-decoration: none;
-  cursor: pointer;
-}
-
-.file-link:hover {
-  text-decoration: underline;
-}
-
 /* 操作 - 删除按钮 */
 .danger-btn {
   color: #f56c6c;
@@ -531,6 +620,24 @@ export default {
 
 .danger-btn:hover {
   color: #f78989;
+}
+
+/* 附件列 */
+.file-name {
+  font-size: 13px;
+  color: #303133;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+
+.file-actions {
+  margin-top: 4px;
+}
+
+.file-actions .el-button {
+  padding: 0 5px;
 }
 
 /* 分页栏 */

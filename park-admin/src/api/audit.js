@@ -203,3 +203,89 @@ export function getAuditHistory(id) {
     method: 'get'
   })
 }
+
+/**
+ * 获取待审核列表（区县初审）
+ * @method GET /api/evaluations/pending
+ * @param {Object} params 查询参数
+ * @param {Integer} [params.pageNum=1]     页码
+ * @param {Integer} [params.pageSize=10]   每页条数
+ * @param {Integer} [params.year]          年度
+ * @returns {Promise} 返回分页数据 { records: [], total: number }
+ */
+export function getPendingAuditList(params) {
+  return request({
+    url: '/api/audits/pending',
+    method: 'get',
+    params
+  })
+}
+
+/**
+ * 获取已审核列表（区县初审）
+ * @method GET /api/evaluations/audited
+ * @param {Object} params 查询参数
+ * @param {Integer} [params.pageNum=1]     页码
+ * @param {Integer} [params.pageSize=10]   每页条数
+ * @param {Integer} [params.year]          年度
+ * @returns {Promise} 返回分页数据 { records: [], total: number }
+ */
+export function getAuditedList(params) {
+  return request({
+    url: '/api/audits/audited',
+    method: 'get',
+    params
+  })
+}
+
+/**
+ * 提交审核结果（区县初审通过/驳回）
+ * @method POST /api/audits/submit
+ * @param {Object} data 审核数据
+ * @param {Long} data.id          评价记录ID
+ * @param {Integer} data.action   审核动作（1=通过, 2=驳回）
+ * @param {String} data.opinion   审核意见
+ * @returns {Promise}
+ */
+export function submitAudit(data) {
+  return request({
+    url: '/api/audits',
+    method: 'post',
+    data
+  })
+}
+
+export function uploadAuditFile(file, recordId, sectionKey) {
+  const formData = new FormData()
+  formData.append('file', file)
+  formData.append('recordId', recordId)
+  formData.append('sectionKey', sectionKey)
+  return request({
+    url: '/api/common/upload',
+    method: 'post',
+    data: formData,
+    headers: { 'Content-Type': 'multipart/form-data' }
+  })
+}
+
+export function saveEvaluationScore(id, scoreDetail) {
+  return request({
+    url: `/api/evaluations/${id}/score`,
+    method: 'put',
+    data: { scoreDetail }
+  })
+}
+
+/**
+ * 预览/下载审核详情中的附件文件
+ * @param {String} fileUrl 文件URL（如 /uploads/audit/805/enterprise/xxx.xlsx）
+ * @returns {Promise<Blob>}
+ */
+export function downloadAuditFile(fileUrl) {
+  return request({
+    url: '/api/common/download',
+    method: 'get',
+    params: { url: fileUrl },
+    responseType: 'blob'
+  })
+}

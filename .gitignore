@@ -67,3 +67,14 @@ skills-lock.json
 logs/
 *.log
 **/application-dev.yml
+
+# 运行时上传文件（非源码）
+park-server/uploads/
+
+# 临时文件
+tmp_*.py
+tmp_*.md
+need/
+
+# IDE 临时目录
+.qoder/

@@ -9,8 +9,10 @@
   },
   "dependencies": {
     "axios": "^0.27.2",
+    "docx-preview": "^0.3.7",
     "echarts": "^5.4.3",
     "element-ui": "^2.15.14",
+    "luckyexcel": "^1.0.1",
     "vue": "^2.6.14",
     "vue-router": "^3.5.4",
     "vuex": "^3.6.2"

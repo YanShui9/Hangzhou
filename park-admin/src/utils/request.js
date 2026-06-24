@@ -63,6 +63,22 @@ service.interceptors.response.use(
     const message = error.response
       ? error.response.data.message || error.response.statusText
       : '网络异常，请稍后重试'
+
+    // blob 类型的错误响应需要先转文本再解析
+    if (error.response && error.response.data instanceof Blob) {
+      error.response.data.text().then(text => {
+        let msg = error.response.statusText
+        try {
+          const json = JSON.parse(text)
+          msg = json.message || msg
+        } catch (e) {
+          if (text) msg = text
+        }
+        Message({ message: msg, type: 'error', duration: 3000 })
+      })
+      return Promise.reject(error)
+    }
+
     Message({
       message,
       type: 'error',

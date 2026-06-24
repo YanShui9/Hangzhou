@@ -55,43 +55,27 @@
           <div v-if="activeSection === 'basic'" class="section-content" v-loading="detailLoading">
             <div class="rule-box">
               <p class="rule-text">
-                <span class="rule-num">①</span>
+                <i class="el-icon-info" style="color:#E6A23C;margin-right:6px;"></i>
                 评价年度内参评园区需符合《杭州市升级版小微企业园建设和管理工作指引(试行)》明确的小微企业园认定条件，不具备的直接列D档。
               </p>
             </div>
-            <div class="radio-group">
-              <label class="radio-label">
-                <input type="radio" name="basicResult1" v-model="formData.basicResult1" value="通过" :disabled="true" />
-                <span>通过</span>
-              </label>
-              <label class="radio-label">
-                <input type="radio" name="basicResult1" v-model="formData.basicResult1" value="驳回" :disabled="true" />
-                <span>驳回</span>
-              </label>
-              <label class="radio-label">
-                <input type="radio" name="basicResult1" v-model="formData.basicResult1" value="暂缓" :disabled="true" />
-                <span>暂缓</span>
-              </label>
-              <label class="radio-label">
-                <input type="radio" name="basicResult1" v-model="formData.basicResult1" value="退出" :disabled="true" />
-                <span>退出</span>
-              </label>
+            <div class="acknowledge-section">
+              <el-checkbox v-model="basicAcknowledged" :disabled="!isAuditMode || isCityAdmin">我已知晓</el-checkbox>
             </div>
-            <div class="file-section">
-              <div class="section-subtitle">高新技术企业名单</div>
-              <div v-if="!highTechFileList || highTechFileList.length === 0" class="file-empty">暂无附件</div>
-              <div v-for="(file, idx) in highTechFileList" :key="idx" class="file-item-row">
-                <span class="file-icon"><i class="el-icon-document"></i></span>
-                <span class="file-name" :title="file.name">{{ file.name }}</span>
-                <el-link
-                  v-if="file.url"
-                  type="primary"
-                  :href="file.url"
-                  target="_blank"
-                  :underline="false"
-                  class="file-preview"
-                >预览</el-link>
-                <span v-else class="file-preview-disabled">预览</span>
+            <div class="district-opinion-box">
+              <div class="district-opinion-header">
+                <i class="el-icon-user"></i>
+                <span>区县端审核结论</span>
+              </div>
+              <div class="district-opinion-body">
+                <span class="opinion-label">审核结果：</span>
+                <span v-if="districtResult === 1" class="opinion-pass">区县审核通过</span>
+                <span v-else-if="districtResult === 2" class="opinion-reject">区县审核驳回</span>
+                <span v-else class="opinion-pending">暂无区县审核记录</span>
+              </div>
+              <div v-if="districtOpinion" class="district-opinion-text">
+                <span class="opinion-label">审核意见：</span>
+                <span>{{ districtOpinion }}</span>
               </div>
             </div>
           </div>
@@ -154,31 +138,58 @@
               </p>
             </div>
 
-            <div class="file-section">
-              <div class="section-subtitle">2025年高新技术企业名单</div>
-              <div class="file-item-row">
-                <span class="file-icon"><i class="el-icon-document"></i></span>
-                <span class="file-name">2025年高新技术企业名单.pdf</span>
-                <span class="file-preview">预览</span>
-                <div class="score-input-inline">
-                  <el-input
-                    v-model="formData.enterpriseScore"
-                    placeholder="请输入得分（满分5分）"
-                    size="small"
-                    style="width: 180px;"
-                    :disabled="!isAuditMode"
-                  />
+            <div class="upload-section">
+              <div class="upload-section-title">产业发展数据模板</div>
+              <div class="upload-section-body">
+                <div class="upload-section-left">
+                  <el-upload
+                    v-if="isAuditMode && !isCityAdmin"
+                    :show-file-list="false"
+                    :before-upload="(file, fileList) => handleFileUpload(file, fileList, 'enterprise', 'enterpriseFileList')"
+                    :auto-upload="true"
+                    accept=".xlsx,.xls"
+                  >
+                    <el-button size="small" type="primary" icon="el-icon-upload2">上传xlsx</el-button>
+                  </el-upload>
+                  <div class="upload-section-file">
+                    <template v-if="enterpriseFileList && enterpriseFileList.length > 0">
+                      <i class="el-icon-document" style="color:#409EFF;"></i>
+                      <span>{{ enterpriseFileList[enterpriseFileList.length - 1].name }}</span>
+                    </template>
+                    <span v-else class="file-not-uploaded">园区端未上传文件</span>
+                  </div>
+                </div>
+                <div class="upload-section-right">
+                  <span
+                    v-if="enterpriseFileList && enterpriseFileList.length > 0 && enterpriseFileList[enterpriseFileList.length - 1].url"
+                    class="file-preview-link"
+                    @click="handlePreview(enterpriseFileList[enterpriseFileList.length - 1])"
+                  >预览</span>
+                  <div class="score-input-inline">
+                    <span style="color:#909399;font-size:13px;">得分：</span>
+                    <el-input
+                      v-model="formData.enterpriseScore"
+                      placeholder="0.0"
+                      size="small"
+                      style="width: 100px;"
+                      :disabled="!isAuditMode"
+                    />
+                  </div>
                 </div>
               </div>
             </div>
 
+            <div v-if="isAuditMode" class="section-total-score">
+              本小项总分<span class="total-num">{{ enterpriseTotalScore }}</span>分
+            </div>
+
             <div class="opinion-section">
-              <div class="section-subtitle">意见</div>
+              <div class="section-subtitle">意见：</div>
               <el-input
                 v-model="formData.enterpriseOpinion"
                 type="textarea"
                 :rows="4"
-                placeholder="请输入您的意见"
+                placeholder="请输入意见"
                 maxlength="500"
                 show-word-limit
                 class="opinion-textarea"
@@ -257,14 +268,11 @@
               <div v-for="(file, idx) in techFileList" :key="'t' + idx" class="file-item-row">
                 <span class="file-icon"><i class="el-icon-document"></i></span>
                 <span class="file-name" :title="file.name">{{ file.name }}</span>
-                <el-link
+                <span
                   v-if="file.url"
-                  type="primary"
-                  :href="file.url"
-                  target="_blank"
-                  :underline="false"
-                  class="file-preview"
-                >预览</el-link>
+                  class="file-preview-link"
+                  @click="handlePreview(file)"
+                >预览</span>
                 <span v-else class="file-preview-disabled">预览</span>
                 <div class="score-input-inline">
                   <el-input
@@ -307,10 +315,20 @@
             <div class="two-col-section">
               <div class="col-item">
                 <div class="section-subtitle">助企服务站建设材料</div>
-                <div class="file-item-row">
+                <div class="file-item-row" v-if="serviceFileList1 && serviceFileList1.length > 0">
                   <span class="file-icon"><i class="el-icon-document"></i></span>
-                  <span class="file-name">助企服务站建设材料.pdf</span>
-                  <span class="file-preview">预览</span>
+                  <span class="file-name" :title="serviceFileList1[serviceFileList1.length - 1].name">{{ serviceFileList1[serviceFileList1.length - 1].name }}</span>
+                  <span
+                    v-if="serviceFileList1[serviceFileList1.length - 1].url"
+                    class="file-preview-link"
+                    @click="handlePreview(serviceFileList1[serviceFileList1.length - 1])"
+                  >预览</span>
+                  <div class="score-input-inline">
+                    <el-input v-model="formData.serviceScore1" placeholder="请输入得分（满分5分）" size="small" style="width: 180px;" :disabled="!isAuditMode" />
+                  </div>
+                </div>
+                <div v-else class="file-not-uploaded-row">
+                  <span class="file-not-uploaded">园区端未上传文件</span>
                   <div class="score-input-inline">
                     <el-input v-model="formData.serviceScore1" placeholder="请输入得分（满分5分）" size="small" style="width: 180px;" :disabled="!isAuditMode" />
                   </div>
@@ -318,10 +336,20 @@
               </div>
               <div class="col-item">
                 <div class="section-subtitle">一站式代办服务材料</div>
-                <div class="file-item-row">
+                <div class="file-item-row" v-if="serviceFileList2 && serviceFileList2.length > 0">
                   <span class="file-icon"><i class="el-icon-document"></i></span>
-                  <span class="file-name">助企服务站建设材料.pdf</span>
-                  <span class="file-preview">预览</span>
+                  <span class="file-name" :title="serviceFileList2[serviceFileList2.length - 1].name">{{ serviceFileList2[serviceFileList2.length - 1].name }}</span>
+                  <span
+                    v-if="serviceFileList2[serviceFileList2.length - 1].url"
+                    class="file-preview-link"
+                    @click="handlePreview(serviceFileList2[serviceFileList2.length - 1])"
+                  >预览</span>
+                  <div class="score-input-inline">
+                    <el-input v-model="formData.serviceScore2" placeholder="请输入得分（满分5分）" size="small" style="width: 180px;" :disabled="!isAuditMode" />
+                  </div>
+                </div>
+                <div v-else class="file-not-uploaded-row">
+                  <span class="file-not-uploaded">园区端未上传文件</span>
                   <div class="score-input-inline">
                     <el-input v-model="formData.serviceScore2" placeholder="请输入得分（满分5分）" size="small" style="width: 180px;" :disabled="!isAuditMode" />
                   </div>
@@ -332,10 +360,20 @@
             <!-- 党团工会 -->
             <div class="file-section" style="margin-top: 12px;">
               <div class="section-subtitle">党团工会活动材料</div>
-              <div class="file-item-row">
+              <div class="file-item-row" v-if="serviceFileList3 && serviceFileList3.length > 0">
                 <span class="file-icon"><i class="el-icon-document"></i></span>
-                <span class="file-name">助企服务站建设材料.pdf</span>
-                <span class="file-preview">预览</span>
+                <span class="file-name" :title="serviceFileList3[serviceFileList3.length - 1].name">{{ serviceFileList3[serviceFileList3.length - 1].name }}</span>
+                <span
+                  v-if="serviceFileList3[serviceFileList3.length - 1].url"
+                  class="file-preview-link"
+                  @click="handlePreview(serviceFileList3[serviceFileList3.length - 1])"
+                >预览</span>
+                <div class="score-input-inline">
+                  <el-input v-model="formData.serviceScore3" placeholder="请输入得分（满分5分）" size="small" style="width: 180px;" :disabled="!isAuditMode" />
+                </div>
+              </div>
+              <div v-else class="file-not-uploaded-row">
+                <span class="file-not-uploaded">园区端未上传文件</span>
                 <div class="score-input-inline">
                   <el-input v-model="formData.serviceScore3" placeholder="请输入得分（满分5分）" size="small" style="width: 180px;" :disabled="!isAuditMode" />
                 </div>
@@ -366,10 +404,20 @@
 
             <div class="file-section">
               <div class="section-subtitle">园区大脑数字化相关资料</div>
-              <div class="file-item-row">
+              <div class="file-item-row" v-if="serviceFileList4 && serviceFileList4.length > 0">
                 <span class="file-icon"><i class="el-icon-document"></i></span>
-                <span class="file-name">助企服务站建设材料.pdf</span>
-                <span class="file-preview">预览</span>
+                <span class="file-name" :title="serviceFileList4[serviceFileList4.length - 1].name">{{ serviceFileList4[serviceFileList4.length - 1].name }}</span>
+                <span
+                  v-if="serviceFileList4[serviceFileList4.length - 1].url"
+                  class="file-preview-link"
+                  @click="handlePreview(serviceFileList4[serviceFileList4.length - 1])"
+                >预览</span>
+                <div class="score-input-inline">
+                  <el-input v-model="formData.serviceScore4" placeholder="请输入得分（满分5分）" size="small" style="width: 180px;" :disabled="!isAuditMode" />
+                </div>
+              </div>
+              <div v-else class="file-not-uploaded-row">
+                <span class="file-not-uploaded">园区端未上传文件</span>
                 <div class="score-input-inline">
                   <el-input v-model="formData.serviceScore4" placeholder="请输入得分（满分5分）" size="small" style="width: 180px;" :disabled="!isAuditMode" />
                 </div>
@@ -401,10 +449,20 @@
             <div class="two-col-section">
               <div class="col-item">
                 <div class="section-subtitle">普惠性服务活动</div>
-                <div class="file-item-row">
+                <div class="file-item-row" v-if="serviceFileList5 && serviceFileList5.length > 0">
                   <span class="file-icon"><i class="el-icon-document"></i></span>
-                  <span class="file-name">助企服务站建设材料.pdf</span>
-                  <span class="file-preview">预览</span>
+                  <span class="file-name" :title="serviceFileList5[serviceFileList5.length - 1].name">{{ serviceFileList5[serviceFileList5.length - 1].name }}</span>
+                  <span
+                    v-if="serviceFileList5[serviceFileList5.length - 1].url"
+                    class="file-preview-link"
+                    @click="handlePreview(serviceFileList5[serviceFileList5.length - 1])"
+                  >预览</span>
+                  <div class="score-input-inline">
+                    <el-input v-model="formData.serviceScore5" placeholder="请输入得分（满分3分）" size="small" style="width: 180px;" :disabled="!isAuditMode" />
+                  </div>
+                </div>
+                <div v-else class="file-not-uploaded-row">
+                  <span class="file-not-uploaded">园区端未上传文件</span>
                   <div class="score-input-inline">
                     <el-input v-model="formData.serviceScore5" placeholder="请输入得分（满分3分）" size="small" style="width: 180px;" :disabled="!isAuditMode" />
                   </div>
@@ -412,10 +470,20 @@
               </div>
               <div class="col-item">
                 <div class="section-subtitle">个性化服务活动</div>
-                <div class="file-item-row">
+                <div class="file-item-row" v-if="serviceFileList6 && serviceFileList6.length > 0">
                   <span class="file-icon"><i class="el-icon-document"></i></span>
-                  <span class="file-name">助企服务站建设材料.pdf</span>
-                  <span class="file-preview">预览</span>
+                  <span class="file-name" :title="serviceFileList6[serviceFileList6.length - 1].name">{{ serviceFileList6[serviceFileList6.length - 1].name }}</span>
+                  <span
+                    v-if="serviceFileList6[serviceFileList6.length - 1].url"
+                    class="file-preview-link"
+                    @click="handlePreview(serviceFileList6[serviceFileList6.length - 1])"
+                  >预览</span>
+                  <div class="score-input-inline">
+                    <el-input v-model="formData.serviceScore6" placeholder="请输入得分（满分3分）" size="small" style="width: 180px;" :disabled="!isAuditMode" />
+                  </div>
+                </div>
+                <div v-else class="file-not-uploaded-row">
+                  <span class="file-not-uploaded">园区端未上传文件</span>
                   <div class="score-input-inline">
                     <el-input v-model="formData.serviceScore6" placeholder="请输入得分（满分3分）" size="small" style="width: 180px;" :disabled="!isAuditMode" />
                   </div>
@@ -447,10 +515,20 @@
 
             <div class="file-section">
               <div class="section-subtitle">项目名称</div>
-              <div class="file-item-row">
+              <div class="file-item-row" v-if="serviceFileList7 && serviceFileList7.length > 0">
                 <span class="file-icon"><i class="el-icon-document"></i></span>
-                <span class="file-name">助企服务站建设材料.pdf</span>
-                <span class="file-preview">预览</span>
+                <span class="file-name" :title="serviceFileList7[serviceFileList7.length - 1].name">{{ serviceFileList7[serviceFileList7.length - 1].name }}</span>
+                <span
+                  v-if="serviceFileList7[serviceFileList7.length - 1].url"
+                  class="file-preview-link"
+                  @click="handlePreview(serviceFileList7[serviceFileList7.length - 1])"
+                >预览</span>
+                <div class="score-input-inline">
+                  <el-input v-model="formData.serviceScore7" placeholder="请输入得分（满分3分）" size="small" style="width: 180px;" :disabled="!isAuditMode" />
+                </div>
+              </div>
+              <div v-else class="file-not-uploaded-row">
+                <span class="file-not-uploaded">园区端未上传文件</span>
                 <div class="score-input-inline">
                   <el-input v-model="formData.serviceScore7" placeholder="请输入得分（满分3分）" size="small" style="width: 180px;" :disabled="!isAuditMode" />
                 </div>
@@ -593,50 +671,114 @@
             <div class="rule-box">
               <p class="rule-text">
                 <span class="rule-num">①</span>
-                未落实《杭州市小微创业园安全管理通则》要求，经查实的，扣2分；
+                未落实《杭州市小微企业园安全管理通则》要求，经查实的，扣2分；
               </p>
             </div>
-            <el-input v-model="formData.safetyScore1" placeholder="请输入得分" size="small" style="width: 300px; margin-bottom: 16px;" :disabled="!isAuditMode" />
+            <div class="score-item-box">
+              <el-input v-model="formData.safetyScore1" placeholder="请输入得分" size="small" style="width: 180px;" :disabled="!isAuditMode" />
+            </div>
 
             <div class="rule-box">
               <p class="rule-text">
                 <span class="rule-num">②</span>
-                未签订消防安全责任书的，扣2分；未落实培训、演练要求的，扣2分；
+                未签订消防安全责任书的，扣2分；
               </p>
             </div>
-            <el-input v-model="formData.safetyScore2" placeholder="请输入得分" size="small" style="width: 300px; margin-bottom: 16px;" :disabled="!isAuditMode" />
+            <div class="score-item-box">
+              <el-input v-model="formData.safetyScore2" placeholder="请输入得分" size="small" style="width: 180px;" :disabled="!isAuditMode" />
+            </div>
 
             <div class="rule-box">
               <p class="rule-text">
                 <span class="rule-num">③</span>
-                消防设施器材不完整或过期的，扣2分；
+                未落实培训、演练要求的，扣2分；
               </p>
             </div>
-            <el-input v-model="formData.safetyScore3" placeholder="请输入得分" size="small" style="width: 300px; margin-bottom: 16px;" :disabled="!isAuditMode" />
+            <div class="score-item-box">
+              <el-input v-model="formData.safetyScore3" placeholder="请输入得分" size="small" style="width: 180px;" :disabled="!isAuditMode" />
+            </div>
 
             <div class="rule-box">
               <p class="rule-text">
                 <span class="rule-num">④</span>
-                存在安全隐患被省、市主管部门通报的，每次扣2分。
+                消防设施器材不完整或过期的，扣2分；
               </p>
             </div>
-            <el-input v-model="formData.safetyScore4" placeholder="请输入得分" size="small" style="width: 300px; margin-bottom: 16px;" :disabled="!isAuditMode" />
+            <div class="score-item-box">
+              <el-input v-model="formData.safetyScore4" placeholder="请输入得分" size="small" style="width: 180px;" :disabled="!isAuditMode" />
+            </div>
 
             <div class="rule-box">
               <p class="rule-text">
                 <span class="rule-num">⑤</span>
-                近一年内发生较大以上的安全生产事故或较大影响力的社会事件，园区安全生产隐患未按期整改的，直接列D档。
+                存在安全隐患被省、市主管部门通报的，每次扣2分。
+              </p>
+            </div>
+            <div class="score-item-box">
+              <el-input v-model="formData.safetyScore5" placeholder="请输入得分" size="small" style="width: 180px;" :disabled="!isAuditMode" />
+            </div>
+
+            <div class="rule-box">
+              <p class="rule-text">
+                <span class="rule-num">⑥</span>
+                近一年内发生较大以上的安全生产事故或较大影响的社会事件，园区安全生产隐患未按期整改的，直接列D档。
               </p>
             </div>
             <div class="radio-group">
               <label class="radio-label">
                 <input type="radio" name="safetyDGrade" v-model="formData.safetyDGrade" value="yes" :disabled="!isAuditMode" />
-                <span>列入D档</span>
+                <span>直接列D档</span>
               </label>
               <label class="radio-label">
                 <input type="radio" name="safetyDGrade" v-model="formData.safetyDGrade" value="no" :disabled="!isAuditMode" />
-                <span>不列入D档</span>
+                <span>不直接列D档</span>
               </label>
+            </div>
+
+            <div class="district-score-title">区县端评分</div>
+            <div class="district-score-row">
+              <div class="district-score-card">
+                <div class="ds-title">①未落实通则</div>
+                <div class="ds-score">得分: {{ districtSafetyScores[0] === '' || districtSafetyScores[0] == null ? 0 : districtSafetyScores[0] }}分</div>
+              </div>
+              <div class="district-score-card">
+                <div class="ds-title">②未签责任书</div>
+                <div class="ds-score">得分: {{ districtSafetyScores[1] === '' || districtSafetyScores[1] == null ? 0 : districtSafetyScores[1] }}分</div>
+              </div>
+              <div class="district-score-card">
+                <div class="ds-title">③未落实培训</div>
+                <div class="ds-score">得分: {{ districtSafetyScores[2] === '' || districtSafetyScores[2] == null ? 0 : districtSafetyScores[2] }}分</div>
+              </div>
+              <div class="district-score-card">
+                <div class="ds-title">④消防设施</div>
+                <div class="ds-score">得分: {{ districtSafetyScores[3] === '' || districtSafetyScores[3] == null ? 0 : districtSafetyScores[3] }}分</div>
+              </div>
+              <div class="district-score-card">
+                <div class="ds-title">⑤被通报</div>
+                <div class="ds-score">得分: {{ districtSafetyScores[4] === '' || districtSafetyScores[4] == null ? 0 : districtSafetyScores[4] }}分</div>
+              </div>
+              <div class="district-score-card">
+                <div class="ds-title">⑥重大事故</div>
+                <div class="ds-score">{{ districtSafetyDGrade === 'yes' ? '直接列D档' : '不直接列D档' }}</div>
+              </div>
+            </div>
+
+            <div class="opinion-section">
+              <div class="section-subtitle">管理端意见：</div>
+              <el-input
+                v-model="formData.safetyOpinion"
+                type="textarea"
+                :rows="3"
+                placeholder="请输入安全生产模块审核意见"
+                maxlength="500"
+                show-word-limit
+                class="opinion-textarea"
+                :disabled="!isAuditMode"
+              />
+            </div>
+
+            <div v-if="isAuditMode" class="section-total-score">
+              本小项总分<span class="total-num">{{ safetyTotalScore }}</span>分
             </div>
           </div>
 
@@ -683,11 +825,18 @@
 
             <div class="file-section">
               <div class="section-subtitle">承诺函</div>
-              <div class="file-item-row">
-                <span class="file-icon"><i class="el-icon-document"></i></span>
-                <span class="file-name">年度评价承诺函.pdf</span>
-                <span class="file-preview">预览</span>
+              <div v-if="otherFileList && otherFileList.length > 0">
+                <div v-for="(file, idx) in otherFileList" :key="'o' + idx" class="file-item-row">
+                  <span class="file-icon"><i class="el-icon-document"></i></span>
+                  <span class="file-name" :title="file.name">{{ file.name }}</span>
+                  <span
+                    v-if="file.url"
+                    class="file-preview-link"
+                    @click="handlePreview(file)"
+                  >预览</span>
+                </div>
               </div>
+              <div v-else class="file-not-uploaded">园区端未上传文件</div>
             </div>
           </div>
 
@@ -706,7 +855,7 @@
               </label>
             </div>
 
-            <div style="margin-bottom: 16px;">
+            <div v-if="formData.result1 === 'reject'" style="margin-bottom: 16px;">
               <div class="section-subtitle" style="font-weight: 500;">驳回指标</div>
               <el-select v-model="formData.rejectIndex" placeholder="选择指标" size="small" style="width: 300px;" :disabled="!isAuditMode">
                 <el-option label="基础指标" value="basic" />
@@ -768,11 +917,46 @@
         </div>
       </div>
     </div>
+
+    <!-- 文件预览弹窗 -->
+    <el-dialog
+      :title="'文件预览 - ' + previewUrl"
+      :visible.sync="previewVisible"
+      width="90%"
+      top="5vh"
+      :close-on-click-modal="true"
+      :before-close="handlePreviewClosed"
+      custom-class="file-preview-dialog"
+    >
+      <div v-loading="previewLoading" style="min-height: 400px;">
+        <!-- Excel 预览 -->
+        <div v-show="previewType === 'excel'" id="audit-luckysheet-preview" style="width: 100%; height: 70vh;"></div>
+        <!-- Word 文档预览 -->
+        <div v-show="previewType === 'docx'" id="audit-docx-preview" style="width: 100%; height: 70vh; overflow: auto; background: #f5f5f5;"></div>
+        <!-- PDF 预览 -->
+        <iframe
+          v-show="previewType === 'pdf'"
+          :src="previewBlobUrl"
+          style="width: 100%; height: 70vh; border: none;"
+        />
+        <!-- 图片预览 -->
+        <div v-show="previewType === 'image'" style="text-align: center;">
+          <img :src="previewBlobUrl" style="max-width: 100%; max-height: 70vh; object-fit: contain;" />
+        </div>
+        <!-- 其他文件类型 -->
+        <div v-show="previewType === 'other'" style="text-align: center; padding: 40px 0;">
+          <p style="color: #909399; margin-bottom: 16px;">该文件类型不支持在线预览，请下载后查看</p>
+          <el-button type="primary" size="small" :href="previewBlobUrl" download>下载文件</el-button>
+        </div>
+      </div>
+    </el-dialog>
   </div>
 </template>
 
 <script>
-import { getAuditDetail, updateAuditDetail, getAuditHistory, saveEvaluationScore } from '@/api/audit'
+import { getAuditDetail, updateAuditDetail, getAuditHistory, uploadAuditFile, saveEvaluationScore, downloadAuditFile } from '@/api/audit'
+import LuckyExcel from 'luckyexcel'
+import { renderAsync } from 'docx-preview'
 
 export default {
   name: 'AdminAuditDetail',
@@ -795,6 +979,9 @@ export default {
       detailLoading: false,
       navItems,
       visitedSections: { basic: true },
+      basicAcknowledged: false,
+      districtOpinion: '',
+      districtResult: null,
       formData: {
         basicResult1: '',
         enterpriseScore: '',
@@ -835,15 +1022,38 @@ export default {
       highTechFileList: [],
       enterpriseFileList: [],
       techFileList: [],
+      techFileList2: [],
+      serviceFileList1: [],
+      serviceFileList2: [],
+      serviceFileList3: [],
+      serviceFileList4: [],
+      serviceFileList5: [],
+      serviceFileList6: [],
+      serviceFileList7: [],
+      benefitFileList: [],
+      otherFileList: [],
       // 表格数据（产业发展 / 科技创新）
       industryTableData: [],
       techTableData: [],
-      auditHistory: []
+      auditHistory: [],
+      // 区县端安全生产评分快照（区县审核时锁定，市级只读）
+      districtSafetyScores: ['', '', '', '', ''],
+      districtSafetyDGrade: 'no',
+      // 文件预览
+      previewVisible: false,
+      previewLoading: false,
+      previewUrl: '',
+      previewType: 'excel',
+      previewBlobUrl: ''
     }
   },
   computed: {
     isAuditMode() {
       return this.$route.query.mode === 'audit'
+    },
+    isCityAdmin() {
+      const info = (this.$store && this.$store.state && this.$store.state.user && this.$store.state.user.userInfo) || {}
+      return info.roleType === 1
     },
     allSectionsVisited() {
       return this.navItems.every(item => this.visitedSections[item.index])
@@ -872,6 +1082,39 @@ export default {
     hasNextSection() {
       const idx = this.navItems.findIndex(item => item.index === this.activeSection)
       return idx < this.navItems.length - 1
+    },
+    enterpriseTotalScore() {
+      return parseFloat(this.formData.enterpriseScore || 0)
+    },
+    techTotalScore() {
+      return parseFloat(this.formData.techScore2 || 0)
+    },
+    serviceTotalScore() {
+      const s1 = parseFloat(this.formData.serviceScore1 || 0)
+      const s2 = parseFloat(this.formData.serviceScore2 || 0)
+      const s3 = parseFloat(this.formData.serviceScore3 || 0)
+      const s4 = parseFloat(this.formData.serviceScore4 || 0)
+      const s5 = parseFloat(this.formData.serviceScore5 || 0)
+      const s6 = parseFloat(this.formData.serviceScore6 || 0)
+      const s7 = parseFloat(this.formData.serviceScore7 || 0)
+      return s1 + s2 + s3 + s4 + s5 + s6 + s7
+    },
+    benefitTotalScore() {
+      const s1 = parseFloat(this.formData.benefitScore1 || 0)
+      const s2 = parseFloat(this.formData.benefitScore2 || 0)
+      const s3 = parseFloat(this.formData.benefitScore3 || 0)
+      return s1 + s2 + s3
+    },
+    safetyTotalScore() {
+      const s1 = parseFloat(this.formData.safetyScore1 || 0)
+      const s2 = parseFloat(this.formData.safetyScore2 || 0)
+      const s3 = parseFloat(this.formData.safetyScore3 || 0)
+      const s4 = parseFloat(this.formData.safetyScore4 || 0)
+      const s5 = parseFloat(this.formData.safetyScore5 || 0)
+      return s1 + s2 + s3 + s4 + s5
+    },
+    otherTotalScore() {
+      return parseFloat(this.formData.otherScore1 || 0)
     }
   },
   created() {
@@ -885,14 +1128,98 @@ export default {
       this.detailLoading = true
       try {
         const res = await getAuditDetail(id)
-        if (res && res.data && Object.keys(res.data).length > 2) {
+        if (res && res.data) {
           const data = res.data
-          this.formData = { ...this.formData, ...data }
-          this.highTechFileList = Array.isArray(data.highTechFileList) ? data.highTechFileList : []
-          this.enterpriseFileList = Array.isArray(data.enterpriseFileList) ? data.enterpriseFileList : []
-          this.techFileList = Array.isArray(data.techFileList) ? data.techFileList : []
-          this.industryTableData = Array.isArray(data.industryTableData) ? data.industryTableData : []
-          this.techTableData = Array.isArray(data.techTableData) ? data.techTableData : []
+          if (data.scoreDetailMap && Object.keys(data.scoreDetailMap).length > 0) {
+            const s = data.scoreDetailMap
+            if (s.basic) {
+              this.basicAcknowledged = !!s.basic.acknowledged
+            }
+            if (s.enterprise) {
+              this.formData.enterpriseScore = s.enterprise.score != null ? String(s.enterprise.score) : ''
+              this.formData.enterpriseOpinion = s.enterprise.opinion || ''
+              this.enterpriseFileList = s.enterprise.files || []
+            }
+            if (s.tech) {
+              this.formData.techOpinion = s.tech.opinion1 || ''
+              this.formData.techScore2 = s.tech.score2 != null ? String(s.tech.score2) : ''
+              this.formData.techOpinion2 = s.tech.opinion2 || ''
+              this.techTableData = s.tech.talents || []
+              this.techFileList = s.tech.files1 || []
+              this.techFileList2 = s.tech.files2 || []
+            }
+            if (s.service) {
+              const scores = s.service.scores || []
+              this.formData.serviceScore1 = scores[0] != null ? String(scores[0]) : ''
+              this.formData.serviceScore2 = scores[1] != null ? String(scores[1]) : ''
+              this.formData.serviceScore3 = scores[2] != null ? String(scores[2]) : ''
+              this.formData.serviceScore4 = scores[3] != null ? String(scores[3]) : ''
+              this.formData.serviceScore5 = scores[4] != null ? String(scores[4]) : ''
+              this.formData.serviceScore6 = scores[5] != null ? String(scores[5]) : ''
+              this.formData.serviceScore7 = scores[6] != null ? String(scores[6]) : ''
+              const opinions = s.service.opinions || []
+              this.formData.serviceOpinion1 = opinions[0] || ''
+              this.formData.serviceOpinion2 = opinions[1] || ''
+              this.formData.serviceOpinion3 = opinions[2] || ''
+              this.formData.serviceOpinion4 = opinions[3] || ''
+              const files = s.service.files || []
+              this.serviceFileList1 = files[0] || []
+              this.serviceFileList2 = files[1] || []
+              this.serviceFileList3 = files[2] || []
+              this.serviceFileList4 = files[3] || []
+              this.serviceFileList5 = files[4] || []
+              this.serviceFileList6 = files[5] || []
+              this.serviceFileList7 = files[6] || []
+            }
+            if (s.benefit) {
+              const scores = s.benefit.scores || []
+              this.formData.benefitScore1 = scores[0] != null ? String(scores[0]) : ''
+              this.formData.benefitScore2 = scores[1] != null ? String(scores[1]) : ''
+              this.formData.benefitScore3 = scores[2] != null ? String(scores[2]) : ''
+              this.formData.benefitOpinion = s.benefit.opinion || ''
+              this.benefitFileList = s.benefit.files || []
+            }
+            if (s.safety) {
+              const scores = s.safety.scores || []
+              this.formData.safetyScore1 = scores[0] != null ? String(scores[0]) : ''
+              this.formData.safetyScore2 = scores[1] != null ? String(scores[1]) : ''
+              this.formData.safetyScore3 = scores[2] != null ? String(scores[2]) : ''
+              this.formData.safetyScore4 = scores[3] != null ? String(scores[3]) : ''
+              this.formData.safetyScore5 = scores[4] != null ? String(scores[4]) : ''
+              this.formData.safetyDGrade = s.safety.dGrade || 'no'
+            }
+            // 区县端评分快照（区县审核时锁定）
+            if (s.districtSafety) {
+              const ds = s.districtSafety.scores || []
+              this.districtSafetyScores = [
+                ds[0] != null ? String(ds[0]) : '',
+                ds[1] != null ? String(ds[1]) : '',
+                ds[2] != null ? String(ds[2]) : '',
+                ds[3] != null ? String(ds[3]) : '',
+                ds[4] != null ? String(ds[4]) : ''
+              ]
+              this.districtSafetyDGrade = s.districtSafety.dGrade || 'no'
+            }
+            if (s.other) {
+              this.formData.otherDGrade = s.other.dGrade1 || s.other.dGrade || 'no'
+              this.formData.otherScore1 = s.other.score != null ? String(s.other.score) : ''
+              this.otherFileList = s.other.files || []
+            }
+            if (s.result) {
+              this.formData.result1 = s.result.result1 || ''
+              this.formData.rejectIndex = s.result.rejectIndex || ''
+              this.formData.resultOpinion = s.result.opinion || ''
+            }
+          }
+          if (data.districtOpinion != null) {
+            this.districtOpinion = data.districtOpinion
+          }
+          if (data.districtResult != null) {
+            this.districtResult = data.districtResult
+          }
+          this.industryTableData = data.industryTableData || []
+          this.formData.parkName = data.parkName || ''
+          this.formData.year = data.year || ''
         } else {
           this.applyMockDetail(id)
         }
@@ -1021,6 +1348,93 @@ export default {
     goBackToList() {
       this.$router.push('/admin/audit')
     },
+    async handleFileUpload(file, fileList, sectionKey, listKey) {
+      const id = this.$route.params.id
+      if (!id) return
+      try {
+        const res = await uploadAuditFile(file.raw, id, sectionKey)
+        if (res && res.data) {
+          this[listKey] = [...this[listKey], { name: res.data.name, url: res.data.url }]
+        }
+      } catch (e) {
+        console.error('文件上传失败', e)
+        this.$message.error('文件上传失败')
+      }
+      return false
+    },
+    handleFileRemove(file, listKey, index) {
+      this[listKey].splice(index, 1)
+    },
+    buildScoreDetail() {
+      const f = this.formData
+      const num = v => {
+        const n = parseFloat(v)
+        return isNaN(n) ? 0 : n
+      }
+      // 区县端评分快照：区县管理员保存时锁定为当前填的分数；市级管理员不动该字段
+      const currentSafetyScores = [num(f.safetyScore1), num(f.safetyScore2), num(f.safetyScore3), num(f.safetyScore4), num(f.safetyScore5)]
+      const districtScores = !this.isCityAdmin
+        ? currentSafetyScores
+        : (this.districtSafetyScores || []).map(v => {
+            const n = parseFloat(v)
+            return isNaN(n) ? 0 : n
+          })
+      const districtDGrade = !this.isCityAdmin ? (f.safetyDGrade || 'no') : (this.districtSafetyDGrade || 'no')
+
+      return {
+        basic: { acknowledged: !!this.basicAcknowledged },
+        enterprise: {
+          score: num(f.enterpriseScore),
+          opinion: f.enterpriseOpinion || '',
+          files: this.enterpriseFileList
+        },
+        tech: {
+          talents: this.techTableData || [],
+          score1: num(f.techOpinion ? f.techScore2 : 0),
+          opinion1: f.techOpinion || '',
+          files1: this.techFileList,
+          score2: num(f.techScore2),
+          opinion2: f.techOpinion2 || '',
+          files2: this.techFileList2
+        },
+        service: {
+          scores: [
+            num(f.serviceScore1), num(f.serviceScore2), num(f.serviceScore3),
+            num(f.serviceScore4), num(f.serviceScore5), num(f.serviceScore6), num(f.serviceScore7)
+          ],
+          opinions: [f.serviceOpinion1, f.serviceOpinion2, f.serviceOpinion3, f.serviceOpinion4],
+          files: [
+            this.serviceFileList1, this.serviceFileList2, this.serviceFileList3,
+            this.serviceFileList4, this.serviceFileList5, this.serviceFileList6, this.serviceFileList7
+          ]
+        },
+        benefit: {
+          scores: [num(f.benefitScore1), num(f.benefitScore2), num(f.benefitScore3)],
+          opinion: f.benefitOpinion || '',
+          files: this.benefitFileList
+        },
+        safety: {
+          scores: currentSafetyScores,
+          dGrade: f.safetyDGrade || 'no'
+        },
+        // 区县端评分快照（区县审核时锁定，市级只读）
+        districtSafety: {
+          scores: districtScores,
+          dGrade: districtDGrade
+        },
+        other: {
+          dGrade1: f.otherDGrade || 'no',
+          dGrade2: 'no',
+          score: num(f.otherScore1),
+          files: this.otherFileList
+        },
+        result: {
+          result1: f.result1 || '',
+          rejectIndex: f.rejectIndex || '',
+          opinion: f.resultOpinion || ''
+        }
+      }
+    },
     async handleSaveDraft() {
       try {
         await this.$confirm('确认保存当前审核进度？保存后可随时返回继续审核。', '保存确认', {
@@ -1038,11 +1452,13 @@ export default {
       }
       this.saveLoading = true
       try {
-        await saveEvaluationScore(id, this.formData)
+        const scoreDetail = JSON.stringify(this.buildScoreDetail())
+        await saveEvaluationScore(id, scoreDetail)
         this.$message.success('已保存审核进度')
         this.$router.push('/admin/audit')
       } catch (e) {
         console.error('保存失败', e)
+        this.$message.error('保存失败，请稍后重试')
       } finally {
         this.saveLoading = false
       }
@@ -1104,7 +1520,7 @@ export default {
           return
         }
         this.saveLoading = true
-        await saveEvaluationScore(id, this.formData)
+        await updateAuditDetail({ id, ...this.formData })
         this.$message.success('审核完成')
         this.$router.push('/admin/audit')
       } catch (e) {
@@ -1115,6 +1531,117 @@ export default {
         this.saveLoading = false
       }
     },
+    // ==================== 文件预览 ====================
+    async handlePreview(file) {
+      if (!file || !file.url) return
+      this.previewVisible = true
+      this.previewLoading = true
+      this.previewUrl = file.name
+      // 清理旧的 LuckySheet 实例
+      if (window.luckysheet) {
+        window.luckysheet.destroy()
+      }
+      // 清理旧的 docx 预览容器
+      const docxContainer = document.getElementById('audit-docx-preview')
+      if (docxContainer) {
+        docxContainer.innerHTML = ''
+      }
+      try {
+        const blob = await downloadAuditFile(file.url)
+        const arrayBuffer = await blob.arrayBuffer()
+        const ext = (file.name || '').toLowerCase()
+        if (ext.endsWith('.xlsx') || ext.endsWith('.xls')) {
+          this.previewType = 'excel'
+          this.$nextTick(() => {
+            this.renderExcelInDialog(arrayBuffer, file.name)
+          })
+        } else if (ext.endsWith('.docx')) {
+          this.previewType = 'docx'
+          this.$nextTick(() => {
+            const container = document.getElementById('audit-docx-preview')
+            renderAsync(blob, container, null, {
+              className: 'docx-preview',
+              inWrapper: true,
+              ignoreWidth: false,
+              ignoreHeight: false,
+              breakPages: true,
+              experimental: true
+            }).catch(err => {
+              console.error('Word文档预览失败', err)
+              this.$message.error('Word文档预览失败，请下载后查看')
+              this.previewType = 'other'
+              this.previewBlobUrl = window.URL.createObjectURL(blob)
+            })
+          })
+        } else if (ext.endsWith('.doc')) {
+          // .doc 旧格式不支持在线预览，提供下载
+          this.previewType = 'other'
+          this.$nextTick(() => {
+            this.previewBlobUrl = window.URL.createObjectURL(blob)
+          })
+        } else if (ext.endsWith('.pdf')) {
+          this.previewType = 'pdf'
+          this.$nextTick(() => {
+            const url = window.URL.createObjectURL(blob)
+            this.previewBlobUrl = url
+          })
+        } else if (ext.endsWith('.png') || ext.endsWith('.jpg') || ext.endsWith('.jpeg') || ext.endsWith('.gif') || ext.endsWith('.svg')) {
+          this.previewType = 'image'
+          this.$nextTick(() => {
+            this.previewBlobUrl = window.URL.createObjectURL(blob)
+          })
+        } else {
+          this.previewType = 'other'
+          this.$nextTick(() => {
+            this.previewBlobUrl = window.URL.createObjectURL(blob)
+          })
+        }
+      } catch (e) {
+        console.error('预览失败', e)
+        this.$message.error('预览失败，请稍后重试')
+        this.previewVisible = false
+      } finally {
+        this.previewLoading = false
+      }
+    },
+    renderExcelInDialog(arrayBuffer, filename) {
+      const file = new File([arrayBuffer], filename || 'preview.xlsx')
+      LuckyExcel.transformExcelToLucky(file, (exportJson) => {
+        if (!exportJson || !exportJson.sheets || exportJson.sheets.length === 0) {
+          this.$message.error('无法解析Excel文件')
+          this.previewVisible = false
+          return
+        }
+        window.luckysheet.create({
+          container: 'audit-luckysheet-preview',
+          data: exportJson.sheets,
+          title: exportJson.info?.name || '文件预览',
+          showinfobar: false,
+          showsheetbar: true,
+          showstatisticBar: false,
+          allowCopy: false,
+          allowEdit: false,
+          showtoolbar: false,
+          showConfigWindowResize: false,
+          showsheetbarConfig: { add: false, menu: false },
+          hook: {}
+        })
+      })
+    },
+    handlePreviewClosed() {
+      if (window.luckysheet) {
+        window.luckysheet.destroy()
+      }
+      // 清理 docx 预览容器
+      const docxContainer = document.getElementById('audit-docx-preview')
+      if (docxContainer) {
+        docxContainer.innerHTML = ''
+      }
+      if (this.previewBlobUrl) {
+        window.URL.revokeObjectURL(this.previewBlobUrl)
+        this.previewBlobUrl = ''
+      }
+    }
   }
 }
 </script>
@@ -1375,6 +1902,30 @@ export default {
 .file-preview-disabled {
   color: #c0c4cc;
   font-size: 13px;
+}
+
+/* ===== 未上传文件提示 ===== */
+.file-not-uploaded {
+  font-size: 13px;
+  color: #F56C6C;
+}
+.file-not-uploaded-row {
+  display: flex;
+  align-items: center;
+  padding: 8px 0;
+}
+
+/* ===== 文件预览链接 ===== */
+.file-preview-link {
+  color: #409EFF;
+  font-size: 13px;
+  cursor: pointer;
+  margin-right: 8px;
+}
+
+.file-preview-link:hover {
+  color: #66b1ff;
+  text-decoration: underline;
 }
 
 /* ===== 行内标签与值 ===== */
@@ -1645,5 +2196,159 @@ export default {
   .panel-content {
     width: 100%;
   }
+}
+
+.acknowledge-section {
+  margin: 16px 0;
+}
+
+.district-opinion-box {
+  margin-top: 20px;
+  padding: 16px 20px;
+  background: #F0F2F5;
+  border-radius: 6px;
+  border: 1px solid #E4E7ED;
+}
+
+.district-opinion-header {
+  font-size: 15px;
+  font-weight: 500;
+  color: #303133;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.district-opinion-body {
+  font-size: 14px;
+  color: #606266;
+  padding-top: 8px;
+  border-top: 1px solid #E4E7ED;
+}
+
+.district-opinion-text {
+  font-size: 14px;
+  color: #606266;
+  margin-top: 8px;
+}
+
+.opinion-label {
+  color: #909399;
+  margin-right: 4px;
+}
+
+.opinion-pass {
+  color: #67C23A;
+  font-weight: 500;
+}
+
+.opinion-reject {
+  color: #F56C6C;
+  font-weight: 500;
+}
+
+.opinion-pending {
+  color: #909399;
+}
+
+.section-total-score {
+  margin: 12px 0;
+  font-size: 14px;
+  color: #F56C6C;
+  font-weight: 500;
+}
+
+.section-total-score .total-num {
+  font-size: 16px;
+  margin-left: 4px;
+}
+
+.upload-section {
+  margin: 12px 0;
+  padding: 12px 16px;
+  background: #F5F7FA;
+  border-radius: 6px;
+}
+
+.upload-section-title {
+  font-size: 14px;
+  color: #303133;
+  margin-bottom: 8px;
+  font-weight: 500;
+}
+
+.upload-section-desc {
+  font-size: 12px;
+  color: #909399;
+  margin-bottom: 8px;
+}
+
+.upload-section-body {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.upload-section-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+}
+
+.upload-section-file {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: #606266;
+}
+
+.upload-section-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.district-score-row {
+  display: flex;
+  gap: 8px;
+  margin: 16px 0;
+  flex-wrap: wrap;
+}
+
+.district-score-card {
+  flex: 1;
+  min-width: 140px;
+  padding: 10px 12px;
+  background: #F5F7FA;
+  border-radius: 6px;
+  font-size: 12px;
+  color: #606266;
+  line-height: 1.6;
+}
+
+.district-score-card .ds-title {
+  color: #909399;
+  margin-bottom: 4px;
+}
+
+.district-score-card .ds-score {
+  color: #409EFF;
+  font-weight: 500;
+  font-size: 13px;
+}
+
+/* ===== Word 文档预览样式 ===== */
+#audit-docx-preview .docx-wrapper {
+  background: #f5f5f5;
+  padding: 20px 0;
+}
+#audit-docx-preview .docx-wrapper > section.docx {
+  margin-bottom: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  background: #fff;
 }
 </style>

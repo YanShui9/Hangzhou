@@ -46,6 +46,9 @@ public class EvaluationRecord extends BaseEntity {
     @ApiModelProperty(value = "绩效分档：A/B/C/D")
     private String grade;
 
+    @ApiModelProperty(value = "打分详情JSON")
+    private String scoreDetail;
+
     @ApiModelProperty(value = "驳回类别")
-    private String rejectCategory;
+    private String rejectCategories;
 }

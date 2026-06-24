@@ -60,7 +60,7 @@ export function batchDeleteDistrictUser(ids) {
 /** 重置密码 */
 export function resetDistrictUserPassword(id) {
   return request({
-    url: `/api/district-users/${id}/reset-password`,
+    url: `/api/users/${id}/reset-password`,
     method: 'post'
   })
 }

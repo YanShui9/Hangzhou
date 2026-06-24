@@ -12,9 +12,7 @@
         <el-select v-model="queryParams.year" size="small" style="width: 150px">
           <el-option v-for="y in yearOptions" :key="y" :label="y + '年度'" :value="y" />
         </el-select>
-        <el-select v-model="queryParams.parkName" placeholder="园区名称（模糊搜索）" size="small" clearable filterable style="width: 200px">
-          <el-option v-for="p in parkOptions" :key="p" :label="p" :value="p" />
-        </el-select>
+        <el-input v-model="queryParams.parkName" placeholder="园区名称（模糊搜索）" size="small" clearable style="width: 200px" />
         <el-select v-model="queryParams.region" placeholder="全部区域" size="small" clearable style="width: 150px">
           <el-option v-for="r in regionOptions" :key="r" :label="r" :value="r" />
         </el-select>
@@ -100,7 +98,7 @@
 </template>
 
 <script>
-import { getEnterpriseHonorSummary } from '@/api/enterprise'
+import { getEnterpriseHonorSummary, exportEnterpriseHonorSummary } from '@/api/enterprise'
 
 export default {
   name: 'AdminResultEnterprise',
@@ -115,9 +113,8 @@ export default {
         pageSize: 20
       },
       yearOptions: [2026, 2025, 2024, 2023, 2022],
-      parkOptions: ['传化国际科创园', '万轮科技园', '和达药谷中心', '颐高创业园', '天明国际产业园', '乐富海邦园', '银海科创中心', '杭州湾信息港', '钱湾生物港（一期）', '菜鸟智谷产业园'],
-      regionOptions: ['滨江区', '萧山区', '余杭区', '西湖区', '上城区', '拱墅区'],
-      typeOptions: ['服务类', '制造类', '数字经济类', '生物医药类', '新材料类'],
+      regionOptions: ['滨江区', '萧山区', '余杭区', '西湖区', '上城区', '拱墅区', '钱塘区', '富阳区', '临安区', '临平区', '桐庐县', '淳安县', '建德市'],
+      typeOptions: ['生产性制造类', '生产性服务类'],
       list: [],
       total: 0,
       loading: false,
@@ -146,60 +143,20 @@ export default {
       this.loading = true
       getEnterpriseHonorSummary(this.queryParams)
         .then(res => {
-          const records = res.data && res.data.records ? res.data.records : null
-          this.list = records && records.length ? records : this.buildMockRows()
-          this.total = (res.data && res.data.total) || 104
+          const records = res.data && res.data.records ? res.data.records : []
+          this.list = records
+          this.total = (res.data && res.data.total) || 0
         })
-        .catch(() => {
-          this.list = this.buildMockRows()
-          this.total = 104
+        .catch(err => {
+          this.list = []
+          this.total = 0
+          const msg = (err && err.response && err.response.data && err.response.data.msg) || '查询企业荣誉汇总失败'
+          this.$message.error(msg)
         })
         .finally(() => {
           this.loading = false
           this.jumpPage = this.queryParams.pageNum
         })
-    },
-    buildMockRows() {
-      const parkNames = ['传化国际科创园', '万轮科技园', '和达药谷中心', '颐高创业园', '天明国际产业园', '乐富海邦园', '银海科创中心', '杭州湾信息港', '钱湾生物港（一期）']
-      const regions = ['滨江区', '萧山区', '余杭区', '西湖区', '上城区']
-      const parkTypes = ['服务类', '制造类', '数字经济类', '生物医药类']
-      const rows = []
-      for (let i = 0; i < this.queryParams.pageSize; i++) {
-        const idx = i % parkNames.length
-        rows.push({
-          id: i + 1 + (this.queryParams.pageNum - 1) * this.queryParams.pageSize,
-          parkName: parkNames[idx],
-          region: regions[idx % regions.length],
-          parkType: parkTypes[idx % parkTypes.length],
-          totalEnterprises: 50,
-          existingAboveScale: 2,
-          newAboveScale: 2,
-          retiredAboveScale: 2,
-          newSpecialtyGiant: 2,
-          newProvincialHiddenChampion: 2,
-          newSpecialtySME: 2,
-          newSingleChampion: 2,
-          newIPO: 2,
-          newNationalHighTech: 2,
-          innovativeSME: 2,
-          newProvincialTechSmall: 2,
-          earlyInvestInnovation: 2,
-          newFirstEquipment: 2,
-          firstVersion: 2,
-          firstBatch: 2,
-          provincialExcellentIndustrial: 2,
-          zhejiangMadeQuality: 2,
-          newNationalRDAgency: 2,
-          newProvincialRDAgency: 2,
-          newMunicipalRDAgency: 2,
-          publicServicePlatform: 2,
-          enterpriseIncubator: 2,
-          talentAClass: 2,
-          talentBClass: 2,
-          talentCClass: 2
-        })
-      }
-      return rows
     },
     handleQuery() {
       this.queryParams.pageNum = 1
@@ -210,7 +167,24 @@ export default {
       this.getList()
     },
     handleExport() {
-      this.$message.info('导出功能开发中')
+      this.$confirm('确定导出当前筛选条件下的企业荣誉数量统计汇总表？', '提示', {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'info'
+      }).then(() => {
+        return exportEnterpriseHonorSummary(this.queryParams)
+      }).then(res => {
+        const blob = new Blob([res], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
+        const url = URL.createObjectURL(blob)
+        const link = document.createElement('a')
+        link.href = url
+        link.download = `${this.queryParams.year || ''}年度企业荣誉数量统计汇总表.xlsx`
+        document.body.appendChild(link)
+        link.click()
+        document.body.removeChild(link)
+        URL.revokeObjectURL(url)
+        this.$message.success('导出成功')
+      }).catch(() => {})
     },
     handleSizeChange(val) {
       this.queryParams.pageSize = val

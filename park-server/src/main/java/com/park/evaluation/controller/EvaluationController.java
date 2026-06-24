@@ -23,7 +23,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import javax.validation.Valid;
+import java.io.IOException;
+import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -115,6 +118,8 @@ public class EvaluationController {
                 vo.put("districtName", park.getDistrictName());
                 vo.put("parkType", park.getParkType());
             }
+            // 参评状态：有评价记录即表示参评
+            vo.put("parkStatus", "参评");
             voList.add(vo);
         }
 
@@ -144,6 +149,103 @@ public class EvaluationController {
         }
         evaluationService.initEvaluationByYear(year);
         return R.ok("发起成功", null);
+    }
+
+    /**
+     * 查询园区评价汇总表（简版）分页列表
+     */
+    @GetMapping("/park")
+    @ApiOperation(value = "查询园区评价汇总表（简版）", notes = "分页查询园区评价汇总简版列表")
+    public R<PageResult<Map<String, Object>>> getParkEvaluationList(EvaluationQueryDTO queryDTO,
+                                                                    HttpServletRequest request) {
+        applyDataPermission(queryDTO, request);
+        IPage<Map<String, Object>> page = evaluationService.getParkEvaluationList(queryDTO);
+        return R.ok(PageResult.of(
+                page.getRecords(),
+                page.getTotal(),
+                (int) page.getCurrent(),
+                (int) page.getSize()
+        ));
+    }
+
+    /**
+     * 查询园区评价汇总表（详版）分页列表
+     */
+    @GetMapping("/park/detail")
+    @ApiOperation(value = "查询园区评价汇总表（详版）", notes = "分页查询园区评价汇总详细版列表")
+    public R<PageResult<Map<String, Object>>> getParkEvaluationDetail(EvaluationQueryDTO queryDTO,
+                                                                      HttpServletRequest request) {
+        applyDataPermission(queryDTO, request);
+        IPage<Map<String, Object>> page = evaluationService.getParkEvaluationDetail(queryDTO);
+        return R.ok(PageResult.of(
+                page.getRecords(),
+                page.getTotal(),
+                (int) page.getCurrent(),
+                (int) page.getSize()
+        ));
+    }
+
+    /**
+     * 导出园区评价汇总表（简版）
+     *
+     * @param queryDTO 查询条件
+     * @param request  HTTP请求
+     * @param response HTTP响应
+     */
+    @GetMapping("/park/export")
+    @ApiOperation(value = "导出园区评价汇总表（简版）", notes = "导出园区评价汇总简版Excel")
+    public void exportParkEvaluationList(EvaluationQueryDTO queryDTO,
+                                         HttpServletRequest request,
+                                         HttpServletResponse response) throws IOException {
+        applyDataPermission(queryDTO, request);
+        byte[] data = evaluationService.exportParkEvaluationList(queryDTO);
+        writeExcelResponse(response, data, "园区评价统计简化版.xlsx");
+    }
+
+    /**
+     * 导出园区评价汇总表（详版）
+     *
+     * @param queryDTO 查询条件
+     * @param request  HTTP请求
+     * @param response HTTP响应
+     */
+    @GetMapping("/park/detail/export")
+    @ApiOperation(value = "导出园区评价汇总表（详版）", notes = "导出园区评价汇总详细版Excel")
+    public void exportParkEvaluationDetail(EvaluationQueryDTO queryDTO,
+                                           HttpServletRequest request,
+                                           HttpServletResponse response) throws IOException {
+        applyDataPermission(queryDTO, request);
+        byte[] data = evaluationService.exportParkEvaluationDetail(queryDTO);
+        writeExcelResponse(response, data, "园区评价统计详细版.xlsx");
+    }
+
+    /**
+     * 绩效评定：生成本年度各园区绩效分档结果（仅市级管理员）
+     * 规则：所有园区本年度考核完成后，按分值高低排序分档（A≤20%、B≤30%、C≈45%、D≥5%），
+     * 四星/五星园区继续评A档不占A档比例，支持多次评定。
+     *
+     * @param body    请求体 { year: 2026 }
+     * @param request HTTP请求
+     * @return 操作结果
+     */
+    @PostMapping("/park/grade")
+    @ApiOperation(value = "绩效评定", notes = "生成本年度各园区绩效分档结果（A/B/C/D），仅市级管理员")
+    public R<Void> performParkGradeEvaluation(@RequestBody Map<String, Object> body, HttpServletRequest request) {
+        checkCityAdmin(request);
+        Integer year = body.get("year") != null ? Integer.valueOf(body.get("year").toString()) : null;
+        if (year == null) {
+            throw new BusinessException(ResultCode.PARAM_ERROR, "年度参数不能为空");
+        }
+        evaluationService.performParkGradeEvaluation(year);
+        return R.ok("绩效评定完成", null);
+    }
+
+    private void writeExcelResponse(HttpServletResponse response, byte[] data, String filename) throws IOException {
+        response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+        response.setHeader("Content-Disposition", "attachment; filename=" + URLEncoder.encode(filename, "UTF-8"));
+        response.setContentLength(data.length);
+        response.getOutputStream().write(data);
+        response.getOutputStream().flush();
     }
 
     /**
@@ -190,10 +292,10 @@ public class EvaluationController {
      * @return 评价记录详情
      */
     @GetMapping("/{id}")
-    @ApiOperation(value = "查询评价记录详情", notes = "根据ID查询评价记录详细信息")
-    public R<EvaluationRecord> getEvaluationById(@PathVariable Long id) {
-        EvaluationRecord record = evaluationService.getEvaluationById(id);
-        return R.ok(record);
+    @ApiOperation(value = "查询评价记录详情", notes = "根据ID查询评价记录详细信息（含scoreDetail解析和区县意见）")
+    public R<Map<String, Object>> getEvaluationById(@PathVariable Long id) {
+        Map<String, Object> detail = evaluationService.getEvaluationDetailMap(id);
+        return R.ok(detail);
     }
 
     @GetMapping("/{id}/history")
@@ -329,6 +431,97 @@ public class EvaluationController {
     public R<Void> cityReject(@PathVariable Long id, HttpServletRequest request) {
         checkAuditPermission(request, 1); // 校验市级管理员权限
         evaluationService.cityReject(id);
+        return R.ok();
+    }
+
+    /**
+     * 获取待审核列表（根据当前用户角色自动区分区县初审/市级终审）
+     *
+     * @param pageNum  页码
+     * @param pageSize 每页数量
+     * @param request  HTTP请求
+     * @return 分页结果
+     */
+    @GetMapping("/pending")
+    @ApiOperation(value = "查询待审核列表", notes = "根据当前用户角色查询待审核的评价记录")
+    public R<PageResult<EvaluationRecord>> getPendingAuditList(
+            @RequestParam(defaultValue = "1") Integer pageNum,
+            @RequestParam(defaultValue = "10") Integer pageSize,
+            HttpServletRequest request) {
+        Integer roleType = (Integer) request.getAttribute("roleType");
+        Integer auditLevel = (roleType != null && roleType == 1) ? 1 : 2;
+        IPage<EvaluationRecord> page = auditService.getPendingAuditPage(pageNum, pageSize, auditLevel);
+        PageResult<EvaluationRecord> pageResult = PageResult.of(
+                page.getRecords(),
+                page.getTotal(),
+                (int) page.getCurrent(),
+                (int) page.getSize()
+        );
+        return R.ok(pageResult);
+    }
+
+    /**
+     * 获取已审核列表（根据当前用户角色自动区分区县初审/市级终审）
+     *
+     * @param pageNum  页码
+     * @param pageSize 每页数量
+     * @param request  HTTP请求
+     * @return 分页结果
+     */
+    @GetMapping("/audited")
+    @ApiOperation(value = "查询已审核列表", notes = "根据当前用户角色查询已审核的评价记录")
+    public R<PageResult<EvaluationRecord>> getAuditedList(
+            @RequestParam(defaultValue = "1") Integer pageNum,
+            @RequestParam(defaultValue = "10") Integer pageSize,
+            HttpServletRequest request) {
+        Integer roleType = (Integer) request.getAttribute("roleType");
+        Integer auditLevel = (roleType != null && roleType == 1) ? 1 : 2;
+        IPage<EvaluationRecord> page = auditService.getAuditedPage(pageNum, pageSize, auditLevel);
+        PageResult<EvaluationRecord> pageResult = PageResult.of(
+                page.getRecords(),
+                page.getTotal(),
+                (int) page.getCurrent(),
+                (int) page.getSize()
+        );
+        return R.ok(pageResult);
+    }
+
+    /**
+     * 提交审核结果（通过/驳回）统一入口
+     *
+     * @param body    请求体 { evaluationId, action, opinion }
+     * @param request HTTP请求
+     * @return 操作结果
+     */
+    @PostMapping("/audit")
+    @ApiOperation(value = "提交审核结果", notes = "对评价记录进行审核（action: 1=通过, 2=驳回）")
+    public R<Void> submitAudit(@RequestBody Map<String, Object> body, HttpServletRequest request) {
+        Object userIdObj = request.getAttribute("userId");
+        Long auditorId = null;
+        if (userIdObj instanceof Integer) {
+            auditorId = ((Integer) userIdObj).longValue();
+        } else if (userIdObj instanceof Long) {
+            auditorId = (Long) userIdObj;
+        }
+        if (auditorId == null) {
+            return R.fail("无法获取审核人信息");
+        }
+
+        Long evaluationId = body.get("evaluationId") != null ? Long.valueOf(body.get("evaluationId").toString()) : null;
+        Integer action = body.get("action") != null ? Integer.valueOf(body.get("action").toString()) : null;
+        String opinion = body.get("opinion") != null ? body.get("opinion").toString() : null;
+
+        if (evaluationId == null || action == null) {
+            throw new BusinessException(ResultCode.PARAM_ERROR, "评价记录ID和审核动作不能为空");
+        }
+
+        com.park.audit.dto.AuditDTO auditDTO = new com.park.audit.dto.AuditDTO();
+        auditDTO.setEvaluationId(evaluationId);
+        auditDTO.setAction(action);
+        auditDTO.setOpinion(opinion);
+
+        Integer roleType = (Integer) request.getAttribute("roleType");
+        auditService.audit(auditDTO, auditorId, roleType);
         return R.ok();
     }
 

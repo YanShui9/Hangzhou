@@ -98,6 +98,23 @@
           </el-select>
         </div>
 
+        <div class="filter-item">
+          <el-select
+            v-model="queryForm.year"
+            placeholder="全部年度"
+            clearable
+            size="small"
+            class="filter-input"
+          >
+            <el-option
+              v-for="item in yearOptions"
+              :key="item.value"
+              :label="item.label"
+              :value="item.value"
+            />
+          </el-select>
+        </div>
+
         <div class="filter-actions-left">
           <el-button size="small" type="primary" icon="el-icon-search" @click="handleSearch">查询</el-button>
           <el-button size="small" icon="el-icon-refresh-left" @click="handleReset">重置</el-button>
@@ -120,6 +137,7 @@
       >
         <el-table-column type="index" label="序号" width="80" align="center" :index="indexMethod" />
         <el-table-column prop="parkName" label="园区名称" min-width="240" show-overflow-tooltip />
+        <el-table-column prop="year" label="年度" width="90" align="center" />
         <el-table-column prop="districtName" label="所属区域" width="120" align="center" />
         <el-table-column prop="parkType" label="园区类型" width="120" align="center" />
         <el-table-column label="参评状态" width="100" align="center">
@@ -226,6 +244,7 @@ export default {
         parkType: '',
         auditStatus: '',
         parkStatus: '',
+        year: null,
         pageNum: 1,
         pageSize: 20
       },
@@ -276,23 +295,20 @@ export default {
     async fetchSummary() {
       try {
         const res = await getEvaluationSummary()
-        if (res && res.data && res.data.total > 0) {
+        if (res && res.data) {
           this.summary = {
             total: res.data.total || 0,
             cityPending: res.data.cityPending || 0,
             cityPassed: res.data.cityPassed || 0,
             cityReturned: res.data.cityReturned || 0
           }
-        } else {
-          this.applyMockSummary()
         }
       } catch (e) {
         console.error('获取概览统计失败', e)
-        this.applyMockSummary()
       }
     },
     applyMockSummary() {
-      this.summary = { total: 8, cityPending: 3, cityPassed: 2, cityReturned: 1 }
+      this.summary = { total: 0, cityPending: 0, cityPassed: 0, cityReturned: 0 }
     },
 
     async fetchList() {
@@ -306,52 +322,24 @@ export default {
           }
         }
         const res = await getEvaluationList(params)
-        if (res && res.data && res.data.records && res.data.records.length > 0 && res.data.records[0].parkName) {
+        if (res && res.data) {
           this.tableData = res.data.records || []
           this.total = res.data.total || 0
         } else {
-          this.applyMockList(params)
+          this.tableData = []
+          this.total = 0
         }
       } catch (e) {
         console.error('获取评价审核列表失败', e)
-        this.applyMockList(this.queryForm)
+        this.tableData = []
+        this.total = 0
       } finally {
         this.tableLoading = false
       }
     },
     applyMockList(params) {
-      const allMock = [
-        { id: 1, parkName: '盛惠哈源科创园', districtName: '余杭区', parkType: '服务类', parkStatus: '参评', auditStatus: '市级待审核', createTime: '2026-06-15 10:30:00' },
-        { id: 2, parkName: '世创智能制造产业园', districtName: '临平区', parkType: '制造类', parkStatus: '参评', auditStatus: '市级待审核', createTime: '2026-06-16 14:20:00' },
-        { id: 3, parkName: '舒泰富春智创园', districtName: '桐庐县', parkType: '制造类', parkStatus: '参评', auditStatus: '市级待审核', createTime: '2026-06-17 09:15:00' },
-        { id: 4, parkName: '蜀山未来城', districtName: '萧山区', parkType: '服务类', parkStatus: '参评', auditStatus: '市级审核通过', createTime: '2026-06-10 16:00:00' },
-        { id: 5, parkName: '丝联166文创园', districtName: '拱墅区', parkType: '服务类', parkStatus: '参评', auditStatus: '市级审核通过', createTime: '2026-06-11 11:30:00' },
-        { id: 6, parkName: '算力一期', districtName: '临平区', parkType: '服务类', parkStatus: '不参评', auditStatus: '市级审核驳回', createTime: '2026-06-12 08:45:00' },
-        { id: 7, parkName: '泰嘉园', districtName: '拱墅区', parkType: '服务类', parkStatus: '参评', auditStatus: '区县待审核', createTime: '2026-06-18 13:00:00' },
-        { id: 8, parkName: '天诚生物医药科创园', districtName: '萧山区', parkType: '制造类', parkStatus: '参评', auditStatus: '未提交', createTime: '2026-06-20 10:00:00' }
-      ]
-      let filtered = allMock
-      const p = params || {}
-      if (p.auditStatus) {
-        filtered = filtered.filter(item => item.auditStatus === p.auditStatus)
-      }
-      if (p.parkName) {
-        filtered = filtered.filter(item => item.parkName.includes(p.parkName))
-      }
-      if (p.districtName) {
-        filtered = filtered.filter(item => item.districtName === p.districtName)
-      }
-      if (p.parkType) {
-        filtered = filtered.filter(item => item.parkType === p.parkType)
-      }
-      if (p.parkStatus) {
-        filtered = filtered.filter(item => item.parkStatus === p.parkStatus)
-      }
-      this.total = filtered.length
-      const pageNum = p.pageNum || 1
-      const pageSize = p.pageSize || 20
-      const start = (pageNum - 1) * pageSize
-      this.tableData = filtered.slice(start, start + pageSize)
+      this.tableData = []
+      this.total = 0
     },
 
     async fetchYearOptions() {
@@ -401,6 +389,7 @@ export default {
         parkType: '',
         auditStatus: '',
         parkStatus: '',
+        year: null,
         pageNum: 1,
         pageSize: this.queryForm.pageSize
       }

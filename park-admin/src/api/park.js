@@ -349,3 +349,34 @@ export function batchDeleteParks(ids) {
     data: ids
   })
 }
+
+/**
+ * 获取园区统计数据（企业、员工、专利等汇总）
+ * @method GET /api/parks/:id/stats
+ * @param {Long} id 园区ID
+ * @returns {Promise} 返回园区统计数据
+ *   - enterpriseCount          Integer  入驻企业总数
+ *   - largeEnterpriseCount     Integer  规模以上企业数
+ *   - highTechEnterpriseCount  Integer  高新技术企业数
+ *   - smeCount                 Integer  科技型中小企业数
+ *   - innovativeSmeCount       Integer  创新型中小企业数
+ *   - specializedSmeCount      Integer  国家专精特新中小企业数
+ *   - employeeCount            Integer  入驻企业员工总数
+ *   - nationalTalentCount      Integer  "国千"人才人数
+ *   - provincialTalentCount    Integer  "省千"人才人数
+ *   - seniorEngineerCount      Integer  正高级工程师人数
+ *   - engineerCount            Integer  高级工程师人数
+ *   - seniorTechnicianCount    Integer  高级技师人数
+ *   - masterCount              Integer  硕士及副高以上人数
+ *   - doctorCount              Integer  博士以上人数
+ *   - patentCount              Integer  专利拥有量
+ *   - inventionPatentCount     Integer  发明专利数
+ *   - utilityModelCount        Integer  实用新型专利数
+ *   - designPatentCount        Integer  外观设计专利数
+ */
+export function getParkStats(id) {
+  return request({
+    url: `/api/parks/${id}/stats`,
+    method: 'get'
+  })
+}

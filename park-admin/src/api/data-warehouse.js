@@ -50,19 +50,19 @@ export function deleteDataWarehouse(id) {
   })
 }
 
-/** 下载附件（数据文件） */
-export function downloadAttachment(fileUrl) {
+/** 下载指定模板 */
+export function downloadTemplate(templateKey) {
   return request({
-    url: fileUrl,
+    url: `/api/data-warehouse/template/${templateKey}`,
     method: 'get',
     responseType: 'blob'
   })
 }
 
-/** 下载指定模板 */
-export function downloadTemplate(templateKey) {
+/** 预览文件（获取文件流） */
+export function previewFile(id) {
   return request({
-    url: `/api/data-warehouse/template/${templateKey}`,
+    url: `/api/data-warehouse/${id}/preview`,
     method: 'get',
     responseType: 'blob'
   })

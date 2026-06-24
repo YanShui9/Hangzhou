@@ -166,6 +166,13 @@ const routes = [
         component: () => import('@/views/park/result/list.vue'),
         meta: { title: '企业指标', icon: 'el-icon-s-shop', roles: [3] }
       },
+      // 系统设置 - 管理员账号
+      {
+        path: 'system/admin-users',
+        name: 'AdminUserManage',
+        component: () => import('@/views/admin/system/admin-user.vue'),
+        meta: { title: '管理员账号', icon: 'el-icon-setting', roles: [1] }
+      },
       // 系统设置 - 区县账号
       {
         path: 'system/district-users',

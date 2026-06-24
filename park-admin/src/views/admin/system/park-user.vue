@@ -134,11 +134,15 @@
       />
       <el-table-column
         label="操作"
-        width="100"
+        width="180"
         align="center"
         fixed="right"
       >
         <template slot-scope="{ row }">
+          <el-button
+            type="text"
+            @click="handleResetPwd(row)"
+          >重置密码</el-button>
           <el-button
             type="text"
             class="danger-btn"
@@ -199,11 +203,8 @@
         :rules="userRules"
         label-width="140px"
       >
-        <el-form-item label="企业名称" prop="enterpriseName">
-          <el-input v-model="userForm.enterpriseName" placeholder="请输入企业名称" />
-        </el-form-item>
-        <el-form-item label="统一社会信用代码" prop="creditCode">
-          <el-input v-model="userForm.creditCode" placeholder="请输入统一社会信用代码" />
+        <el-form-item label="联系人姓名" prop="realName">
+          <el-input v-model="userForm.realName" placeholder="请输入联系人姓名" />
         </el-form-item>
         <el-form-item label="所属园区" prop="parkId">
           <el-select v-model="userForm.parkId" placeholder="请选择所属园区" filterable style="width: 100%;">
@@ -273,9 +274,12 @@ import {
   saveParkUser,
   updateParkUser,
   deleteParkUser,
+  resetParkUserPassword,
   downloadParkUserTemplate,
   importParkUser
 } from '@/api/park-user'
+import { getDistrictList } from '@/api/district'
+import { getParkList } from '@/api/park'
 
 export default {
   name: 'ParkUserManage',
@@ -289,23 +293,9 @@ export default {
         pageNum: 1,
         pageSize: 20
       },
-      // 区县选项（实际项目应从后端接口获取，此处为演示占位）
-      districtOptions: [
-        { id: 1, name: '上城区' },
-        { id: 2, name: '下城区' },
-        { id: 3, name: '西湖区' },
-        { id: 4, name: '滨江区' },
-        { id: 5, name: '萧山区' },
-        { id: 6, name: '余杭区' },
-        { id: 7, name: '富阳区' },
-        { id: 8, name: '临安区' },
-        { id: 9, name: '临平区' },
-        { id: 10, name: '钱塘区' },
-        { id: 11, name: '桐庐县' },
-        { id: 12, name: '淳安县' },
-        { id: 13, name: '建德市' }
-      ],
-      // 园区选项（实际项目应从后端接口获取，此处为演示占位）
+      // 区县选项（从后端接口动态加载）
+      districtOptions: [],
+      // 园区选项（从后端接口动态加载）
       parkOptions: [],
       pageSizeOptions: [10, 20, 50, 100],
       userList: [],
@@ -320,16 +310,14 @@ export default {
       uploadedFile: null,
       userForm: {
         id: null,
-        enterpriseName: '',
-        creditCode: '',
+        realName: '',
         parkId: null,
         username: '',
         password: '',
         phone: ''
       },
       userRules: {
-        enterpriseName: [{ required: true, message: '请输入企业名称', trigger: 'blur' }],
-        creditCode: [{ required: true, message: '请输入统一社会信用代码', trigger: 'blur' }],
+        realName: [{ required: true, message: '请输入联系人姓名', trigger: 'blur' }],
         parkId: [{ required: true, message: '请选择所属园区', trigger: 'change' }],
         username: [{ required: true, message: '请输入账号', trigger: 'blur' }],
         password: [{ required: true, message: '请输入初始密码', trigger: 'blur' }]
@@ -337,9 +325,29 @@ export default {
     }
   },
   created() {
+    this.loadDistricts()
+    this.loadParks()
     this.getList()
   },
   methods: {
+    async loadDistricts() {
+      try {
+        const res = await getDistrictList()
+        this.districtOptions = (res.data || []).map(d => ({ id: d.id, name: d.districtName }))
+      } catch (e) {
+        console.error('加载区域列表失败', e)
+      }
+    },
+
+    async loadParks() {
+      try {
+        const res = await getParkList({ pageNum: 1, pageSize: 1000 })
+        this.parkOptions = (res.data.records || []).map(p => ({ id: p.id, parkName: p.parkName }))
+      } catch (e) {
+        console.error('加载园区列表失败', e)
+      }
+    },
+
     async getList() {
       this.loading = true
       try {
@@ -391,8 +399,7 @@ export default {
         const user = res.data
         this.userForm = {
           id: user.id,
-          enterpriseName: user.enterpriseName || '',
-          creditCode: user.creditCode || '',
+          realName: user.name || '',
           parkId: user.parkId,
           username: user.username || '',
           password: '',
@@ -411,6 +418,8 @@ export default {
         this.submitLoading = true
         try {
           const data = { ...this.userForm }
+          data.roleType = 3
+          data.status = 1
           if (data.id) {
             if (!data.password) delete data.password
             await updateParkUser(data)
@@ -445,10 +454,33 @@ export default {
       }).catch(() => {})
     },
 
-    handleDownloadTemplate() {
-      this.$message.info('下载模板功能待接入后端接口')
-      downloadParkUserTemplate().then(() => {
+    handleResetPwd(row) {
+      this.$confirm(`确定要将账号 "${row.enterpriseName}" 的密码重置为默认密码吗？`, '提示', {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }).then(async () => {
+        try {
+          await resetParkUserPassword(row.id)
+          this.$message.success('密码重置成功')
+        } catch (e) {
+          console.error('重置密码失败', e)
+        }
       }).catch(() => {})
+    },
+
+    handleDownloadTemplate() {
+      downloadParkUserTemplate().then(blob => {
+        const url = window.URL.createObjectURL(blob)
+        const link = document.createElement('a')
+        link.href = url
+        link.download = '园区账号导入模板.xlsx'
+        document.body.appendChild(link)
+        link.click()
+        document.body.removeChild(link)
+        window.URL.revokeObjectURL(url)
+        this.$message.success('下载成功')
+      }).catch(() => { this.$message.error('下载失败') })
     },
 
     handleImport() {
@@ -468,11 +500,13 @@ export default {
       const formData = new FormData()
       formData.append('file', this.uploadedFile)
       importParkUser(formData)
-        .then(() => {
-          this.$message.success('导入成功')
+        .then(res => {
+          const msg = res.data ? `成功${res.data.successCount||0}条，失败${res.data.failCount||0}条` : '导入成功'
+          this.$message.success(msg)
           this.importVisible = false
           this.getList()
         })
+        .catch(() => { this.$message.error('导入失败') })
         .finally(() => {
           this.importLoading = false
         })
@@ -481,8 +515,7 @@ export default {
     handleDialogClosed() {
       this.userForm = {
         id: null,
-        enterpriseName: '',
-        creditCode: '',
+        realName: '',
         parkId: null,
         username: '',
         password: '',

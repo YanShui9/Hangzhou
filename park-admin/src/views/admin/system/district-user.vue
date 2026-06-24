@@ -47,6 +47,11 @@
           @click="handleSearch"
           style="margin-left: 8px;"
         >查询</el-button>
+        <el-button
+          size="small"
+          @click="handleReset"
+          style="margin-left: 4px;"
+        >重置</el-button>
       </div>
 
       <!-- 右侧按钮 -->
@@ -259,6 +264,7 @@ import {
   downloadDistrictUserTemplate,
   importDistrictUser
 } from '@/api/district-user'
+import { getDistrictList } from '@/api/district'
 
 export default {
   name: 'DistrictUserManage',
@@ -271,22 +277,8 @@ export default {
         pageNum: 1,
         pageSize: 20
       },
-      // 区县选项（实际项目应从后端接口获取，此处为演示占位）
-      districtOptions: [
-        { id: 1, name: '上城区' },
-        { id: 2, name: '下城区' },
-        { id: 3, name: '西湖区' },
-        { id: 4, name: '滨江区' },
-        { id: 5, name: '萧山区' },
-        { id: 6, name: '余杭区' },
-        { id: 7, name: '富阳区' },
-        { id: 8, name: '临安区' },
-        { id: 9, name: '临平区' },
-        { id: 10, name: '钱塘区' },
-        { id: 11, name: '桐庐县' },
-        { id: 12, name: '淳安县' },
-        { id: 13, name: '建德市' }
-      ],
+      // 区县选项（从后端接口动态加载）
+      districtOptions: [],
       pageSizeOptions: [10, 20, 50, 100],
       userList: [],
       total: 0,
@@ -316,9 +308,19 @@ export default {
     }
   },
   created() {
+    this.loadDistricts()
     this.getList()
   },
   methods: {
+    async loadDistricts() {
+      try {
+        const res = await getDistrictList()
+        this.districtOptions = (res.data || []).map(d => ({ id: d.id, name: d.districtName }))
+      } catch (e) {
+        console.error('加载区域列表失败', e)
+      }
+    },
+
     async getList() {
       this.loading = true
       try {
@@ -387,6 +389,9 @@ export default {
         this.submitLoading = true
         try {
           const data = { ...this.userForm }
+          data.realName = data.name
+          data.roleType = 2
+          data.status = 1
           if (data.id) {
             if (!data.password) delete data.password
             await updateDistrictUser(data)
@@ -437,9 +442,17 @@ export default {
     },
 
     handleDownloadTemplate() {
-      this.$message.info('下载模板功能待接入后端接口')
-      downloadDistrictUserTemplate().then(() => {
-      }).catch(() => {})
+      downloadDistrictUserTemplate().then(blob => {
+        const url = window.URL.createObjectURL(blob)
+        const link = document.createElement('a')
+        link.href = url
+        link.download = '区县账号导入模板.xlsx'
+        document.body.appendChild(link)
+        link.click()
+        document.body.removeChild(link)
+        window.URL.revokeObjectURL(url)
+        this.$message.success('下载成功')
+      }).catch(() => { this.$message.error('下载失败') })
     },
 
     handleImport() {
@@ -459,11 +472,13 @@ export default {
       const formData = new FormData()
       formData.append('file', this.uploadedFile)
       importDistrictUser(formData)
-        .then(() => {
-          this.$message.success('导入成功')
+        .then(res => {
+          const msg = res.data ? `成功${res.data.successCount||0}条，失败${res.data.failCount||0}条` : '导入成功'
+          this.$message.success(msg)
           this.importVisible = false
           this.getList()
         })
+        .catch(() => { this.$message.error('导入失败') })
         .finally(() => {
           this.importLoading = false
         })

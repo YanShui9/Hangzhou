@@ -90,6 +90,7 @@ public class UserService {
         user.setRealName(dto.getRealName());
         user.setPhone(dto.getPhone());
         user.setStatus(dto.getStatus());
+        user.setDepartment(dto.getDepartment());
 
         userMapper.insert(user);
         log.info("新增用户成功: username={}", dto.getUsername());
@@ -121,6 +122,7 @@ public class UserService {
         existUser.setRealName(dto.getRealName());
         existUser.setPhone(dto.getPhone());
         existUser.setStatus(dto.getStatus());
+        existUser.setDepartment(dto.getDepartment());
 
         // 如果传了密码则更新
         if (StringUtils.hasText(dto.getPassword())) {
