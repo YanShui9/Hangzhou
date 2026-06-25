@@ -30,10 +30,12 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.validation.Valid;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.time.format.DateTimeFormatter;
 import java.net.URLEncoder;
 import java.util.HashMap;
 import java.util.List;
@@ -142,6 +144,112 @@ public class DistrictUserController {
         }
         userMapper.deleteById(id);
         return R.ok("删除成功", null);
+    }
+
+    /**
+     * 批量删除区县账号
+     */
+    @DeleteMapping("/batch")
+    @ApiOperation(value = "批量删除区县账号", notes = "根据ID列表批量删除区县账号")
+    public R<Void> batchDeleteDistrictUsers(@RequestBody List<Long> ids, HttpServletRequest request) {
+        // 校验市级管理员权限
+        checkCityAdmin(request);
+        if (ids == null || ids.isEmpty()) {
+            throw new BusinessException(ResultCode.PARAM_ERROR, "ID列表不能为空");
+        }
+        userMapper.deleteBatchIds(ids);
+        return R.ok();
+    }
+
+    /**
+     * 切换区县账号状态（启用/禁用）
+     */
+    @PutMapping("/{id}/status")
+    @ApiOperation(value = "切换区县账号状态", notes = "启用或禁用区县账号")
+    public R<Void> updateDistrictUserStatus(@PathVariable Long id,
+                                            @RequestBody Map<String, Object> body,
+                                            HttpServletRequest request) {
+        // 校验市级管理员权限
+        checkCityAdmin(request);
+        SysUser user = userMapper.selectById(id);
+        if (user == null || user.getRoleType() == null || user.getRoleType() != 2) {
+            throw new BusinessException(ResultCode.DATA_NOT_FOUND, "账号不存在");
+        }
+        // 从请求体中解析 status 字段
+        Object statusObj = body.get("status");
+        Integer status = null;
+        if (statusObj instanceof Integer) {
+            status = (Integer) statusObj;
+        } else if (statusObj instanceof Number) {
+            status = ((Number) statusObj).intValue();
+        }
+        if (status == null || (status != 0 && status != 1)) {
+            throw new BusinessException(ResultCode.PARAM_ERROR, "状态值非法");
+        }
+        user.setStatus(status);
+        userMapper.updateById(user);
+        return R.ok();
+    }
+
+    /**
+     * 导出区县账号列表为Excel
+     */
+    @GetMapping("/export")
+    @ApiOperation(value = "导出区县账号列表", notes = "导出区县账号列表为Excel文件")
+    public void exportDistrictUsers(HttpServletResponse response, HttpServletRequest request) {
+        // 校验市级管理员权限
+        checkCityAdmin(request);
+        // 查询全部区县用户（roleType=2）
+        LambdaQueryWrapper<SysUser> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(SysUser::getRoleType, 2);
+        wrapper.orderByDesc(SysUser::getCreateTime);
+        List<SysUser> userList = userMapper.selectList(wrapper);
+
+        // 时间格式化
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+        try (XSSFWorkbook workbook = new XSSFWorkbook();
+             OutputStream os = response.getOutputStream()) {
+            Sheet sheet = workbook.createSheet("区县账号");
+            // 表头：序号、用户名、姓名、手机号、所属区县、状态、创建时间
+            Row header = sheet.createRow(0);
+            String[] headers = {"序号", "用户名", "姓名", "手机号", "所属区县", "状态", "创建时间"};
+            for (int i = 0; i < headers.length; i++) {
+                header.createCell(i).setCellValue(headers[i]);
+            }
+            // 数据行
+            for (int i = 0; i < userList.size(); i++) {
+                SysUser user = userList.get(i);
+                Row row = sheet.createRow(i + 1);
+                row.createCell(0).setCellValue(i + 1);
+                row.createCell(1).setCellValue(user.getUsername() == null ? "" : user.getUsername());
+                row.createCell(2).setCellValue(user.getRealName() == null ? "" : user.getRealName());
+                row.createCell(3).setCellValue(user.getPhone() == null ? "" : user.getPhone());
+                // 所属区县：通过 districtId 反查区县名称
+                String districtName = "";
+                if (user.getDistrictId() != null) {
+                    DistrictInfo district = districtMapper.selectById(user.getDistrictId());
+                    if (district != null) {
+                        districtName = district.getDistrictName();
+                    }
+                }
+                row.createCell(4).setCellValue(districtName);
+                // 状态：1=启用, 0=禁用，转换为中文显示
+                String statusText = (user.getStatus() != null && user.getStatus() == 1) ? "启用" : "禁用";
+                row.createCell(5).setCellValue(statusText);
+                // 创建时间
+                row.createCell(6).setCellValue(user.getCreateTime() == null
+                        ? "" : user.getCreateTime().format(formatter));
+            }
+            // 设置响应头
+            String fileName = URLEncoder.encode("区县账号列表.xlsx", "UTF-8");
+            response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+            response.setHeader("Content-Disposition", "attachment; filename=" + fileName);
+            workbook.write(os);
+            os.flush();
+        } catch (Exception e) {
+            log.error("导出区县账号列表失败", e);
+            throw new BusinessException(ResultCode.FAILURE, "导出失败");
+        }
     }
 
     /**
@@ -265,5 +373,17 @@ public class DistrictUserController {
             }
         }
         return vo;
+    }
+
+    /**
+     * 校验当前用户是否为市级管理员
+     */
+    private void checkCityAdmin(HttpServletRequest request) {
+        Object roleTypeObj = request.getAttribute("roleType");
+        Integer roleType = (roleTypeObj instanceof Integer) ? (Integer) roleTypeObj : null;
+        if (roleType == null || roleType != 1) {
+            log.warn("非市级管理员尝试访问区县账号接口，当前角色类型: {}", roleType);
+            throw new BusinessException(ResultCode.FORBIDDEN, "仅市级管理员可操作");
+        }
     }
 }

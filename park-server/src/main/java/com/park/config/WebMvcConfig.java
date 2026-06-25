@@ -43,6 +43,8 @@ public class WebMvcConfig implements WebMvcConfigurer {
                 .excludePathPatterns(
                         "/api/auth/login",
                         "/api/auth/logout",
+                        "/api/files/preview/**",
+                        "/api/common/download/**",
                         "/swagger-resources/**",
                         "/swagger-ui/**",
                         "/swagger-ui.html",

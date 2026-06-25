@@ -26,14 +26,14 @@ export function getTopParks(params) {
 }
 
 /**
- * 获取月度统计数据
+ * 获取季度统计数据
  * @param {Object} params 查询参数
  * @param {Number} params.year 年份，默认当前年
  * @returns {Promise}
  */
-export function getMonthlyStats(params) {
+export function getQuarterlyStats(params) {
   return request({
-    url: '/api/dashboard/monthly-stats',
+    url: '/api/dashboard/quarterly-stats',
     method: 'get',
     params
   })

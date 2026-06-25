@@ -46,7 +46,7 @@ public class EvaluationFileController {
     @Autowired
     private IndustryDevelopmentParseService industryDevelopmentParseService;
 
-    @Value("${park.file.upload-path:D:/park-upload/}")
+    @Value("${park.file.upload-path:./uploads/}")
     private String uploadPath;
 
     @Value("${park.file.template-path:template/}")

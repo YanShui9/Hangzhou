@@ -146,13 +146,7 @@ public class IndustryDevelopmentParseService {
             }
         }
 
-        if (data.getEmployeeCount() != null && !data.getEmployeeCount().trim().isEmpty()) {
-            try {
-                enterprise.setEmployeeCount(Integer.parseInt(data.getEmployeeCount().trim()));
-            } catch (NumberFormatException e) {
-                enterprise.setEmployeeCount(0);
-            }
-        }
+        // 本地 EnterpriseInfo 实体无 employeeCount 字段，跳过
 
         // 本地实体无 annualOutput / annualTax 字段，跳过
 

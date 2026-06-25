@@ -86,7 +86,7 @@
           <span slot="title">企业指标</span>
         </el-menu-item>
       </el-submenu>
-      <el-submenu v-if="hasRole([2])" index="district-result">
+      <el-submenu v-if="false" index="district-result">
         <template slot="title">
           <i class="el-icon-s-data"></i>
           <span>评价结果</span>
@@ -100,7 +100,7 @@
           <span slot="title">企业指标</span>
         </el-menu-item>
       </el-submenu>
-      <el-submenu v-if="hasRole([3])" index="park-result">
+      <el-submenu v-if="false" index="park-result">
         <template slot="title">
           <i class="el-icon-s-data"></i>
           <span>评价结果</span>

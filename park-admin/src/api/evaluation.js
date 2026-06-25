@@ -59,6 +59,28 @@ export function submitEvaluation(id) {
 }
 
 /**
+ * 区县审核通过（状态从 待区县审 改为 待市局审）
+ * @param {Number} id 评价记录ID
+ */
+export function districtPassEvaluation(id) {
+  return request({
+    url: `/api/evaluations/${id}/district-pass`,
+    method: 'post'
+  })
+}
+
+/**
+ * 区县审核驳回（状态从 待区县审 改为 驳回）
+ * @param {Number} id 评价记录ID
+ */
+export function districtRejectEvaluation(id) {
+  return request({
+    url: `/api/evaluations/${id}/district-reject`,
+    method: 'post'
+  })
+}
+
+/**
  * 检查园区当年是否已提交评价
  * @param {Object} params 参数对象 { parkId, year }
  */
@@ -67,5 +89,54 @@ export function checkSubmittedEvaluation(params) {
     url: '/api/evaluations/check-submitted',
     method: 'get',
     params
+  })
+}
+
+/**
+ * 删除评价记录
+ * @param {Number} id 评价记录ID
+ */
+export function deleteEvaluation(id) {
+  return request({
+    url: `/api/evaluations/${id}`,
+    method: 'delete'
+  })
+}
+
+/**
+ * 修改参评状态（区县端使用）
+ * @param {Number} id 评价记录ID
+ * @param {Number} status 参评状态：1=参评, 0=不参评
+ */
+export function updateEvaluationStatus(id, status) {
+  return request({
+    url: `/api/evaluations/${id}/status?status=${status}`,
+    method: 'put'
+  })
+}
+
+/**
+ * 查询园区评价汇总表（简版）分页列表
+ * @param {Object} params 查询参数
+ */
+export function getParkEvaluationList(params) {
+  return request({
+    url: '/api/evaluations/park',
+    method: 'get',
+    params
+  })
+}
+
+/**
+ * 导出园区评价汇总表（简版）
+ * @param {Object} params 查询参数
+ * @returns {Promise<Blob>}
+ */
+export function exportParkEvaluationList(params) {
+  return request({
+    url: '/api/evaluations/park/export',
+    method: 'get',
+    params,
+    responseType: 'blob'
   })
 }

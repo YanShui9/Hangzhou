@@ -81,27 +81,6 @@
             <div class="info-label">注册日期</div>
             <div class="info-value">{{ formatDate(enterprise.registerDate) }}</div>
           </div>
-          <div class="info-item">
-            <div class="info-label">员工人数</div>
-            <div class="info-value">{{ enterprise.employeeCount || '-' }}</div>
-          </div>
-          <div class="info-item">
-            <div class="info-label">年产值(万元)</div>
-            <div class="info-value">{{ formatNumber(enterprise.annualOutput) }}</div>
-          </div>
-          <div class="info-item">
-            <div class="info-label">年纳税额(万元)</div>
-            <div class="info-value">{{ formatNumber(enterprise.annualTax) }}</div>
-          </div>
-
-          <div class="info-item">
-            <div class="info-label">租赁面积(㎡)</div>
-            <div class="info-value">{{ formatNumber(enterprise.rentArea) }}</div>
-          </div>
-          <div class="info-item">
-            <div class="info-label">租赁时间</div>
-            <div class="info-value">{{ enterprise.rentTime || '-' }}</div>
-          </div>
         </template>
 
         <el-empty v-else-if="!loading" description="未找到企业信息" />
@@ -138,7 +117,7 @@ export default {
   methods: {
     fetchDetail(id) {
       this.loading = true
-      getEnterpriseDetail(id).then(response => {
+      getEnterpriseDetailForPark(id).then(response => {
         this.enterprise = response.data || {}
       }).catch(() => {
         this.enterprise = {}

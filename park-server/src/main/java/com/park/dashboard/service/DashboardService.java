@@ -4,7 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.park.common.exception.BusinessException;
 import com.park.common.result.ResultCode;
 import com.park.dashboard.dto.DashboardStatsDTO;
-import com.park.dashboard.dto.MonthlyStatsDTO;
+import com.park.dashboard.dto.QuarterlyStatsDTO;
 import com.park.dashboard.dto.ParkRankDTO;
 import com.park.enterprise.entity.EnterpriseInfo;
 import com.park.enterprise.mapper.EnterpriseMapper;
@@ -14,6 +14,8 @@ import com.park.operation.entity.ParkOperation;
 import com.park.operation.mapper.OperationMapper;
 import com.park.park.entity.ParkInfo;
 import com.park.park.mapper.ParkMapper;
+import com.park.system.entity.ParkTaxRecord;
+import com.park.system.mapper.ParkTaxRecordMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -43,6 +45,9 @@ public class DashboardService {
     @Autowired
     private EvaluationMapper evaluationMapper;
 
+    @Autowired
+    private ParkTaxRecordMapper parkTaxRecordMapper;
+
     /**
      * 获取统计数据
      *
@@ -57,22 +62,20 @@ public class DashboardService {
         // 2. 查询企业总数
         Long totalEnterprises = countEnterprises(districtName, parkId);
 
-        // 3. 查询最新季度的员工和企业数汇总
-        ParkOperation latestOperation = getLatestOperation(districtName, parkId);
-        Long totalEmployment = latestOperation != null && latestOperation.getEmployeeCount() != null
-                ? latestOperation.getEmployeeCount().longValue() : 0L;
-        // 使用企业数作为替代指标
-        Long totalEnterpriseCount = latestOperation != null && latestOperation.getEnterpriseCount() != null
-                ? latestOperation.getEnterpriseCount().longValue() : 0L;
+        // 3. 查询就业人数（园区端取本园区最新一条，市级/区县端SUM汇总最新季度）
+        Long totalEmployment = sumLatestEmployment(districtName, parkId);
 
-        // 4. 查询待审核数量（状态为 1=待区县审 的评价记录）
+        // 4. 查询总营收（从 park_tax_record 表获取，tax_type=park_total）
+        BigDecimal totalRevenue = sumLatestRevenue(districtName, parkId);
+
+        // 5. 查询待审核数量（状态为 1=待区县审 的评价记录）
         Long pendingAudits = countPendingAudits(districtName, parkId);
 
         return DashboardStatsDTO.builder()
                 .totalParks(totalParks)
                 .totalEnterprises(totalEnterprises)
                 .totalEmployment(totalEmployment)
-                .totalRevenue(BigDecimal.ZERO) // 设计文档中无此字段，设为0
+                .totalRevenue(totalRevenue)
                 .pendingAudits(pendingAudits)
                 .build();
     }
@@ -138,7 +141,7 @@ public class DashboardService {
      * @param parkId       园区ID（园区管理员传入，其他传 null）
      * @return 季度统计列表
      */
-    public List<MonthlyStatsDTO> getQuarterlyStats(int year, String districtName, Long parkId) {
+    public List<QuarterlyStatsDTO> getQuarterlyStats(int year, String districtName, Long parkId) {
         // 构建查询条件
         LambdaQueryWrapper<ParkOperation> queryWrapper = new LambdaQueryWrapper<>();
         queryWrapper.eq(ParkOperation::getYear, year);
@@ -165,13 +168,12 @@ public class DashboardService {
         List<ParkOperation> operations = operationMapper.selectList(queryWrapper);
 
         // 按季度汇总
-        Map<Integer, MonthlyStatsDTO> quarterMap = new LinkedHashMap<>();
+        Map<Integer, QuarterlyStatsDTO> quarterMap = new LinkedHashMap<>();
         // 初始化4个季度
         for (int q = 1; q <= 4; q++) {
             String quarterStr = year + "-Q" + q;
-            quarterMap.put(q, MonthlyStatsDTO.builder()
-                    .month(quarterStr)
-                    .revenue(BigDecimal.ZERO)
+            quarterMap.put(q, QuarterlyStatsDTO.builder()
+                    .quarter(quarterStr)
                     .employment(0)
                     .enterpriseCount(0)
                     .build());
@@ -179,13 +181,20 @@ public class DashboardService {
 
         // 汇总数据
         for (ParkOperation op : operations) {
-            MonthlyStatsDTO dto = quarterMap.get(op.getQuarter());
+            QuarterlyStatsDTO dto = quarterMap.get(op.getQuarter());
             if (dto != null) {
                 dto.setEmployment(dto.getEmployment() +
                         (op.getEmployeeCount() != null ? op.getEmployeeCount() : 0));
                 dto.setEnterpriseCount(dto.getEnterpriseCount() +
                         (op.getEnterpriseCount() != null ? op.getEnterpriseCount() : 0));
             }
+        }
+
+        // 无运营数据时，用 park_info 当前统计值填充最新季度（Q4），避免趋势图全0
+        if (operations.isEmpty()) {
+            QuarterlyStatsDTO q4 = quarterMap.get(4);
+            q4.setEmployment(sumParkInfoEmployeeCount(districtName, parkId).intValue());
+            q4.setEnterpriseCount(sumParkInfoEnterpriseCount(districtName, parkId).intValue());
         }
 
         return new ArrayList<>(quarterMap.values());
@@ -209,22 +218,11 @@ public class DashboardService {
 
     /**
      * 统计企业数量
+     * 优先使用 park_info.enterprise_count（数据仓库导入的权威汇总值），
+     * 因为 enterprise_info 明细表可能不完整
      */
     private Long countEnterprises(String districtName, Long parkId) {
-        LambdaQueryWrapper<EnterpriseInfo> queryWrapper = new LambdaQueryWrapper<>();
-
-        if (parkId != null) {
-            queryWrapper.eq(EnterpriseInfo::getParkId, parkId);
-        } else if (districtName != null && !districtName.isEmpty()) {
-            // 先查询该区县的园区ID列表
-            List<Long> parkIds = getParkIdsByDistrict(districtName);
-            if (parkIds.isEmpty()) {
-                return 0L;
-            }
-            queryWrapper.in(EnterpriseInfo::getParkId, parkIds);
-        }
-
-        return enterpriseMapper.selectCount(queryWrapper);
+        return sumParkInfoEnterpriseCount(districtName, parkId);
     }
 
     /**
@@ -247,6 +245,89 @@ public class DashboardService {
         queryWrapper.orderByDesc(ParkOperation::getYear, ParkOperation::getQuarter);
         queryWrapper.last("LIMIT 1");
         return operationMapper.selectOne(queryWrapper);
+    }
+
+    /**
+     * 汇总就业人数
+     * 园区端：取本园区最新一条运营记录的 employee_count；无运营数据时回退 park_info.employee_count
+     * 市级/区县端：SUM 最新季度所有园区的 employee_count；无运营数据时 SUM park_info.employee_count
+     */
+    private Long sumLatestEmployment(String districtName, Long parkId) {
+        // 园区端：取本园区最新一条
+        if (parkId != null) {
+            ParkOperation op = getLatestOperation(districtName, parkId);
+            if (op != null && op.getEmployeeCount() != null) {
+                return op.getEmployeeCount().longValue();
+            }
+            // 回退：park_operation无数据时，使用park_info.employee_count
+            ParkInfo park = parkMapper.selectById(parkId);
+            return park != null && park.getEmployeeCount() != null ? park.getEmployeeCount().longValue() : 0L;
+        }
+
+        // 市级/区县端：先找最新年份和季度
+        LambdaQueryWrapper<ParkOperation> latestQuery = new LambdaQueryWrapper<>();
+        latestQuery.orderByDesc(ParkOperation::getYear, ParkOperation::getQuarter).last("LIMIT 1");
+        ParkOperation latest = operationMapper.selectOne(latestQuery);
+        if (latest == null) {
+            // 回退：无运营数据时，SUM park_info.employee_count
+            return sumParkInfoEmployeeCount(districtName, parkId);
+        }
+
+        // SUM 该季度的所有园区 employee_count
+        LambdaQueryWrapper<ParkOperation> sumQuery = new LambdaQueryWrapper<>();
+        sumQuery.eq(ParkOperation::getYear, latest.getYear())
+                .eq(ParkOperation::getQuarter, latest.getQuarter());
+
+        if (districtName != null && !districtName.isEmpty()) {
+            List<Long> parkIds = getParkIdsByDistrict(districtName);
+            if (parkIds.isEmpty()) {
+                return 0L;
+            }
+            sumQuery.in(ParkOperation::getParkId, parkIds);
+        }
+
+        List<ParkOperation> ops = operationMapper.selectList(sumQuery);
+        return ops.stream()
+                .mapToLong(op -> op.getEmployeeCount() != null ? op.getEmployeeCount() : 0)
+                .sum();
+    }
+
+    /**
+     * 汇总总营收
+     * 从 park_tax_record 表获取（tax_type=park_total），取最新年度的 SUM(revenue)
+     */
+    private BigDecimal sumLatestRevenue(String districtName, Long parkId) {
+        // 先查最新年度
+        LambdaQueryWrapper<ParkTaxRecord> yearQuery = new LambdaQueryWrapper<>();
+        yearQuery.eq(ParkTaxRecord::getTaxType, "park_total");
+        yearQuery.orderByDesc(ParkTaxRecord::getYear).last("LIMIT 1");
+        ParkTaxRecord latest = parkTaxRecordMapper.selectOne(yearQuery);
+        if (latest == null) {
+            return BigDecimal.ZERO;
+        }
+
+        int latestYear = latest.getYear();
+
+        // SUM 该年度的 revenue
+        LambdaQueryWrapper<ParkTaxRecord> sumQuery = new LambdaQueryWrapper<>();
+        sumQuery.eq(ParkTaxRecord::getTaxType, "park_total")
+                .eq(ParkTaxRecord::getYear, latestYear);
+
+        if (parkId != null) {
+            sumQuery.eq(ParkTaxRecord::getParkId, parkId);
+        } else if (districtName != null && !districtName.isEmpty()) {
+            List<Long> parkIds = getParkIdsByDistrict(districtName);
+            if (parkIds.isEmpty()) {
+                return BigDecimal.ZERO;
+            }
+            sumQuery.in(ParkTaxRecord::getParkId, parkIds);
+        }
+
+        List<ParkTaxRecord> records = parkTaxRecordMapper.selectList(sumQuery);
+        return records.stream()
+                .map(ParkTaxRecord::getRevenue)
+                .filter(Objects::nonNull)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 
     /**
@@ -282,15 +363,50 @@ public class DashboardService {
     }
 
     /**
+     * SUM park_info.employee_count（无运营数据时的回退方案）
+     * 园区端：查单园区；区县端：SUM本区县所有园区；市级：SUM所有园区
+     */
+    private Long sumParkInfoEmployeeCount(String districtName, Long parkId) {
+        LambdaQueryWrapper<ParkInfo> query = new LambdaQueryWrapper<>();
+        query.select(ParkInfo::getId, ParkInfo::getEmployeeCount);
+        if (parkId != null) {
+            query.eq(ParkInfo::getId, parkId);
+        } else if (districtName != null && !districtName.isEmpty()) {
+            query.eq(ParkInfo::getDistrictName, districtName);
+        }
+        List<ParkInfo> parks = parkMapper.selectList(query);
+        return parks.stream()
+                .mapToLong(p -> p.getEmployeeCount() != null ? p.getEmployeeCount() : 0)
+                .sum();
+    }
+
+    /**
+     * SUM park_info.enterprise_count（无enterprise_info明细时的回退方案）
+     * 园区端：查单园区；区县端：SUM本区县所有园区；市级：SUM所有园区
+     */
+    private Long sumParkInfoEnterpriseCount(String districtName, Long parkId) {
+        LambdaQueryWrapper<ParkInfo> query = new LambdaQueryWrapper<>();
+        query.select(ParkInfo::getId, ParkInfo::getEnterpriseCount);
+        if (parkId != null) {
+            query.eq(ParkInfo::getId, parkId);
+        } else if (districtName != null && !districtName.isEmpty()) {
+            query.eq(ParkInfo::getDistrictName, districtName);
+        }
+        List<ParkInfo> parks = parkMapper.selectList(query);
+        return parks.stream()
+                .mapToLong(p -> p.getEnterpriseCount() != null ? p.getEnterpriseCount() : 0)
+                .sum();
+    }
+
+    /**
      * 构建空的季度统计数据（当没有数据时返回4个季度的空记录）
      */
-    private List<MonthlyStatsDTO> buildEmptyQuarterlyStats(int year) {
-        List<MonthlyStatsDTO> list = new ArrayList<>();
+    private List<QuarterlyStatsDTO> buildEmptyQuarterlyStats(int year) {
+        List<QuarterlyStatsDTO> list = new ArrayList<>();
         for (int q = 1; q <= 4; q++) {
             String quarterStr = year + "-Q" + q;
-            list.add(MonthlyStatsDTO.builder()
-                    .month(quarterStr)
-                    .revenue(BigDecimal.ZERO)
+            list.add(QuarterlyStatsDTO.builder()
+                    .quarter(quarterStr)
                     .employment(0)
                     .enterpriseCount(0)
                     .build());

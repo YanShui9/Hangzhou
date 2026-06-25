@@ -34,7 +34,7 @@ public class EvaluationFileService {
     @Autowired
     private EvaluationFileMapper fileMapper;
 
-    @Value("${park.file.upload-path:D:/park-upload/}")
+    @Value("${park.file.upload-path:./uploads/}")
     private String uploadPath;
 
     @Value("${park.file.access-prefix:/api/files/preview/}")

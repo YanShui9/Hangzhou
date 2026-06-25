@@ -204,6 +204,13 @@ export function getAuditHistory(id) {
   })
 }
 
+export function deleteEvaluation(id) {
+  return request({
+    url: `/api/evaluations/${id}`,
+    method: 'delete'
+  })
+}
+
 /**
  * 获取待审核列表（区县初审）
  * @method GET /api/evaluations/pending
@@ -288,4 +295,74 @@ export function downloadAuditFile(fileUrl) {
     params: { url: fileUrl },
     responseType: 'blob'
   })
+}
+
+// ==================== 区县端审核相关接口 ====================
+
+/**
+ * 查询审核列表（区县端使用，支持多条件筛选）
+ * @method GET /api/audits
+ * @param {Object} params 查询参数
+ */
+export function getAuditList(params) {
+  return request({
+    url: '/api/audits',
+    method: 'get',
+    params
+  })
+}
+
+/**
+ * 查询评价记录详情（区县端审核详情使用）
+ * @param {Number} id 评价记录ID
+ */
+export function getEvaluationDetail(id) {
+  return request({
+    url: `/api/evaluations/${id}`,
+    method: 'get'
+  })
+}
+
+/**
+ * 查询园区文件列表（区县端审核列表文件管理）
+ * @param {Number} parkId 园区ID
+ */
+export function getParkFiles(parkId) {
+  return request({
+    url: `/api/documents/park/${parkId}`,
+    method: 'get'
+  })
+}
+
+/**
+ * 上传园区文件（区县端审核列表文件管理）
+ * @param {Number} parkId 园区ID
+ * @param {FormData} formData 表单数据（包含file）
+ */
+export function uploadParkFile(parkId, formData) {
+  return request({
+    url: `/api/documents/park/${parkId}`,
+    method: 'post',
+    data: formData,
+    headers: { 'Content-Type': 'multipart/form-data' }
+  })
+}
+
+/**
+ * 删除园区文件（区县端审核列表文件管理）
+ * @param {Number} id 文件ID
+ */
+export function deleteParkFile(id) {
+  return request({
+    url: `/api/documents/${id}`,
+    method: 'delete'
+  })
+}
+
+/**
+ * 获取文件预览URL（区县端审核列表文件预览）
+ * @param {Number} id 文件ID
+ */
+export function getFilePreviewUrl(id) {
+  return `/api/documents/preview/${id}`
 }

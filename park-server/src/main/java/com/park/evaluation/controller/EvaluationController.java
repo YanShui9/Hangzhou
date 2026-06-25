@@ -13,6 +13,7 @@ import com.park.audit.service.AuditService;
 import com.park.evaluation.dto.EvaluationQueryDTO;
 import com.park.evaluation.dto.EvaluationSaveDTO;
 import com.park.evaluation.entity.EvaluationRecord;
+import com.park.evaluation.mapper.EvaluationMapper;
 import com.park.evaluation.service.EvaluationService;
 import com.park.park.entity.ParkInfo;
 import com.park.park.mapper.ParkMapper;
@@ -46,6 +47,9 @@ public class EvaluationController {
 
     @Autowired
     private EvaluationService evaluationService;
+
+    @Autowired
+    private EvaluationMapper evaluationMapper;
 
     @Autowired
     private AuthService authService;
@@ -240,6 +244,40 @@ public class EvaluationController {
         return R.ok("绩效评定完成", null);
     }
 
+    /**
+     * 删除评价记录
+     * - 市级管理员：可删除任意状态
+     * - 园区管理员：只能删除本园区的草稿(0)或驳回(4)状态
+     * - 区县管理员：不可删除
+     *
+     * @param id      评价记录ID
+     * @param request HTTP请求
+     * @return 操作结果
+     */
+    @DeleteMapping("/{id}")
+    @ApiOperation(value = "删除评价记录", notes = "删除评价记录及关联的打分数据和审核历史")
+    public R<Void> deleteEvaluation(@PathVariable Long id, HttpServletRequest request) {
+        Integer roleType = (Integer) request.getAttribute("roleType");
+        if (roleType == null) {
+            throw new BusinessException(ResultCode.FORBIDDEN, "无法获取用户角色");
+        }
+        if (roleType == 2) {
+            throw new BusinessException(ResultCode.FORBIDDEN, "区县管理员无删除权限");
+        }
+        EvaluationRecord record = evaluationMapper.selectById(id);
+        if (record == null) {
+            throw new BusinessException(ResultCode.DATA_NOT_FOUND, "评价记录不存在");
+        }
+        if (roleType == 3) {
+            checkEvaluationOwnership(request, id);
+            if (record.getStatus() != 0 && record.getStatus() != 4) {
+                throw new BusinessException(ResultCode.FAILURE, "只有草稿或驳回状态的评价记录才能删除");
+            }
+        }
+        evaluationService.deleteEvaluation(id);
+        return R.ok();
+    }
+
     private void writeExcelResponse(HttpServletResponse response, byte[] data, String filename) throws IOException {
         response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
         response.setHeader("Content-Disposition", "attachment; filename=" + URLEncoder.encode(filename, "UTF-8"));
@@ -341,14 +379,15 @@ public class EvaluationController {
      * 新增评价记录
      *
      * @param saveDTO 保存请求参数
-     * @return 操作结果
+     * @return 新创建的评价记录ID
      */
     @PostMapping
-    @ApiOperation(value = "新增评价记录", notes = "创建新的评价记录（草稿状态）")
-    public R<Void> addEvaluation(@Valid @RequestBody EvaluationSaveDTO saveDTO) {
+    @ApiOperation(value = "新增评价记录", notes = "创建新的评价记录（草稿状态），返回新记录ID")
+    public R<Long> addEvaluation(@Valid @RequestBody EvaluationSaveDTO saveDTO, HttpServletRequest request) {
+        checkParkOwnership(request, saveDTO.getParkId()); // 数据权限校验
         saveDTO.setId(null); // 确保是新增操作
-        evaluationService.saveEvaluation(saveDTO);
-        return R.ok();
+        Long id = evaluationService.saveEvaluationAndGetId(saveDTO);
+        return R.ok(id);
     }
 
     /**
@@ -359,7 +398,11 @@ public class EvaluationController {
      */
     @PutMapping
     @ApiOperation(value = "修改评价记录", notes = "修改草稿状态的评价记录")
-    public R<Void> updateEvaluation(@Valid @RequestBody EvaluationSaveDTO saveDTO) {
+    public R<Void> updateEvaluation(@Valid @RequestBody EvaluationSaveDTO saveDTO, HttpServletRequest request) {
+        if (saveDTO.getId() == null) {
+            throw new BusinessException(ResultCode.PARAM_ERROR, "评价记录ID不能为空");
+        }
+        checkEvaluationOwnership(request, saveDTO.getId()); // 数据权限校验
         evaluationService.saveEvaluation(saveDTO);
         return R.ok();
     }
@@ -373,9 +416,34 @@ public class EvaluationController {
      */
     @PutMapping("/{id}/score")
     @ApiOperation(value = "保存审核打分", notes = "保存市级/区县审核时的打分详情JSON")
-    public R<Void> saveAuditDetail(@PathVariable Long id, @RequestBody Map<String, Object> body) {
+    public R<Void> saveAuditDetail(@PathVariable Long id, @RequestBody Map<String, Object> body,
+                                   HttpServletRequest request) {
+        checkEvaluationOwnership(request, id); // 数据权限校验
         String scoreDetail = body.get("scoreDetail") != null ? body.get("scoreDetail").toString() : null;
         evaluationService.saveAuditDetail(id, scoreDetail);
+        return R.ok();
+    }
+
+    /**
+     * 修改参评状态（区县端使用）
+     * status: 1=参评, 0=不参评
+     *
+     * @param id     评价记录ID
+     * @param status 参评状态
+     * @return 操作结果
+     */
+    @PutMapping("/{id}/status")
+    @ApiOperation(value = "修改参评状态", notes = "区县管理员修改园区参评状态：1=参评, 0=不参评")
+    public R<Void> updateEvaluationStatus(@PathVariable Long id, @RequestParam Integer status,
+                                          HttpServletRequest request) {
+        checkEvaluationOwnership(request, id); // 数据权限校验
+        EvaluationRecord record = evaluationMapper.selectById(id);
+        if (record == null) {
+            throw new BusinessException(ResultCode.DATA_NOT_FOUND, "评价记录不存在");
+        }
+        record.setEvaluationStatus(status);
+        evaluationMapper.updateById(record);
+        log.info("修改参评状态：evaluationId={}, evaluationStatus={}", id, status);
         return R.ok();
     }
 
@@ -387,7 +455,8 @@ public class EvaluationController {
      */
     @PostMapping("/{id}/submit")
     @ApiOperation(value = "提交评价", notes = "将草稿状态的评价记录提交审核")
-    public R<Void> submitEvaluation(@PathVariable Long id) {
+    public R<Void> submitEvaluation(@PathVariable Long id, HttpServletRequest request) {
+        checkEvaluationOwnership(request, id); // 数据权限校验
         evaluationService.submitEvaluation(id);
         return R.ok();
     }
@@ -541,6 +610,69 @@ public class EvaluationController {
         Integer roleType = (Integer) request.getAttribute("roleType");
         auditService.audit(auditDTO, auditorId, roleType);
         return R.ok();
+    }
+
+    /**
+     * 校验当前用户对目标园区的操作权限（用于新增评价等传入parkId的场景）
+     * - 市级管理员：不限制
+     * - 区县管理员：只能操作本区县园区
+     * - 园区管理员：只能操作本园区
+     */
+    private void checkParkOwnership(HttpServletRequest request, Long parkId) {
+        Integer roleType = (Integer) request.getAttribute("roleType");
+        if (roleType == null || roleType == 1) {
+            return; // 市级管理员不限制
+        }
+        if (parkId == null) {
+            throw new BusinessException(ResultCode.PARAM_ERROR, "园区ID不能为空");
+        }
+
+        Object userIdObj = request.getAttribute("userId");
+        Long userId = null;
+        if (userIdObj instanceof Integer) {
+            userId = ((Integer) userIdObj).longValue();
+        } else if (userIdObj instanceof Long) {
+            userId = (Long) userIdObj;
+        }
+        if (userId == null) {
+            throw new BusinessException(ResultCode.FORBIDDEN, "无法获取用户信息");
+        }
+
+        SysUser user = authService.getUserById(userId);
+        if (user == null) {
+            throw new BusinessException(ResultCode.USER_NOT_FOUND);
+        }
+
+        if (roleType == 3) {
+            // 园区管理员：只能操作本园区
+            if (user.getParkId() == null || !user.getParkId().equals(parkId)) {
+                throw new BusinessException(ResultCode.FORBIDDEN, "无权操作其他园区数据");
+            }
+        } else if (roleType == 2) {
+            // 区县管理员：只能操作本区县园区
+            ParkInfo park = parkMapper.selectById(parkId);
+            if (park == null || user.getDistrictId() == null
+                    || !user.getDistrictId().equals(park.getDistrictId())) {
+                throw new BusinessException(ResultCode.FORBIDDEN, "无权操作其他区县园区数据");
+            }
+        }
+    }
+
+    /**
+     * 校验当前用户对评价记录的操作权限（通过评价记录反查parkId）
+     */
+    private void checkEvaluationOwnership(HttpServletRequest request, Long evaluationId) {
+        Integer roleType = (Integer) request.getAttribute("roleType");
+        if (roleType == null || roleType == 1) {
+            return; // 市级管理员不限制
+        }
+
+        EvaluationRecord record = evaluationMapper.selectById(evaluationId);
+        if (record == null) {
+            throw new BusinessException(ResultCode.DATA_NOT_FOUND, "评价记录不存在");
+        }
+        // 复用 checkParkOwnership 进行园区级权限校验
+        checkParkOwnership(request, record.getParkId());
     }
 
     /**

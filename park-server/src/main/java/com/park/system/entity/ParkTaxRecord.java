@@ -23,6 +23,9 @@ public class ParkTaxRecord extends BaseEntity {
 
     private static final long serialVersionUID = 1L;
 
+    @ApiModelProperty(value = "园区ID")
+    private Long parkId;
+
     @ApiModelProperty(value = "园区名称")
     private String parkName;
 

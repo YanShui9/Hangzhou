@@ -8,6 +8,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.park.common.exception.BusinessException;
 import com.park.common.result.ResultCode;
 import com.park.audit.entity.AuditRecord;
+import com.park.audit.mapper.AuditMapper;
 import com.park.audit.service.AuditService;
 import com.park.evaluation.dto.EvaluationQueryDTO;
 import com.park.evaluation.dto.EvaluationSaveDTO;
@@ -49,16 +50,20 @@ public class EvaluationService {
 
     private final AuditService auditService;
 
+    private final AuditMapper auditMapper;
+
     public EvaluationService(EvaluationMapper evaluationMapper,
                              ParkEvaluationScoreMapper scoreMapper,
                              ParkMapper parkMapper,
                              AutoCalculationService autoCalculationService,
-                             AuditService auditService) {
+                             AuditService auditService,
+                             AuditMapper auditMapper) {
         this.evaluationMapper = evaluationMapper;
         this.scoreMapper = scoreMapper;
         this.parkMapper = parkMapper;
         this.autoCalculationService = autoCalculationService;
         this.auditService = auditService;
+        this.auditMapper = auditMapper;
     }
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
@@ -282,6 +287,17 @@ public class EvaluationService {
      */
     @Transactional(rollbackFor = Exception.class)
     public void saveEvaluation(EvaluationSaveDTO saveDTO) {
+        saveEvaluationAndGetId(saveDTO);
+    }
+
+    /**
+     * 保存评价记录并返回记录ID（新增或修改）
+     *
+     * @param saveDTO 保存请求参数
+     * @return 评价记录ID
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public Long saveEvaluationAndGetId(EvaluationSaveDTO saveDTO) {
         // 检查同一园区、年份是否已存在评价记录（排除自身）
         LambdaQueryWrapper<EvaluationRecord> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(EvaluationRecord::getParkId, saveDTO.getParkId())
@@ -303,18 +319,25 @@ public class EvaluationService {
             if (existing == null) {
                 throw new BusinessException(ResultCode.DATA_NOT_FOUND, "评价记录不存在");
             }
-            // 只有草稿状态才能修改
-            if (existing.getStatus() != 0) {
-                throw new BusinessException(ResultCode.FAILURE, "只有草稿状态的评价记录才能修改");
+            // 草稿(0)或驳回(4)状态才能修改（驳回后允许园区端重新编辑提交）
+            if (existing.getStatus() != 0 && existing.getStatus() != 4) {
+                throw new BusinessException(ResultCode.FAILURE, "只有草稿或驳回状态的评价记录才能修改");
+            }
+            // 驳回状态修改后回到草稿状态，清空驳回类别
+            if (existing.getStatus() == 4) {
+                record.setStatus(0);
+                record.setRejectCategories(null);
             }
             evaluationMapper.updateById(record);
             log.info("评价记录修改成功：id={}", saveDTO.getId());
+            return saveDTO.getId();
         } else {
             // 新增
             record.setStatus(0); // 0=草稿
             evaluationMapper.insert(record);
-            log.info("评价记录新增成功：parkId={}, year={}",
-                    saveDTO.getParkId(), saveDTO.getYear());
+            log.info("评价记录新增成功：parkId={}, year={}, id={}",
+                    saveDTO.getParkId(), saveDTO.getYear(), record.getId());
+            return record.getId();
         }
     }
 
@@ -350,13 +373,41 @@ public class EvaluationService {
         if (record == null) {
             throw new BusinessException(ResultCode.DATA_NOT_FOUND, "评价记录不存在");
         }
-        if (record.getStatus() != 0) {
-            throw new BusinessException(ResultCode.FAILURE, "只有草稿状态的评价记录才能提交");
+        // 草稿(0)或驳回(4)状态才能提交（驳回后允许园区端重新提交）
+        if (record.getStatus() != 0 && record.getStatus() != 4) {
+            throw new BusinessException(ResultCode.FAILURE, "只有草稿或驳回状态的评价记录才能提交");
         }
 
         record.setStatus(1); // 1=待区县审
+        // 清空驳回类别（重新提交后不再保留旧驳回标记）
+        record.setRejectCategories(null);
         evaluationMapper.updateById(record);
         log.info("评价记录已提交：id={}", id);
+    }
+
+    /**
+     * 删除评价记录（级联删除打分数据和审核历史）
+     *
+     * @param id 评价记录ID
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public void deleteEvaluation(Long id) {
+        EvaluationRecord record = evaluationMapper.selectById(id);
+        if (record == null) {
+            throw new BusinessException(ResultCode.DATA_NOT_FOUND, "评价记录不存在");
+        }
+
+        LambdaQueryWrapper<AuditRecord> auditWrapper = new LambdaQueryWrapper<>();
+        auditWrapper.eq(AuditRecord::getEvaluationId, id);
+        auditMapper.delete(auditWrapper);
+
+        LambdaQueryWrapper<ParkEvaluationScore> scoreWrapper = new LambdaQueryWrapper<>();
+        scoreWrapper.eq(ParkEvaluationScore::getParkId, record.getParkId())
+                    .eq(ParkEvaluationScore::getYear, record.getYear());
+        scoreMapper.delete(scoreWrapper);
+
+        evaluationMapper.deleteById(id);
+        log.info("评价记录已删除：id={}, parkId={}, year={}", id, record.getParkId(), record.getYear());
     }
 
     /**

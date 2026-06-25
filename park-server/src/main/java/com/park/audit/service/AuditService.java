@@ -83,6 +83,18 @@ public class AuditService {
     }
 
     /**
+     * 使用外部构建的查询条件进行分页查询（供Controller扩展查询使用）
+     *
+     * @param page    分页对象
+     * @param wrapper 查询条件
+     * @return 分页结果
+     */
+    public IPage<EvaluationRecord> getAuditPageWithWrapper(Page<EvaluationRecord> page,
+                                                             LambdaQueryWrapper<EvaluationRecord> wrapper) {
+        return evaluationMapper.selectPage(page, wrapper);
+    }
+
+    /**
      * 查询待审核列表
      *
      * @param pageNum  页码

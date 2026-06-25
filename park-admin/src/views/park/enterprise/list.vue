@@ -23,27 +23,6 @@
           :value="item.value"
         />
       </el-select>
-      <div class="date-range">
-        <el-date-picker
-          v-model="queryParams.entryStartDate"
-          type="date"
-          placeholder="入驻开始日期"
-          style="width: 160px;"
-          class="filter-item"
-          value-format="yyyy-MM-dd"
-          clearable
-        />
-        <span class="date-separator">至</span>
-        <el-date-picker
-          v-model="queryParams.entryEndDate"
-          type="date"
-          placeholder="入驻截止日期"
-          style="width: 160px;"
-          class="filter-item"
-          value-format="yyyy-MM-dd"
-          clearable
-        />
-      </div>
       <div class="filter-right">
         <el-button
           class="filter-item"
@@ -87,28 +66,54 @@
       <el-table-column label="所属园区" prop="parkName" min-width="120" />
       <el-table-column label="企业荣誉" min-width="150">
         <template slot-scope="{ row }">
-          <el-tag
-            v-for="honor in getHonorTags(row.honor)"
-            :key="honor"
-            :type="getHonorTagType(honor)"
-            size="mini"
-            class="honor-tag"
+          <el-tooltip
+            v-if="getHonorTags(row.enterpriseHonor).length > 3"
+            effect="light"
+            placement="top-start"
           >
-            {{ honor }}
-          </el-tag>
-        </template>
-      </el-table-column>
-      <el-table-column label="企业状态" min-width="100" align="center">
-        <template slot-scope="{ row }">
-          <el-tag :type="getEnterpriseStatusType(row.status)">
-            {{ row.status || '-' }}
-          </el-tag>
+            <div slot="content" style="max-width: 280px;">
+              <el-tag
+                v-for="honor in getHonorTags(row.enterpriseHonor)"
+                :key="honor"
+                :type="getHonorTagType(honor)"
+                size="mini"
+                class="honor-tag"
+              >
+                {{ honor }}
+              </el-tag>
+            </div>
+            <div>
+              <el-tag
+                v-for="(honor, idx) in getHonorTags(row.enterpriseHonor).slice(0, 3)"
+                :key="honor"
+                :type="getHonorTagType(honor)"
+                size="mini"
+                class="honor-tag"
+              >
+                {{ honor }}
+              </el-tag>
+              <span class="honor-more">
+                +{{ getHonorTags(row.enterpriseHonor).length - 3 }}更多
+              </span>
+            </div>
+          </el-tooltip>
+          <div v-else>
+            <el-tag
+              v-for="honor in getHonorTags(row.enterpriseHonor)"
+              :key="honor"
+              :type="getHonorTagType(honor)"
+              size="mini"
+              class="honor-tag"
+            >
+              {{ honor }}
+            </el-tag>
+          </div>
         </template>
       </el-table-column>
       <el-table-column label="登记状态" min-width="100" align="center">
         <template slot-scope="{ row }">
-          <el-tag :type="getRegisterStatusType(row.registerStatus)">
-            {{ row.registerStatus || '-' }}
+          <el-tag :type="getRegisterStatusType(row.status)">
+            {{ row.status || '-' }}
           </el-tag>
         </template>
       </el-table-column>
@@ -119,7 +124,6 @@
           {{ maskPhone(row.contactPhone) }}
         </template>
       </el-table-column>
-      <el-table-column label="备注" prop="remark" min-width="150" show-overflow-tooltip />
       <el-table-column label="操作" width="120" align="center" fixed="right">
         <template slot-scope="{ row }">
           <el-button type="text" size="small" @click="handleViewDetail(row)">查看详情</el-button>
@@ -156,9 +160,7 @@ export default {
         pageNum: 1,
         pageSize: 20,
         keyword: '',
-        honor: '',
-        entryStartDate: '',
-        entryEndDate: ''
+        honor: ''
       },
       enterpriseList: [],
       total: 0,
@@ -167,15 +169,13 @@ export default {
       parkOptions: [],
       districtOptions: ['上城区', '下城区', '西湖区', '江干区', '拱墅区', '滨江区', '萧山区', '余杭区', '富阳区', '临安区', '桐庐县', '建德市', '淳安县'],
       honorOptions: [
-        { value: 'national_high', label: '国高' },
-        { value: 'provincial_high', label: '省专' },
-        { value: 'high_tech', label: '高新技术企业' },
-        { value: 'tech_enterprise', label: '科技型中小企业' },
-        { value: 'national_small_giant', label: '小巨人' },
-        { value: 'provincial_small_giant', label: '省专小巨人' },
-        { value: 'innovation', label: '创新型' },
-        { value: 'hidden_champion', label: '隐形冠军' },
-        { value: 'single_champion', label: '单项冠军' }
+        { value: '国家高新技术企业', label: '国家高新技术企业' },
+        { value: '专精特新', label: '专精特新' },
+        { value: '小巨人', label: '小巨人' },
+        { value: '隐形冠军', label: '隐形冠军' },
+        { value: '单项冠军', label: '单项冠军' },
+        { value: '科技型中小企业', label: '科技型中小企业' },
+        { value: '创新型中小企业', label: '创新型中小企业' }
       ],
       registerStatusOptions: [
         { value: '存续/在业', label: '存续/在业' },
@@ -202,7 +202,10 @@ export default {
     getList() {
       this.loading = true
       const params = {
-        ...this.queryParams,
+        pageNum: this.queryParams.pageNum,
+        pageSize: this.queryParams.pageSize,
+        enterpriseName: this.queryParams.keyword,
+        enterpriseHonor: this.queryParams.honor,
         parkId: this.userInfo.parkId
       }
       getEnterpriseList(params).then(response => {
@@ -231,9 +234,7 @@ export default {
         pageNum: 1,
         pageSize: 20,
         keyword: '',
-        honor: '',
-        entryStartDate: '',
-        entryEndDate: ''
+        honor: ''
       }
       this.getList()
     },
@@ -245,10 +246,11 @@ export default {
       }).then(() => {
         this.exportLoading = true
         const params = {
-          ...this.queryParams,
-          parkId: this.userInfo.parkId,
           pageNum: 1,
-          pageSize: 99999
+          pageSize: 99999,
+          enterpriseName: this.queryParams.keyword,
+          enterpriseHonor: this.queryParams.honor,
+          parkId: this.userInfo.parkId
         }
         getEnterpriseList(params).then(response => {
           const data = response.data
@@ -272,19 +274,17 @@ export default {
         { key: 'creditCode', label: '统一信用代码' },
         { key: 'districtName', label: '所属区域' },
         { key: 'parkName', label: '所属园区' },
-        { key: 'honor', label: '企业荣誉' },
-        { key: 'status', label: '企业状态' },
-        { key: 'registerStatus', label: '登记状态' },
+        { key: 'enterpriseHonor', label: '企业荣誉' },
+        { key: 'status', label: '登记状态' },
         { key: 'legalPerson', label: '法定代表人' },
         { key: 'contactName', label: '联系人' },
-        { key: 'contactPhone', label: '联系电话' },
-        { key: 'remark', label: '备注' }
+        { key: 'contactPhone', label: '联系电话' }
       ]
       const rows = data.map(row => {
         const rowData = {}
         headers.forEach(header => {
-          if (header.key === 'honor') {
-            rowData[header.label] = this.getHonorTags(row.honor).join('; ') || '-'
+          if (header.key === 'enterpriseHonor') {
+            rowData[header.label] = this.getHonorTags(row.enterpriseHonor).join('; ') || '-'
           } else if (header.key === 'contactPhone') {
             rowData[header.label] = row.contactPhone || '-'
           } else {
@@ -313,17 +313,36 @@ export default {
     getHonorTags(honorStr) {
       if (!honorStr) return []
       const honorMap = {
-        'national_high': '国高',
-        'provincial_high': '省专',
-        'high_tech': '高新技术企业',
-        'tech_enterprise': '科技型中小企业',
-        'national_small_giant': '小巨人',
-        'provincial_small_giant': '省专小巨人',
-        'innovation': '创新型',
-        'hidden_champion': '隐形冠军',
-        'single_champion': '单项冠军'
+        // 企业培育类
+        'existing_above_scale': '现存规上',
+        'new_above_scale': '新增规上',
+        'retired_above_scale': '退出规上',
+        'new_single_champion': '单项冠军',
+        'new_ipo': '新增上市',
+        'new_specialty_giant': '专精特新小巨人',
+        'new_provincial_hidden_champion': '省级隐形冠军',
+        'new_specialty_sme': '专精特新中小企业',
+        'new_national_high_tech': '国家高新技术企业',
+        'innovative_sme': '创新型中小企业',
+        'new_provincial_tech_small': '省级科技型中小企业',
+        // 科技创新类
+        'new_first_equipment': '首台套装备',
+        'first_version': '首版次软件',
+        'first_batch': '首批次新材料',
+        'provincial_excellent_industrial': '省级优秀工业产品',
+        'zhejiang_made_quality': '浙江制造精品',
+        'new_national_rd_agency': '国家级研发机构',
+        'new_provincial_rd_agency': '省级研发机构',
+        'new_municipal_rd_agency': '市级研发机构',
+        'public_service_platform': '公共服务平台',
+        // 其他
+        'early_invest_innovation': '早期投资创新',
+        'enterprise_incubator': '企业孵化器',
+        'talent_a_class': 'A类人才',
+        'talent_b_class': 'B类人才',
+        'talent_c_class': 'C类人才'
       }
-      return honorStr.split(',').map(h => honorMap[h] || h)
+      return honorStr.split('/').map(h => honorMap[h] || h)
     },
     getHonorTagType(honor) {
       if (honor.includes('国高')) return 'danger'
@@ -432,6 +451,13 @@ export default {
 .honor-tag {
   margin-right: 4px;
   margin-bottom: 4px;
+}
+
+.honor-more {
+  color: #909399;
+  font-size: 12px;
+  margin-left: 2px;
+  cursor: default;
 }
 
 @media screen and (max-width: 768px) {

@@ -4,7 +4,7 @@ import com.park.auth.entity.SysUser;
 import com.park.auth.service.AuthService;
 import com.park.common.result.R;
 import com.park.dashboard.dto.DashboardStatsDTO;
-import com.park.dashboard.dto.MonthlyStatsDTO;
+import com.park.dashboard.dto.QuarterlyStatsDTO;
 import com.park.dashboard.dto.ParkRankDTO;
 import com.park.dashboard.service.DashboardService;
 import com.park.system.entity.DistrictInfo;
@@ -81,13 +81,13 @@ public class DashboardController {
      * @param request HTTP 请求
      * @return 季度统计列表（4个季度）
      */
-    @GetMapping("/monthly-stats")
+    @GetMapping("/quarterly-stats")
     @ApiOperation(value = "获取季度统计", notes = "指定年份每季度的运营数据汇总")
-    public R<List<MonthlyStatsDTO>> getMonthlyStats(
+    public R<List<QuarterlyStatsDTO>> getQuarterlyStats(
             @ApiParam(value = "年份", example = "2026") @RequestParam(defaultValue = "2026") int year,
             HttpServletRequest request) {
         UserScope scope = resolveUserScope(request);
-        List<MonthlyStatsDTO> quarterlyStats = dashboardService.getQuarterlyStats(year, scope.districtName, scope.parkId);
+        List<QuarterlyStatsDTO> quarterlyStats = dashboardService.getQuarterlyStats(year, scope.districtName, scope.parkId);
         return R.ok(quarterlyStats);
     }
 

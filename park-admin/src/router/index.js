@@ -73,6 +73,24 @@ const routes = [
         meta: { title: '园区列表', icon: 'el-icon-office-building', roles: [2] }
       },
       {
+        path: 'district/park/add',
+        name: 'DistrictParkAdd',
+        component: () => import('@/views/district/park/form.vue'),
+        meta: { title: '新增园区', roles: [2], hidden: true }
+      },
+      {
+        path: 'district/park/detail/:id',
+        name: 'DistrictParkDetail',
+        component: () => import('@/views/district/park/detail.vue'),
+        meta: { title: '园区详情', roles: [2], hidden: true }
+      },
+      {
+        path: 'district/park/edit/:id',
+        name: 'DistrictParkEdit',
+        component: () => import('@/views/district/park/form.vue'),
+        meta: { title: '编辑园区', roles: [2], hidden: true }
+      },
+      {
         path: 'park/mine',
         name: 'ParkMine',
         component: () => import('@/views/park/mine/index.vue'),
@@ -158,25 +176,25 @@ const routes = [
         path: 'district/result/park',
         name: 'DistrictResultPark',
         component: () => import('@/views/district/result/list.vue'),
-        meta: { title: '园区评价', icon: 'el-icon-office-building', roles: [2] }
+        meta: { title: '园区评价', icon: 'el-icon-office-building', roles: [2], hidden: true }
       },
       {
         path: 'district/result/enterprise',
         name: 'DistrictResultEnterprise',
         component: () => import('@/views/district/result/list.vue'),
-        meta: { title: '企业指标', icon: 'el-icon-s-shop', roles: [2] }
+        meta: { title: '企业指标', icon: 'el-icon-s-shop', roles: [2], hidden: true }
       },
       {
         path: 'park/result/park',
         name: 'ParkResultPark',
         component: () => import('@/views/park/result/list.vue'),
-        meta: { title: '园区评价', icon: 'el-icon-office-building', roles: [3] }
+        meta: { title: '园区评价', icon: 'el-icon-office-building', roles: [3], hidden: true }
       },
       {
         path: 'park/result/enterprise',
         name: 'ParkResultEnterprise',
         component: () => import('@/views/park/result/list.vue'),
-        meta: { title: '企业指标', icon: 'el-icon-s-shop', roles: [3] }
+        meta: { title: '企业指标', icon: 'el-icon-s-shop', roles: [3], hidden: true }
       },
       // 系统设置 - 管理员账号
       {

@@ -73,7 +73,8 @@ public class ParkController {
      */
     @GetMapping("/{id}")
     @ApiOperation(value = "查询园区详情", notes = "根据园区ID查询详细信息")
-    public R<ParkInfo> getParkById(@PathVariable Long id) {
+    public R<ParkInfo> getParkById(@PathVariable Long id, HttpServletRequest request) {
+        checkParkPermission(request, id); // 数据权限校验
         ParkInfo parkInfo = parkService.getParkById(id);
         return R.ok(parkInfo);
     }
@@ -86,7 +87,8 @@ public class ParkController {
      */
     @GetMapping("/{id}/stats")
     @ApiOperation(value = "获取园区统计数据", notes = "根据园区ID查询统计数据（企业、人才、专利等）")
-    public R<ParkStatsDTO> getParkStats(@PathVariable Long id) {
+    public R<ParkStatsDTO> getParkStats(@PathVariable Long id, HttpServletRequest request) {
+        checkParkPermission(request, id); // 数据权限校验
         ParkStatsDTO stats = parkService.getParkStats(id);
         return R.ok(stats);
     }
@@ -112,7 +114,8 @@ public class ParkController {
      */
     @PostMapping
     @ApiOperation(value = "新增园区", notes = "创建新的园区信息")
-    public R<Void> savePark(@Valid @RequestBody ParkSaveDTO saveDTO) {
+    public R<Void> savePark(@Valid @RequestBody ParkSaveDTO saveDTO, HttpServletRequest request) {
+        checkLogin(request); // 登录校验：任意角色可新增园区，但需登录
         parkService.savePark(saveDTO);
         return R.ok();
     }
@@ -126,8 +129,15 @@ public class ParkController {
      */
     @PutMapping("/{id}")
     @ApiOperation(value = "修改园区", notes = "更新园区信息")
-    public R<Void> updatePark(@PathVariable Long id, @Valid @RequestBody ParkSaveDTO saveDTO) {
+    public R<Void> updatePark(@PathVariable Long id, @RequestBody ParkSaveDTO saveDTO,
+                              HttpServletRequest request) {
+        checkParkPermission(request, id); // 数据权限校验
         saveDTO.setId(id);
+        // 更新时手动校验园区名称；所属区域等字段可为空（保留原值，MyBatis-Plus NOT_NULL 策略不覆盖）
+        if (saveDTO.getParkName() == null || saveDTO.getParkName().trim().isEmpty()) {
+            throw new com.park.common.exception.BusinessException(
+                    com.park.common.result.ResultCode.PARAM_ERROR, "园区名称不能为空");
+        }
         parkService.updatePark(saveDTO);
         return R.ok();
     }
@@ -140,7 +150,8 @@ public class ParkController {
      */
     @DeleteMapping("/{id}")
     @ApiOperation(value = "删除园区", notes = "根据园区ID删除园区")
-    public R<Void> deletePark(@PathVariable Long id) {
+    public R<Void> deletePark(@PathVariable Long id, HttpServletRequest request) {
+        checkAdmin(request); // 删除仅市级管理员可操作
         parkService.deletePark(id);
         return R.ok();
     }
@@ -150,7 +161,8 @@ public class ParkController {
      */
     @DeleteMapping("/batch")
     @ApiOperation(value = "批量删除园区", notes = "根据ID数组批量删除")
-    public R<Void> batchDeletePark(@RequestBody java.util.List<Long> ids) {
+    public R<Void> batchDeletePark(@RequestBody java.util.List<Long> ids, HttpServletRequest request) {
+        checkCityAdmin(request); // 仅市级管理员可批量删除
         parkService.batchDeletePark(ids);
         return R.ok();
     }
@@ -203,6 +215,80 @@ public class ParkController {
         if (roleType == null || roleType != 1) {
             throw new com.park.common.exception.BusinessException(
                     com.park.common.result.ResultCode.FORBIDDEN, "仅市级管理员可操作");
+        }
+    }
+
+    /**
+     * 校验当前用户是否为市级管理员（roleType=1）
+     */
+    private void checkCityAdmin(HttpServletRequest request) {
+        Object roleTypeObj = request.getAttribute("roleType");
+        Integer roleType = (roleTypeObj instanceof Integer) ? (Integer) roleTypeObj : null;
+        if (roleType == null || roleType != 1) {
+            throw new com.park.common.exception.BusinessException(
+                    com.park.common.result.ResultCode.FORBIDDEN, "无权限");
+        }
+    }
+
+    /**
+     * 登录校验：任意已登录用户均可通过
+     */
+    private void checkLogin(HttpServletRequest request) {
+        Object roleTypeObj = request.getAttribute("roleType");
+        if (!(roleTypeObj instanceof Integer)) {
+            throw new com.park.common.exception.BusinessException(
+                    com.park.common.result.ResultCode.FORBIDDEN, "无权限");
+        }
+    }
+
+    /**
+     * 校验当前用户对园区的操作权限
+     * - 市级管理员（roleType=1）：不限制
+     * - 区县管理员（roleType=2）：只能操作本区县园区
+     * - 园区管理员（roleType=3）：只能操作本园区
+     *
+     * @param request HTTP请求
+     * @param parkId  目标园区ID
+     */
+    private void checkParkPermission(HttpServletRequest request, Long parkId) {
+        Integer roleType = (Integer) request.getAttribute("roleType");
+        if (roleType == null || roleType == 1) {
+            // 市级管理员不限制
+            return;
+        }
+
+        Object userIdObj = request.getAttribute("userId");
+        Long userId = null;
+        if (userIdObj instanceof Integer) {
+            userId = ((Integer) userIdObj).longValue();
+        } else if (userIdObj instanceof Long) {
+            userId = (Long) userIdObj;
+        }
+        if (userId == null) {
+            throw new com.park.common.exception.BusinessException(
+                    com.park.common.result.ResultCode.FORBIDDEN, "无法获取用户信息");
+        }
+
+        SysUser user = authService.getUserById(userId);
+        if (user == null) {
+            throw new com.park.common.exception.BusinessException(
+                    com.park.common.result.ResultCode.USER_NOT_FOUND);
+        }
+
+        if (roleType == 3) {
+            // 园区管理员：只能操作本园区
+            if (user.getParkId() == null || !user.getParkId().equals(parkId)) {
+                throw new com.park.common.exception.BusinessException(
+                        com.park.common.result.ResultCode.FORBIDDEN, "无权操作其他园区数据");
+            }
+        } else if (roleType == 2) {
+            // 区县管理员：只能操作本区县园区
+            ParkInfo park = parkService.getParkById(parkId);
+            if (park == null || user.getDistrictId() == null
+                    || !user.getDistrictId().equals(park.getDistrictId())) {
+                throw new com.park.common.exception.BusinessException(
+                        com.park.common.result.ResultCode.FORBIDDEN, "无权操作其他区县园区数据");
+            }
         }
     }
 

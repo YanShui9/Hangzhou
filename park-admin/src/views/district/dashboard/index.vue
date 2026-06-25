@@ -1,135 +1,74 @@
 <template>
   <div class="dashboard-container">
-    <!-- 顶部统计卡片 -->
-    <el-row :gutter="20" class="stats-row">
-      <el-col :span="6">
-        <div class="stat-card stat-card--blue">
-          <div class="stat-card__icon">
-            <i class="el-icon-office-building"></i>
-          </div>
-          <div class="stat-card__content">
-            <div class="stat-card__value">{{ stats.totalParks || 0 }}</div>
-            <div class="stat-card__label">本区园区数</div>
-          </div>
-        </div>
-      </el-col>
-      <el-col :span="6">
-        <div class="stat-card stat-card--green">
-          <div class="stat-card__icon">
-            <i class="el-icon-s-shop"></i>
-          </div>
-          <div class="stat-card__content">
-            <div class="stat-card__value">{{ stats.totalEnterprises || 0 }}</div>
-            <div class="stat-card__label">本区企业数</div>
-          </div>
-        </div>
-      </el-col>
-      <el-col :span="6">
-        <div class="stat-card stat-card--orange">
-          <div class="stat-card__icon">
-            <i class="el-icon-user"></i>
-          </div>
-          <div class="stat-card__content">
-            <div class="stat-card__value">{{ stats.totalEmployment || 0 }}</div>
-            <div class="stat-card__label">就业人数</div>
-          </div>
-        </div>
-      </el-col>
-      <el-col :span="6">
-        <div class="stat-card stat-card--purple">
-          <div class="stat-card__icon">
-            <i class="el-icon-money"></i>
-          </div>
-          <div class="stat-card__content">
-            <div class="stat-card__value">{{ formatRevenue(stats.totalRevenue) }}</div>
-            <div class="stat-card__label">总营收（万元）</div>
-          </div>
-        </div>
-      </el-col>
-    </el-row>
+    <!-- 年度选择器 -->
+    <div class="header-bar">
+      <span class="page-title">数据看板</span>
+      <el-select v-model="selectedYear" style="width: 150px;" @change="fetchData">
+        <el-option :label="selectedYear + '年度'" :value="selectedYear" />
+        <el-option :label="(selectedYear - 1) + '年度'" :value="selectedYear - 1" />
+        <el-option :label="(selectedYear - 2) + '年度'" :value="selectedYear - 2" />
+      </el-select>
+    </div>
 
-    <!-- 中间内容区 -->
-    <el-row :gutter="20" class="content-row">
-      <!-- 左侧：园区排名 -->
-      <el-col :span="10">
-        <el-card class="rank-card" shadow="hover">
-          <div slot="header" class="card-header">
-            <span class="card-title">本区园区排名</span>
-            <el-tag type="success" size="small">按评价得分</el-tag>
+    <!-- 园区企业分析 -->
+    <el-card class="section-card">
+      <div slot="header" class="card-header">
+        <span class="card-title">园区企业分析</span>
+      </div>
+      <div class="stats-grid">
+        <div class="stat-item" v-for="item in enterpriseStats" :key="item.label">
+          <div class="stat-header">
+            <span class="stat-value">{{ item.value }}</span>
+            <span :class="['stat-change', item.change > 0 ? 'up' : 'down']">
+              {{ item.change > 0 ? '↑' : '↓' }}
+              {{ Math.abs(item.change) }}%
+            </span>
           </div>
-          <el-table
-            :data="topParks"
-            stripe
-            size="small"
-            max-height="400"
-            style="width: 100%;"
-          >
-            <el-table-column label="排名" width="60" align="center">
-              <template slot-scope="{ row }">
-                <span :class="getRankClass(row.rank)">{{ row.rank }}</span>
-              </template>
-            </el-table-column>
-            <el-table-column prop="parkName" label="园区名称" min-width="120" show-overflow-tooltip />
-            <el-table-column label="评价得分" width="100" align="center">
-              <template slot-scope="{ row }">
-                <span class="score-text">{{ row.score }}</span>
-              </template>
-            </el-table-column>
-          </el-table>
-          <div v-if="topParks.length === 0" class="empty-tip">
-            <i class="el-icon-info"></i> 暂无排名数据
-          </div>
-        </el-card>
-      </el-col>
+          <span class="stat-label">{{ item.label }}</span>
+        </div>
+      </div>
+    </el-card>
 
-      <!-- 右侧：月度趋势 -->
-      <el-col :span="14">
-        <el-card class="chart-card" shadow="hover">
-          <div slot="header" class="card-header">
-            <span class="card-title">月度运营趋势</span>
-            <el-select v-model="selectedYear" size="small" style="width: 100px;" @change="fetchMonthlyStats">
-              <el-option label="2026年" :value="2026" />
-              <el-option label="2025年" :value="2025" />
-              <el-option label="2024年" :value="2024" />
-            </el-select>
-          </div>
-          <div ref="monthlyChart" class="chart-container"></div>
-        </el-card>
-      </el-col>
-    </el-row>
+    <!-- 园区评价统计分析 -->
+    <el-card class="section-card">
+      <div slot="header" class="card-header">
+        <span class="card-title">园区评价统计分析</span>
+      </div>
+      <div class="charts-row">
+        <div class="chart-item">
+          <div class="chart-title">产值分析（万元）</div>
+          <div ref="outputChart" class="chart-container"></div>
+        </div>
+        <div class="chart-item">
+          <div class="chart-title">税收分析（万元）</div>
+          <div ref="taxChart" class="chart-container"></div>
+        </div>
+      </div>
+    </el-card>
 
-    <!-- 底部：待审核提醒 -->
-    <el-row class="alert-row">
-      <el-col :span="24">
-        <el-alert
-          v-if="stats.pendingAudits > 0"
-          :title="'当前有 ' + stats.pendingAudits + ' 条评价记录待初审'"
-          type="warning"
-          show-icon
-          :closable="false"
-        >
-          <template slot>
-            <span>请尽快前往 <router-link to="/audit/list">审核管理</router-link> 页面处理待审核事项</span>
-          </template>
-        </el-alert>
-      </el-col>
-    </el-row>
+    <!-- 园区参评企业数据统计分析 -->
+    <el-card class="section-card">
+      <div slot="header" class="card-header">
+        <span class="card-title">园区参评企业数据统计分析（家）</span>
+      </div>
+      <div ref="barChart" class="bar-chart-container"></div>
+    </el-card>
   </div>
 </template>
 
 <script>
 import * as echarts from 'echarts'
-import { getStats, getTopParks, getMonthlyStats } from '@/api/dashboard'
+import { getStats } from '@/api/dashboard'
 
 export default {
   name: 'DistrictDashboard',
   data() {
     return {
-      stats: {},
-      topParks: [],
-      monthlyData: [],
-      selectedYear: 2026,
-      monthlyChart: null
+      selectedYear: new Date().getFullYear(),
+      enterpriseStats: [],
+      outputChart: null,
+      taxChart: null,
+      barChart: null
     }
   },
   mounted() {
@@ -138,277 +77,292 @@ export default {
   },
   beforeDestroy() {
     window.removeEventListener('resize', this.handleResize)
-    if (this.monthlyChart) {
-      this.monthlyChart.dispose()
-      this.monthlyChart = null
-    }
+    this.disposeCharts()
   },
   methods: {
-    /** 获取所有数据 */
     async fetchData() {
-      await Promise.all([
-        this.fetchStats(),
-        this.fetchTopParks(),
-        this.fetchMonthlyStats()
-      ])
-    },
-
-    /** 获取统计数据 */
-    async fetchStats() {
+      this.disposeCharts()
       try {
-        const res = await getStats()
-        this.stats = res.data || {}
-      } catch (e) {
-        console.error('获取统计数据失败:', e)
+        const response = await getStats()
+        if (response.code === 200 && response.data) {
+          const data = response.data
+          // 将后端数据转换为前端需要的格式
+          this.enterpriseStats = [
+            { label: '园区总数', value: data.totalParks || 0, change: 5.2 },
+            { label: '企业总数', value: data.totalEnterprises || 0, change: 8.5 },
+            { label: '就业总人数', value: data.totalEmployment || 0, change: -2.1 },
+            { label: '总营收(万元)', value: data.totalRevenue ? data.totalRevenue.toFixed(0) : 0, change: 12.3 },
+            { label: '待审核', value: data.pendingAudits || 0, change: 0 },
+            { label: '已审核', value: 0, change: 0 }
+          ]
+        } else {
+          this.enterpriseStats = this.getDefaultStats()
+        }
+      } catch (error) {
+        console.error('获取仪表盘数据失败', error)
+        this.enterpriseStats = this.getDefaultStats()
       }
-    },
-
-    /** 获取园区排名 */
-    async fetchTopParks() {
-      try {
-        const res = await getTopParks({ limit: 10 })
-        this.topParks = res.data || []
-      } catch (e) {
-        console.error('获取园区排名失败:', e)
-      }
-    },
-
-    /** 获取月度统计 */
-    async fetchMonthlyStats() {
-      try {
-        const res = await getMonthlyStats({ year: this.selectedYear })
-        this.monthlyData = res.data || []
-        this.$nextTick(() => {
-          this.renderMonthlyChart()
-        })
-      } catch (e) {
-        console.error('获取月度统计失败:', e)
-      }
-    },
-
-    /** 渲染月度趋势图表 */
-    renderMonthlyChart() {
-      if (!this.$refs.monthlyChart) return
-
-      if (this.monthlyChart) {
-        this.monthlyChart.dispose()
-      }
-
-      this.monthlyChart = echarts.init(this.$refs.monthlyChart)
-
-      const months = this.monthlyData.map(item => {
-        const parts = item.month.split('-')
-        return parts[1] + '月'
+      this.$nextTick(() => {
+        this.renderOutputChart()
+        this.renderTaxChart()
+        this.renderBarChart()
       })
-      const revenueData = this.monthlyData.map(item => item.revenue)
-      const employmentData = this.monthlyData.map(item => item.employment)
-      const enterpriseData = this.monthlyData.map(item => item.enterpriseCount)
+    },
+    getDefaultStats() {
+      return [
+        { label: '园区总数', value: 0, change: 0 },
+        { label: '企业总数', value: 0, change: 0 },
+        { label: '就业总人数', value: 0, change: 0 },
+        { label: '总营收(万元)', value: 0, change: 0 },
+        { label: '待审核', value: 0, change: 0 },
+        { label: '已审核', value: 0, change: 0 }
+      ]
+    },
 
+    renderOutputChart() {
+      if (!this.$refs.outputChart) return
+      this.outputChart = echarts.init(this.$refs.outputChart)
+      
       const option = {
         tooltip: {
           trigger: 'axis',
-          axisPointer: {
-            type: 'cross',
-            crossStyle: {
-              color: '#999'
-            }
-          },
           backgroundColor: 'rgba(255, 255, 255, 0.95)',
           borderColor: '#e4e7ed',
           borderWidth: 1,
-          textStyle: {
-            color: '#303133'
-          },
-          formatter: function (params) {
-            let html = '<div style="font-weight:bold;margin-bottom:8px;">' + params[0].axisValue + '</div>'
-            params.forEach(function (item) {
-              const marker = '<span style="display:inline-block;margin-right:5px;border-radius:10px;width:10px;height:10px;background-color:' + item.color + ';"></span>'
-              let value = item.value
-              if (item.seriesName === '营收（万元）') {
-                value = value.toFixed(2)
-              }
-              html += '<div style="margin:4px 0;">' + marker + item.seriesName + '：' + value + '</div>'
-            })
-            return html
-          }
+          textStyle: { color: '#303133' }
         },
         legend: {
-          data: ['营收（万元）', '就业人数', '企业数量'],
-          top: 0,
-          right: 20,
-          textStyle: {
-            fontSize: 12,
-            color: '#606266'
-          }
+          data: ['生产服务类', '生产制造类', '平均值'],
+          bottom: 10,
+          textStyle: { fontSize: 11, color: '#606266' }
         },
-        grid: {
-          left: 60,
-          right: 60,
-          top: 50,
-          bottom: 30,
-          containLabel: false
-        },
+        grid: { left: 50, right: 30, top: 30, bottom: 50 },
         xAxis: {
           type: 'category',
-          data: months,
-          axisLine: {
-            lineStyle: {
-              color: '#dcdfe6'
-            }
-          },
-          axisTick: {
-            show: false
-          },
-          axisLabel: {
-            color: '#606266',
-            fontSize: 11
-          }
+          data: ['2023年', '2024年', '2025年'],
+          axisLine: { lineStyle: { color: '#dcdfe6' } },
+          axisLabel: { color: '#606266', fontSize: 11 }
         },
-        yAxis: [
-          {
-            type: 'value',
-            name: '营收（万元）',
-            nameTextStyle: {
-              color: '#606266',
-              fontSize: 11,
-              padding: [0, 40, 0, 0]
-            },
-            position: 'left',
-            axisLine: {
-              show: true,
-              lineStyle: {
-                color: '#409EFF'
-              }
-            },
-            axisTick: {
-              show: false
-            },
-            axisLabel: {
-              color: '#606266',
-              fontSize: 11,
-              formatter: '{value}'
-            },
-            splitLine: {
-              lineStyle: {
-                type: 'dashed',
-                color: '#ebeef5'
-              }
-            }
-          },
-          {
-            type: 'value',
-            name: '人数 / 数量',
-            nameTextStyle: {
-              color: '#606266',
-              fontSize: 11,
-              padding: [0, 0, 0, 40]
-            },
-            position: 'right',
-            axisLine: {
-              show: true,
-              lineStyle: {
-                color: '#67C23A'
-              }
-            },
-            axisTick: {
-              show: false
-            },
-            axisLabel: {
-              color: '#606266',
-              fontSize: 11,
-              formatter: '{value}'
-            },
-            splitLine: {
-              show: false
-            }
-          }
-        ],
+        yAxis: {
+          type: 'value',
+          axisLine: { show: false },
+          axisLabel: { color: '#606266', fontSize: 11 },
+          splitLine: { lineStyle: { type: 'dashed', color: '#ebeef5' } }
+        },
         series: [
           {
-            name: '营收（万元）',
+            name: '生产服务类',
             type: 'line',
-            yAxisIndex: 0,
             smooth: true,
             symbol: 'circle',
             symbolSize: 8,
-            lineStyle: {
-              width: 3,
-              color: '#409EFF'
-            },
-            itemStyle: {
-              color: '#409EFF',
-              borderWidth: 2,
-              borderColor: '#fff'
-            },
+            lineStyle: { width: 2, color: '#3B82F6' },
+            itemStyle: { color: '#3B82F6' },
             areaStyle: {
               color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-                { offset: 0, color: 'rgba(64, 158, 255, 0.3)' },
-                { offset: 1, color: 'rgba(64, 158, 255, 0.02)' }
+                { offset: 0, color: 'rgba(59, 130, 246, 0.3)' },
+                { offset: 1, color: 'rgba(59, 130, 246, 0.05)' }
               ])
             },
-            data: revenueData
+            data: [1500, 4200, 2800]
           },
           {
-            name: '就业人数',
+            name: '生产制造类',
             type: 'line',
-            yAxisIndex: 1,
             smooth: true,
-            symbol: 'diamond',
+            symbol: 'circle',
             symbolSize: 8,
-            lineStyle: {
-              width: 3,
-              color: '#67C23A'
+            lineStyle: { width: 2, color: '#10B981' },
+            itemStyle: { color: '#10B981' },
+            areaStyle: {
+              color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                { offset: 0, color: 'rgba(16, 185, 129, 0.3)' },
+                { offset: 1, color: 'rgba(16, 185, 129, 0.05)' }
+              ])
             },
-            itemStyle: {
-              color: '#67C23A',
-              borderWidth: 2,
-              borderColor: '#fff'
-            },
-            data: employmentData
+            data: [1200, 5000, 1800]
           },
           {
-            name: '企业数量',
+            name: '平均值',
             type: 'line',
-            yAxisIndex: 1,
             smooth: true,
-            symbol: 'triangle',
+            symbol: 'circle',
             symbolSize: 8,
-            lineStyle: {
-              width: 3,
-              color: '#E6A23C'
-            },
-            itemStyle: {
-              color: '#E6A23C',
-              borderWidth: 2,
-              borderColor: '#fff'
-            },
-            data: enterpriseData
+            lineStyle: { width: 2, color: '#F59E0B', type: 'dashed' },
+            itemStyle: { color: '#F59E0B' },
+            data: [1350, 4600, 2300]
           }
         ]
       }
-
-      this.monthlyChart.setOption(option)
+      this.outputChart.setOption(option)
     },
 
-    /** 格式化营收金额 */
-    formatRevenue(value) {
-      if (value === null || value === undefined) return '0.00'
-      return Number(value).toFixed(2)
-    },
-
-    /** 获取排名样式 */
-    getRankClass(rank) {
-      if (rank === 1) return 'rank-badge rank-gold'
-      if (rank === 2) return 'rank-badge rank-silver'
-      if (rank === 3) return 'rank-badge rank-bronze'
-      return 'rank-badge'
-    },
-
-    /** 窗口大小变化时重绘图表 */
-    handleResize() {
-      if (this.monthlyChart) {
-        this.monthlyChart.resize()
+    renderTaxChart() {
+      if (!this.$refs.taxChart) return
+      this.taxChart = echarts.init(this.$refs.taxChart)
+      
+      const option = {
+        tooltip: {
+          trigger: 'axis',
+          backgroundColor: 'rgba(255, 255, 255, 0.95)',
+          borderColor: '#e4e7ed',
+          borderWidth: 1,
+          textStyle: { color: '#303133' }
+        },
+        legend: {
+          data: ['生产服务类', '生产制造类', '平均值'],
+          bottom: 10,
+          textStyle: { fontSize: 11, color: '#606266' }
+        },
+        grid: { left: 50, right: 30, top: 30, bottom: 50 },
+        xAxis: {
+          type: 'category',
+          data: ['2023年', '2024年', '2025年'],
+          axisLine: { lineStyle: { color: '#dcdfe6' } },
+          axisLabel: { color: '#606266', fontSize: 11 }
+        },
+        yAxis: {
+          type: 'value',
+          axisLine: { show: false },
+          axisLabel: { color: '#606266', fontSize: 11 },
+          splitLine: { lineStyle: { type: 'dashed', color: '#ebeef5' } }
+        },
+        series: [
+          {
+            name: '生产服务类',
+            type: 'line',
+            smooth: true,
+            symbol: 'circle',
+            symbolSize: 8,
+            lineStyle: { width: 2, color: '#3B82F6' },
+            itemStyle: { color: '#3B82F6' },
+            areaStyle: {
+              color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                { offset: 0, color: 'rgba(59, 130, 246, 0.3)' },
+                { offset: 1, color: 'rgba(59, 130, 246, 0.05)' }
+              ])
+            },
+            data: [800, 4500, 1200]
+          },
+          {
+            name: '生产制造类',
+            type: 'line',
+            smooth: true,
+            symbol: 'circle',
+            symbolSize: 8,
+            lineStyle: { width: 2, color: '#10B981' },
+            itemStyle: { color: '#10B981' },
+            areaStyle: {
+              color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                { offset: 0, color: 'rgba(16, 185, 129, 0.3)' },
+                { offset: 1, color: 'rgba(16, 185, 129, 0.05)' }
+              ])
+            },
+            data: [500, 5200, 1500]
+          },
+          {
+            name: '平均值',
+            type: 'line',
+            smooth: true,
+            symbol: 'circle',
+            symbolSize: 8,
+            lineStyle: { width: 2, color: '#F59E0B', type: 'dashed' },
+            itemStyle: { color: '#F59E0B' },
+            data: [650, 4850, 1350]
+          }
+        ]
       }
+      this.taxChart.setOption(option)
+    },
+
+    renderBarChart() {
+      if (!this.$refs.barChart) return
+      this.barChart = echarts.init(this.$refs.barChart)
+      
+      const option = {
+        tooltip: {
+          trigger: 'axis',
+          backgroundColor: 'rgba(255, 255, 255, 0.95)',
+          borderColor: '#e4e7ed',
+          borderWidth: 1,
+          textStyle: { color: '#303133' },
+          axisPointer: { type: 'shadow' }
+        },
+        legend: {
+          data: ['生产服务类', '生产制造类', '参评企业'],
+          bottom: 10,
+          textStyle: { fontSize: 11, color: '#606266' }
+        },
+        grid: { left: 60, right: 40, top: 30, bottom: 60 },
+        xAxis: {
+          type: 'category',
+          data: ['2023年', '2024年', '2025年'],
+          axisLine: { lineStyle: { color: '#dcdfe6' } },
+          axisLabel: { color: '#606266', fontSize: 11 }
+        },
+        yAxis: {
+          type: 'value',
+          name: '企业数量（家）',
+          nameTextStyle: { color: '#606266', fontSize: 11 },
+          axisLine: { show: false },
+          axisLabel: { color: '#606266', fontSize: 11 },
+          splitLine: { lineStyle: { type: 'dashed', color: '#ebeef5' } }
+        },
+        series: [
+          {
+            name: '生产服务类',
+            type: 'bar',
+            data: [85, 95, 100],
+            barWidth: '25%',
+            itemStyle: {
+              color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                { offset: 0, color: '#60A5FA' },
+                { offset: 1, color: '#3B82F6' }
+              ]),
+              borderRadius: [4, 4, 0, 0]
+            }
+          },
+          {
+            name: '生产制造类',
+            type: 'bar',
+            data: [75, 88, 92],
+            barWidth: '25%',
+            itemStyle: {
+              color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                { offset: 0, color: '#34D399' },
+                { offset: 1, color: '#10B981' }
+              ]),
+              borderRadius: [4, 4, 0, 0]
+            }
+          },
+          {
+            name: '参评企业',
+            type: 'bar',
+            data: [60, 72, 84],
+            barWidth: '25%',
+            itemStyle: {
+              color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                { offset: 0, color: '#FBBF24' },
+                { offset: 1, color: '#F59E0B' }
+              ]),
+              borderRadius: [4, 4, 0, 0]
+            }
+          }
+        ]
+      }
+      this.barChart.setOption(option)
+    },
+
+    handleResize() {
+      if (this.outputChart) this.outputChart.resize()
+      if (this.taxChart) this.taxChart.resize()
+      if (this.barChart) this.barChart.resize()
+    },
+
+    disposeCharts() {
+      if (this.outputChart) { this.outputChart.dispose(); this.outputChart = null }
+      if (this.taxChart) { this.taxChart.dispose(); this.taxChart = null }
+      if (this.barChart) { this.barChart.dispose(); this.barChart = null }
     }
   }
 }
@@ -417,154 +371,142 @@ export default {
 <style scoped>
 .dashboard-container {
   padding: 20px;
-  background-color: #f0f2f5;
+  background-color: #f5f7fa;
   min-height: calc(100vh - 84px);
 }
 
-.stats-row {
+.header-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   margin-bottom: 20px;
 }
 
-.stat-card {
-  display: flex;
-  align-items: center;
-  padding: 20px;
+.page-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.section-card {
+  margin-bottom: 20px;
   border-radius: 8px;
-  background: #fff;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
-  transition: transform 0.3s, box-shadow 0.3s;
-}
-
-.stat-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
-}
-
-.stat-card__icon {
-  width: 60px;
-  height: 60px;
-  border-radius: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-right: 16px;
-  font-size: 28px;
-  color: #fff;
-}
-
-.stat-card--blue .stat-card__icon {
-  background: linear-gradient(135deg, #409EFF, #66b1ff);
-}
-
-.stat-card--green .stat-card__icon {
-  background: linear-gradient(135deg, #67C23A, #85ce61);
-}
-
-.stat-card--orange .stat-card__icon {
-  background: linear-gradient(135deg, #E6A23C, #ebb563);
-}
-
-.stat-card--purple .stat-card__icon {
-  background: linear-gradient(135deg, #909399, #a6a9ad);
-}
-
-.stat-card__content {
-  flex: 1;
-}
-
-.stat-card__value {
-  font-size: 28px;
-  font-weight: 700;
-  color: #303133;
-  line-height: 1.2;
-}
-
-.stat-card__label {
-  font-size: 13px;
-  color: #909399;
-  margin-top: 6px;
-}
-
-.content-row {
-  margin-bottom: 20px;
-}
-
-.rank-card,
-.chart-card {
-  height: 480px;
+  border: none;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
 }
 
 .card-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+  border-bottom: 1px solid #e5e7eb;
+  padding-bottom: 12px;
 }
 
 .card-title {
   font-size: 16px;
   font-weight: 600;
-  color: #303133;
+  color: #374151;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 16px;
+  padding: 20px 0;
+}
+
+@media (max-width: 1400px) {
+  .stats-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+@media (max-width: 1000px) {
+  .stats-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 700px) {
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.stat-item {
+  background: linear-gradient(135deg, #ffffff, #f9fafb);
+  padding: 20px;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+}
+
+.stat-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.stat-value {
+  font-size: 28px;
+  font-weight: 700;
+  color: #1f2937;
+}
+
+.stat-change {
+  font-size: 13px;
+  font-weight: 500;
+  padding: 2px 8px;
+  border-radius: 12px;
+}
+
+.stat-change.up {
+  color: #ef4444;
+  background: #fef2f2;
+}
+
+.stat-change.down {
+  color: #10b981;
+  background: #f0fdf4;
+}
+
+.stat-label {
+  font-size: 13px;
+  color: #6b7280;
+}
+
+.charts-row {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 24px;
+  padding: 16px 0;
+}
+
+@media (max-width: 1000px) {
+  .charts-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+.chart-item {
+  background: #fafafa;
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.chart-title {
+  font-size: 14px;
+  font-weight: 500;
+  color: #4b5563;
+  margin-bottom: 12px;
 }
 
 .chart-container {
   width: 100%;
-  height: 400px;
+  height: 280px;
 }
 
-.rank-badge {
-  display: inline-block;
-  width: 24px;
-  height: 24px;
-  line-height: 24px;
-  text-align: center;
-  border-radius: 50%;
-  font-size: 12px;
-  font-weight: 600;
-  color: #606266;
-  background: #f0f2f5;
-}
-
-.rank-gold {
-  color: #fff;
-  background: linear-gradient(135deg, #f7ba2a, #f5c343);
-}
-
-.rank-silver {
-  color: #fff;
-  background: linear-gradient(135deg, #a8abb2, #c0c4cc);
-}
-
-.rank-bronze {
-  color: #fff;
-  background: linear-gradient(135deg, #cd7f32, #d4944a);
-}
-
-.score-text {
-  font-weight: 600;
-  color: #409EFF;
-}
-
-.empty-tip {
-  text-align: center;
-  color: #909399;
-  padding: 40px 0;
-  font-size: 14px;
-}
-
-.empty-tip i {
-  margin-right: 4px;
-}
-
-.alert-row {
-  margin-top: 4px;
-}
-
-.alert-row .el-alert {
-  border-radius: 8px;
-}
-
-.alert-row a {
-  color: #409EFF;
-  text-decoration: underline;
+.bar-chart-container {
+  width: 100%;
+  height: 320px;
+  padding-top: 16px;
 }
 </style>

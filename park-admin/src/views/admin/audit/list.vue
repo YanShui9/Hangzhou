@@ -153,7 +153,7 @@
           </template>
         </el-table-column>
         <el-table-column prop="createTime" label="创建时间" width="170" align="center" />
-        <el-table-column label="操作" width="100" align="center" fixed="right">
+        <el-table-column label="操作" width="160" align="center" fixed="right">
           <template slot-scope="scope">
             <el-button
               v-if="scope.row.auditStatus === '市级待审核'"
@@ -168,6 +168,12 @@
               size="small"
               @click="handleView(scope.row)"
             >查看</el-button>
+            <el-button
+              type="text"
+              size="small"
+              style="color: #f56c6c;"
+              @click="handleDelete(scope.row)"
+            >删除</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -230,7 +236,8 @@ import {
   getEvaluationList,
   getEvaluationSummary,
   initEvaluationByYear,
-  getEvaluationYearOptions
+  getEvaluationYearOptions,
+  deleteEvaluation
 } from '@/api/audit'
 
 export default {
@@ -425,6 +432,23 @@ export default {
         return
       }
       this.$router.push(`/admin/audit/detail/${row.id}?mode=audit`)
+    },
+
+    async handleDelete(row) {
+      this.$confirm('确定要删除该评价记录吗？关联的打分数据和审核历史也将被清除，此操作不可恢复。', '提示', {
+        confirmButtonText: '确定删除',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }).then(async() => {
+        try {
+          await deleteEvaluation(row.id)
+          this.$message.success('删除成功')
+          this.fetchSummary()
+          this.fetchList()
+        } catch (e) {
+          console.error('删除失败', e)
+        }
+      }).catch(() => {})
     },
 
     /* ---------- 发起年度填报 ---------- */

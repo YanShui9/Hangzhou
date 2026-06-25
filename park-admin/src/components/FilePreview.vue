@@ -27,8 +27,11 @@
       <!-- 其他文件类型 -->
       <div v-show="previewType === 'other'" style="text-align: center; padding: 40px 0;">
         <p style="color: #909399; margin-bottom: 16px;">该文件类型不支持在线预览，请下载后查看</p>
-        <el-button type="primary" size="small" @click="downloadFile">下载文件</el-button>
       </div>
+    </div>
+    <div slot="footer" style="text-align: center;">
+      <el-button type="primary" @click="downloadFile">下载文件</el-button>
+      <el-button @click="handleClose">关 闭</el-button>
     </div>
   </el-dialog>
 </template>
@@ -36,6 +39,7 @@
 <script>
 import LuckyExcel from 'luckyexcel'
 import { renderAsync } from 'docx-preview'
+import request from '@/utils/request'
 
 export default {
   name: 'FilePreview',
@@ -58,6 +62,7 @@ export default {
       loading: false,
       previewType: 'other',
       blobUrl: '',
+      currentBlob: null,
       excelContainerId: 'fp-excel-' + this._uid,
       docxContainerId: 'fp-docx-' + this._uid
     }
@@ -87,17 +92,53 @@ export default {
     this.cleanup()
   },
   methods: {
+    // 通过 /api/common/download 接口获取文件 blob（带 token 鉴权）
+    async fetchBlob() {
+      const url = this.fileUrl
+      let blob
+      // 绝对 URL（http/https）直接 fetch（如模板文件）
+      if (url.startsWith('http://') || url.startsWith('https://')) {
+        const resp = await fetch(url)
+        if (!resp.ok) throw new Error('文件加载失败')
+        blob = await resp.blob()
+      } else if (url.startsWith('/api/')) {
+        // /api/ 开头的接口路径直接请求（带鉴权）
+        blob = await request({
+          url: url,
+          method: 'get',
+          responseType: 'blob'
+        })
+      } else {
+        // 其他相对路径（如 /uploads/xxx）通过下载接口获取（带鉴权）
+        blob = await request({
+          url: '/api/common/download',
+          method: 'get',
+          params: { url: url },
+          responseType: 'blob'
+        })
+      }
+      // 防御性检查：后端业务异常返回 JSON（HTTP 200 + application/json），需识别并抛出
+      if (blob.type && blob.type.indexOf('application/json') === 0) {
+        const text = await blob.text()
+        let msg = '文件加载失败'
+        try {
+          const json = JSON.parse(text)
+          msg = json.message || msg
+        } catch (e) {
+          if (text) msg = text
+        }
+        throw new Error(msg)
+      }
+      return blob
+    },
     async previewFile() {
       this.loading = true
       this.previewType = 'other'
       this.cleanup()
 
       try {
-        const response = await fetch(this.fileUrl)
-        if (!response.ok) {
-          throw new Error('文件加载失败')
-        }
-        const blob = await response.blob()
+        const blob = await this.fetchBlob()
+        this.currentBlob = blob
         const arrayBuffer = await blob.arrayBuffer()
         const ext = (this.fileName || '').toLowerCase()
 
@@ -170,6 +211,7 @@ export default {
       })
     },
     downloadFile() {
+      // 优先使用已生成的 blobUrl（PDF/图片/其他）
       if (this.blobUrl) {
         const a = document.createElement('a')
         a.href = this.blobUrl
@@ -177,6 +219,18 @@ export default {
         document.body.appendChild(a)
         a.click()
         document.body.removeChild(a)
+        return
+      }
+      // Excel/Word 模式下使用保存的 blob 生成临时 URL
+      if (this.currentBlob) {
+        const url = window.URL.createObjectURL(this.currentBlob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = this.fileName || 'download'
+        document.body.appendChild(a)
+        a.click()
+        document.body.removeChild(a)
+        setTimeout(() => window.URL.revokeObjectURL(url), 1000)
       }
     },
     cleanup() {
@@ -195,6 +249,7 @@ export default {
         window.URL.revokeObjectURL(this.blobUrl)
         this.blobUrl = ''
       }
+      this.currentBlob = null
     },
     handleClose() {
       this.cleanup()

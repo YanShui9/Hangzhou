@@ -55,9 +55,13 @@
               </span>
             </template>
           </el-table-column>
-          <el-table-column label="操作" width="120" align="center" fixed="right">
+          <el-table-column label="操作" min-width="220" align="center">
             <template slot-scope="scope">
               <el-button type="text" @click="handleView(scope.row)">查看</el-button>
+              <el-button v-if="scope.row.status === 0" type="text" @click="handleEdit(scope.row)">编辑</el-button>
+              <el-button v-if="scope.row.status === 0" type="text" style="color:#67c23a" @click="handleSubmit(scope.row)">提交</el-button>
+              <el-button v-if="scope.row.status === 4" type="text" style="color:#e6a23c" @click="handleEdit(scope.row)">修改</el-button>
+              <el-button v-if="scope.row.status === 0 || scope.row.status === 4" type="text" style="color:#f56c6c" @click="handleDelete(scope.row)">删除</el-button>
             </template>
           </el-table-column>
         </el-table>
@@ -170,7 +174,7 @@
 </template>
 
 <script>
-import { getEvaluationPage, submitEvaluation, getEvaluationById, checkSubmittedEvaluation } from '@/api/evaluation'
+import { getEvaluationPage, submitEvaluation, getEvaluationById, checkSubmittedEvaluation, deleteEvaluation } from '@/api/evaluation'
 import { getAuditHistory } from '@/api/audit'
 import { getParkDetail } from '@/api/park'
 import { mapGetters } from 'vuex'
@@ -295,16 +299,15 @@ export default {
     },
 
     getParticipateDotClass(row) {
-      const performance = this.parkInfo.performance || ''
-      if (performance === 'A' || performance === 'B' || performance === 'C' || performance === 'D') {
+      // status=0 表示草稿未提交，视为未参评；其他状态视为已参评
+      if (row.status !== undefined && row.status !== null && row.status > 0) {
         return 'green'
       }
       return 'gray'
     },
 
     getParticipateLabel(row) {
-      const performance = this.parkInfo.performance || ''
-      if (performance === 'A' || performance === 'B' || performance === 'C' || performance === 'D') {
+      if (row.status !== undefined && row.status !== null && row.status > 0) {
         return '已参评'
       }
       return '未参评'
@@ -386,6 +389,22 @@ export default {
           this.fetchList()
         } catch (e) {
           console.error('提交失败', e)
+        }
+      }).catch(() => {})
+    },
+
+    async handleDelete(row) {
+      this.$confirm('确定要删除该评价记录吗？关联的打分数据和审核历史也将被清除，此操作不可恢复。', '提示', {
+        confirmButtonText: '确定删除',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }).then(async() => {
+        try {
+          await deleteEvaluation(row.id)
+          this.$message.success('删除成功')
+          this.fetchList()
+        } catch (e) {
+          console.error('删除失败', e)
         }
       }).catch(() => {})
     },

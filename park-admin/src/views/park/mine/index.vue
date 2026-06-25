@@ -200,31 +200,31 @@
           </div>
           <div class="info-item">
             <label>"国千"人才人数（人）</label>
-            <span>{{ parkInfo.nationalSrtiCount || 0 }}</span>
+            <span>{{ parkInfo.nationalSpecializedCount || 0 }}</span>
           </div>
           <div class="info-item">
             <label>"省千"人才人数（人）</label>
-            <span>{{ parkInfo.provincialSrtiCount || 0 }}</span>
+            <span>{{ parkInfo.provincialSpecializedCount || 0 }}</span>
           </div>
           <div class="info-item">
             <label>正高级工程师人数（人）</label>
-            <span>{{ parkInfo.seniorEngineer || 0 }}</span>
+            <span>{{ parkInfo.seniorEngineerCount || 0 }}</span>
           </div>
           <div class="info-item">
             <label>高级工程师人数（人）</label>
-            <span>{{ parkInfo.engineer || 0 }}</span>
+            <span>{{ parkInfo.senior2EngineerCount || 0 }}</span>
           </div>
           <div class="info-item">
             <label>高级技师人数（人）</label>
-            <span>{{ parkInfo.seniorTechnician || 0 }}</span>
+            <span>{{ parkInfo.seniorTechnicianCount || 0 }}</span>
           </div>
           <div class="info-item">
             <label>硕士及副高以上人数（人）</label>
-            <span>{{ parkInfo.masterAbove || 0 }}</span>
+            <span>{{ parkInfo.masterAndAboveCount || 0 }}</span>
           </div>
           <div class="info-item">
             <label>博士以上人数（人）</label>
-            <span>{{ parkInfo.masterDegree || 0 }}</span>
+            <span>{{ parkInfo.masterCount || 0 }}</span>
           </div>
         </div>
       </div>
@@ -235,19 +235,19 @@
         <div class="info-grid">
           <div class="info-item">
             <label>专利拥有量（件）</label>
-            <span>{{ parkInfo.patentTotal || 0 }}</span>
+            <span>{{ parkInfo.patentTotalCount || 0 }}</span>
           </div>
           <div class="info-item">
             <label>发明专利（件）</label>
-            <span>{{ parkInfo.patentInvention || 0 }}</span>
+            <span>{{ parkInfo.inventionCount || 0 }}</span>
           </div>
           <div class="info-item">
             <label>实用新型专利（件）</label>
-            <span>{{ parkInfo.patentUtility || 0 }}</span>
+            <span>{{ parkInfo.utilityModelCount || 0 }}</span>
           </div>
           <div class="info-item">
             <label>外观设计专利（件）</label>
-            <span>{{ parkInfo.patentDesign || 0 }}</span>
+            <span>{{ parkInfo.appearanceCount || 0 }}</span>
           </div>
         </div>
       </div>
@@ -265,8 +265,15 @@
             </div>
             <div v-else class="image-list">
               <div v-for="(image, index) in displayImages" :key="index" class="image-item">
-                <img :src="getImageUrl(image)" alt="园区图片" class="image-preview" @error="handleImageError(index)" />
-                <div v-if="isEditing" class="image-delete" @click="handleDeleteImage(index)">
+                <el-image
+                  :src="getImageUrl(image)"
+                  :preview-src-list="imageUrlList"
+                  :initial-index="index"
+                  fit="cover"
+                  class="image-preview"
+                  @error="handleImageError(index)"
+                />
+                <div v-if="isEditing" class="image-delete" @click.stop="handleDeleteImage(index)">
                   <i class="el-icon-close"></i>
                 </div>
                 <div v-if="index === 0" class="primary-tag">主图</div>
@@ -342,6 +349,7 @@
 
 <script>
 import { getParkDetail, updatePark } from '@/api/park'
+import { uploadFile, deleteFile } from '@/api/tech-innovation'
 import { mapGetters } from 'vuex'
 
 export default {
@@ -356,6 +364,7 @@ export default {
         parkName: '',
         parkStatus: '',
         parkType: '',
+        districtName: '',
         leadingIndustry: '',
         operatorUnit: '',
         operatorNature: '',
@@ -394,6 +403,9 @@ export default {
         }
       }
       return []
+    },
+    imageUrlList() {
+      return this.displayImages.map(img => this.getImageUrl(img))
     }
   },
   created() {
@@ -458,6 +470,7 @@ export default {
         parkName: this.parkInfo.parkName || '',
         parkStatus: this.parkInfo.parkStatus || '',
         parkType: this.parkInfo.parkType || '',
+        districtName: this.parkInfo.districtName || '',
         leadingIndustry: this.parkInfo.leadingIndustry || '',
         operatorUnit: this.parkInfo.operatorUnit || '',
         operatorNature: this.parkInfo.operatorNature || '',
@@ -499,7 +512,9 @@ export default {
       try {
         const saveData = {
           id: parkId,
-          ...this.formData
+          ...this.formData,
+          // 所属区域由区县/市级管理员设置，园区端编辑时保留原值（为空则传 null，MyBatis-Plus 不覆盖）
+          districtName: this.formData.districtName || this.parkInfo.districtName || null
         }
         saveData.parkImages = JSON.stringify(this.formData.parkImages)
         await updatePark(saveData)
@@ -512,15 +527,54 @@ export default {
     },
 
     handleImageUpload() {
-      this.$message.info('图片上传功能开发中')
+      this.$refs.parkImageInput.click()
     },
 
     async handleImageFileChange(event) {
-      event.target.value = ''
+      const files = Array.from(event.target.files || [])
+      if (files.length === 0) return
+      const remaining = 6 - this.formData.parkImages.length
+      if (remaining <= 0) {
+        this.$message.warning('最多上传6张图片')
+        event.target.value = ''
+        return
+      }
+      const toUpload = files.slice(0, remaining)
+      try {
+        for (const file of toUpload) {
+          const formData = new FormData()
+          formData.append('file', file)
+          formData.append('bizType', 'park_image')
+          const res = await uploadFile(formData)
+          if (res.data && res.data.url) {
+            this.formData.parkImages.push({
+              url: res.data.url,
+              name: res.data.name || file.name,
+              id: res.data.id
+            })
+          }
+        }
+        this.$message.success('图片上传成功')
+      } catch (e) {
+        console.error('图片上传失败', e)
+        this.$message.error('图片上传失败')
+      } finally {
+        event.target.value = ''
+      }
     },
 
     async handleDeleteImage(index) {
-      this.$message.info('图片管理功能开发中')
+      try {
+        const image = this.formData.parkImages[index]
+        if (image && image.id) {
+          await deleteFile(image.id)
+        }
+        this.formData.parkImages.splice(index, 1)
+        this.$message.success('删除成功')
+      } catch (e) {
+        console.error('删除图片失败', e)
+        this.$message.error('删除失败')
+      }
     }
   }
 }

@@ -40,6 +40,9 @@ public class EvaluationRecord extends BaseEntity {
     @ApiModelProperty(value = "状态：0=草稿, 1=待区县审, 2=待市局审, 3=通过, 4=驳回")
     private Integer status;
 
+    @ApiModelProperty(value = "参评状态：1=参评, 0=不参评")
+    private Integer evaluationStatus;
+
     @ApiModelProperty(value = "总分")
     private BigDecimal totalScore;
 
@@ -51,4 +54,7 @@ public class EvaluationRecord extends BaseEntity {
 
     @ApiModelProperty(value = "驳回类别")
     private String rejectCategories;
+
+    @ApiModelProperty(value = "园区端附加数据JSON")
+    private String parkExtraData;
 }

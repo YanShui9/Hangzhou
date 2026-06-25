@@ -25,6 +25,7 @@
           :class="['category-item', {
             'category-item--active': activeCategory === category.id,
             'category-item--completed': completedCategories.has(category.id),
+            'category-item--viewed': viewedCategories.has(category.id),
             'category-item--readonly': isViewMode
           }]"
           @click="handleCategoryClick(category)"
@@ -467,7 +468,8 @@
           </div>
           <div class="panel-footer">
             <el-button size="small" @click="handlePrev" :disabled="isViewMode">上一步</el-button>
-            <el-button v-if="!isViewMode" type="primary" size="small" @click="handleSubmit">提交评价</el-button>
+            <el-button v-if="!isViewMode" type="primary" plain size="small" @click="handleSaveDraft" :loading="saveLoading">保存草稿</el-button>
+            <el-button v-if="!isViewMode" type="primary" size="small" @click="handleSubmit" :loading="submitLoading">提交评价</el-button>
           </div>
         </div>
       </div>
@@ -530,12 +532,16 @@ import {
   addCultivationRecord,
   updateCultivationRecord,
   deleteCultivationRecord,
+  batchSaveTechInnovation,
+  batchSaveTechProject,
+  batchSaveCultivationRecord,
   uploadFile,
   deleteFile,
   downloadTemplate,
   uploadIndustryDevelopmentData
 } from '@/api/tech-innovation'
-import { getEvaluationById } from '@/api/evaluation'
+import { getEvaluationById, addEvaluation, updateEvaluation, submitEvaluation } from '@/api/evaluation'
+import { mapGetters } from 'vuex'
 
 export default {
   name: 'EvaluationAdd',
@@ -579,13 +585,19 @@ export default {
       previewFileName: '',
       evaluationData: {},
       completedCategories: new Set(),
+      viewedCategories: new Set(),
       evaluationId: null,
       evaluationYear: null,
       isEditMode: false,
-      isViewMode: false
+      isViewMode: false,
+      fileSections: [],
+      benefitFiles: [],
+      submitLoading: false,
+      saveLoading: false
     }
   },
   computed: {
+    ...mapGetters(['userInfo']),
     pageTitle() {
       if (this.isViewMode) {
         return `${this.evaluationYear}年评价查看`
@@ -604,6 +616,8 @@ export default {
       const params = this.$route.query
       if (params.view === '1') {
         this.isViewMode = true
+        // 查看模式下默认第一个分类为已读
+        this.viewedCategories.add(1)
         if (params.id) {
           this.evaluationId = parseInt(params.id)
         }
@@ -629,6 +643,35 @@ export default {
           this.$router.push('/park/evaluation')
           return
         }
+        // 回显基础指标确认状态
+        if (data && data.parkExtraData) {
+          try {
+            const extra = JSON.parse(data.parkExtraData)
+            if (extra.basicAcknowledged) {
+              this.form.basicAcknowledged = extra.basicAcknowledged
+            }
+            if (Array.isArray(extra.serviceFiles)) {
+              this.serviceFiles = extra.serviceFiles
+            }
+            if (Array.isArray(extra.benefitFiles)) {
+              this.benefitFiles = extra.benefitFiles
+            }
+            if (Array.isArray(extra.fileSections)) {
+              this.fileSections = extra.fileSections
+            }
+          } catch (e) {
+            console.warn('解析 parkExtraData 失败', e)
+          }
+        }
+        // 并行加载子表数据
+        const [techRes, projectRes, cultRes] = await Promise.all([
+          getTechInnovationList(this.evaluationId).catch(() => ({ data: [] })),
+          getTechProjectList(this.evaluationId).catch(() => ({ data: [] })),
+          getCultivationRecordList(this.evaluationId).catch(() => ({ data: [] }))
+        ])
+        this.techInnovations = techRes.data || []
+        this.projects = projectRes.data || []
+        this.cultivationFiles = cultRes.data || []
       } catch (e) {
         console.error('加载评价数据失败', e)
       }
@@ -679,9 +722,15 @@ export default {
       const targetId = category.id
       if (currentId === targetId) return
 
-      const isCompleted = this.checkAndMarkStep()
-      if (!isCompleted && this.isStepNeedOperation(currentId)) {
-        this.$message.warning(this.getStepReminder(currentId))
+      if (this.isViewMode) {
+        // 查看模式下：标记当前和目标分类为已读，不弹出操作提示
+        this.viewedCategories.add(currentId)
+        this.viewedCategories.add(targetId)
+      } else {
+        const isCompleted = this.checkAndMarkStep()
+        if (!isCompleted && this.isStepNeedOperation(currentId)) {
+          this.$message.warning(this.getStepReminder(currentId))
+        }
       }
 
       this.activeCategory = targetId
@@ -703,13 +752,65 @@ export default {
       }
     },
     handleNext() {
-      const isCompleted = this.checkAndMarkStep()
-      if (!isCompleted && this.isStepNeedOperation(this.activeCategory)) {
-        this.$message.warning(this.getStepReminder(this.activeCategory))
+      if (this.isViewMode) {
+        // 查看模式下：标记当前分类为已读，不弹出操作提示
+        this.viewedCategories.add(this.activeCategory)
+      } else {
+        const isCompleted = this.checkAndMarkStep()
+        if (!isCompleted && this.isStepNeedOperation(this.activeCategory)) {
+          this.$message.warning(this.getStepReminder(this.activeCategory))
+        }
       }
       if (this.activeCategory < 8) {
         this.previewVisible = false
         this.activeCategory++
+      }
+    },
+    // 保存评价记录（新增或修改），返回 evaluationId
+    async saveEvaluationRecord() {
+      const extraData = {
+        basicAcknowledged: this.form.basicAcknowledged,
+        serviceFiles: this.serviceFiles,
+        benefitFiles: this.benefitFiles,
+        fileSections: this.fileSections
+      }
+      const saveDTO = {
+        parkId: this.userInfo.parkId,
+        year: this.evaluationYear,
+        parkExtraData: JSON.stringify(extraData)
+      }
+      if (this.evaluationId) {
+        saveDTO.id = this.evaluationId
+        await updateEvaluation(saveDTO)
+        return this.evaluationId
+      } else {
+        const res = await addEvaluation(saveDTO)
+        const newId = res.data
+        this.evaluationId = newId
+        this.isEditMode = true
+        return newId
+      }
+    },
+    // 批量保存子表数据
+    async saveSubTables(evaluationId) {
+      await Promise.all([
+        batchSaveTechInnovation(evaluationId, this.techInnovations).catch(e => console.warn('保存科技创新失败', e)),
+        batchSaveTechProject(evaluationId, this.projects).catch(e => console.warn('保存院所合作失败', e)),
+        batchSaveCultivationRecord(evaluationId, this.cultivationFiles).catch(e => console.warn('保存企业培育失败', e))
+      ])
+    },
+    // 保存草稿
+    async handleSaveDraft() {
+      this.saveLoading = true
+      try {
+        const id = await this.saveEvaluationRecord()
+        await this.saveSubTables(id)
+        this.$message.success('草稿保存成功')
+      } catch (e) {
+        console.error('保存草稿失败', e)
+        this.$message.error('保存失败：' + (e.message || '请稍后重试'))
+      } finally {
+        this.saveLoading = false
       }
     },
     async handleSubmit() {
@@ -721,27 +822,24 @@ export default {
           cancelButtonText: '取消',
           type: 'warning'
         })
-        const submitData = {
-          basic: this.form,
-          industryDevelopment: this.enterpriseList,
-          cultivation: this.cultivationFiles,
-          techInnovation: {
-            innovations: this.techInnovations,
-            projects: this.projects
-          },
-          serviceCapacity: this.serviceFiles,
-          benefitOutput: this.benefitFiles,
-          evaluationData: this.evaluationData
-        }
-        console.log('提交评价数据:', submitData)
+        this.submitLoading = true
+        // 1. 保存评价记录
+        const id = await this.saveEvaluationRecord()
+        // 2. 保存子表数据
+        await this.saveSubTables(id)
+        // 3. 提交评价
+        await submitEvaluation(id)
         this.$message.success('评价提交成功')
         setTimeout(() => {
           this.$router.push('/park/evaluation')
         }, 1500)
       } catch (err) {
         if (err !== 'cancel') {
+          console.error('提交失败', err)
           this.$message.error('提交失败：' + (err.message || '请稍后重试'))
         }
+      } finally {
+        this.submitLoading = false
       }
     },
     saveCurrentStep() {
@@ -1102,11 +1200,8 @@ export default {
     // 预览文件
     handlePreview(item) {
       if (item && item.fileUrl) {
-        let url = item.fileUrl
-        if (!url.startsWith('http://') && !url.startsWith('https://')) {
-          url = window.location.origin + url
-        }
-        this.previewFileUrl = url
+        // 传相对路径，FilePreview 组件通过 /api/common/download 接口获取（带鉴权）
+        this.previewFileUrl = item.fileUrl
         this.previewFileName = item.fileName || item.name || '未知文件'
         this.previewVisible = true
       } else {
@@ -1116,7 +1211,7 @@ export default {
     // 预览承诺函模板
     handlePreviewPromiseTemplate() {
       const templateName = '评价年度承诺函模板.docx'
-      const templateUrl = window.location.origin + '/api/files/preview/template/promise_letter_template.docx'
+      const templateUrl = '/api/files/preview/template/promise_letter_template.docx'
       this.previewFileUrl = templateUrl
       this.previewFileName = templateName
       this.previewVisible = true
@@ -1257,6 +1352,40 @@ export default {
 
 .category-item--active.category-item--completed .category-check {
   color: #67C23A;
+}
+.category-item--viewed {
+  background-color: #F0F9EB;
+  border-left-color: #67C23A;
+}
+
+.category-item--viewed .category-name {
+  color: #67C23A;
+}
+
+.category-item--viewed .category-index {
+  color: #67C23A;
+}
+
+/* 既激活又已读的样式（查看模式下当前正在浏览） */
+.category-item--active.category-item--viewed {
+  background-color: #ECF5FF;
+  border-left-color: #409EFF;
+}
+
+.category-item--active.category-item--viewed .category-name,
+.category-item--active.category-item--viewed .category-index {
+  color: #409EFF;
+}
+
+/* 既激活又已读又完成的样式 */
+.category-item--active.category-item--viewed.category-item--completed {
+  background-color: #ECF5FF;
+  border-left-color: #409EFF;
+}
+
+.category-item--active.category-item--viewed.category-item--completed .category-name,
+.category-item--active.category-item--viewed.category-item--completed .category-index {
+  color: #409EFF;
 }
 
 /* 只读模式样式 */

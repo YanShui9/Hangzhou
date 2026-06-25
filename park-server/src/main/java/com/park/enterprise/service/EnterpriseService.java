@@ -29,6 +29,17 @@ import org.springframework.util.StringUtils;
 @Service
 public class EnterpriseService {
 
+    private static final java.util.List<String> DISPLAY_HONOR_TYPES = java.util.Arrays.asList(
+            "new_national_high_tech",
+            "new_specialty_giant",
+            "new_specialty_sme",
+            "new_provincial_hidden_champion",
+            "new_single_champion",
+            "new_ipo",
+            "innovative_sme",
+            "new_provincial_tech_small"
+    );
+
     @Autowired
     private EnterpriseMapper enterpriseMapper;
 
@@ -84,20 +95,43 @@ public class EnterpriseService {
             queryWrapper.eq(EnterpriseInfo::getIsParticipate, queryDTO.getIsParticipate());
         }
 
-        // 企业荣誉筛选
-        if (StringUtils.hasText(queryDTO.getEnterpriseHonor())) {
-            queryWrapper.like(EnterpriseInfo::getEnterpriseHonor, queryDTO.getEnterpriseHonor());
-        }
-
-        // 所属区县筛选
-        if (StringUtils.hasText(queryDTO.getDistrictName())) {
-            queryWrapper.like(EnterpriseInfo::getDistrictName, queryDTO.getDistrictName());
-        }
+        // 所属区县筛选（districtName 是 transient 字段，不能在DB层筛选，由内存过滤）
 
         // 按创建时间降序排序
         queryWrapper.orderByDesc(EnterpriseInfo::getCreateTime);
 
-        return enterpriseMapper.selectPage(page, queryWrapper);
+        IPage<EnterpriseInfo> result = enterpriseMapper.selectPage(page, queryWrapper);
+
+        // 填充非表字段：园区名称、区县名称、企业荣誉
+        for (EnterpriseInfo enterprise : result.getRecords()) {
+            // 填充园区名称、区县名称
+            if (enterprise.getParkId() != null) {
+                ParkInfo park = parkMapper.selectById(enterprise.getParkId());
+                if (park != null) {
+                    enterprise.setParkName(park.getParkName());
+                    if (!StringUtils.hasText(enterprise.getDistrictName())) {
+                        enterprise.setDistrictName(park.getDistrictName());
+                    }
+                }
+            }
+            // 填充企业荣誉（按园区汇总，仅显示核心荣誉类型）
+            if (enterprise.getParkId() != null) {
+                LambdaQueryWrapper<EnterpriseHonorRecord> honorWrapper = new LambdaQueryWrapper<>();
+                honorWrapper.eq(EnterpriseHonorRecord::getParkId, enterprise.getParkId());
+                honorWrapper.in(EnterpriseHonorRecord::getHonorType, DISPLAY_HONOR_TYPES);
+                java.util.List<EnterpriseHonorRecord> honorRecords = enterpriseHonorRecordMapper.selectList(honorWrapper);
+                if (!honorRecords.isEmpty()) {
+                    String honorText = honorRecords.stream()
+                            .map(EnterpriseHonorRecord::getHonorType)
+                            .filter(StringUtils::hasText)
+                            .distinct()
+                            .collect(java.util.stream.Collectors.joining("/"));
+                    enterprise.setEnterpriseHonor(honorText);
+                }
+            }
+        }
+
+        return result;
     }
 
     /**
@@ -121,17 +155,20 @@ public class EnterpriseService {
                 }
             }
         }
-        // 填充企业荣誉（汇总该企业的荣誉类型）
-        LambdaQueryWrapper<EnterpriseHonorRecord> honorWrapper = new LambdaQueryWrapper<>();
-        honorWrapper.eq(EnterpriseHonorRecord::getCreditCode, enterprise.getCreditCode());
-        java.util.List<EnterpriseHonorRecord> honorRecords = enterpriseHonorRecordMapper.selectList(honorWrapper);
-        if (!honorRecords.isEmpty()) {
-            String honorText = honorRecords.stream()
-                    .map(EnterpriseHonorRecord::getHonorType)
-                    .filter(StringUtils::hasText)
-                    .distinct()
-                    .collect(java.util.stream.Collectors.joining("/"));
-            enterprise.setEnterpriseHonor(honorText);
+        // 填充企业荣誉（按园区汇总，仅显示核心荣誉类型）
+        if (enterprise.getParkId() != null) {
+            LambdaQueryWrapper<EnterpriseHonorRecord> honorWrapper = new LambdaQueryWrapper<>();
+            honorWrapper.eq(EnterpriseHonorRecord::getParkId, enterprise.getParkId());
+            honorWrapper.in(EnterpriseHonorRecord::getHonorType, DISPLAY_HONOR_TYPES);
+            java.util.List<EnterpriseHonorRecord> honorRecords = enterpriseHonorRecordMapper.selectList(honorWrapper);
+            if (!honorRecords.isEmpty()) {
+                String honorText = honorRecords.stream()
+                        .map(EnterpriseHonorRecord::getHonorType)
+                        .filter(StringUtils::hasText)
+                        .distinct()
+                        .collect(java.util.stream.Collectors.joining("/"));
+                enterprise.setEnterpriseHonor(honorText);
+            }
         }
         return enterprise;
     }

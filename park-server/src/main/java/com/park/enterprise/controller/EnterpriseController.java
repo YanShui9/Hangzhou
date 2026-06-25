@@ -26,6 +26,7 @@ import org.springframework.web.bind.annotation.*;
 import javax.servlet.http.HttpServletRequest;
 import javax.validation.Valid;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -117,7 +118,6 @@ public class EnterpriseController {
         vo.put("contactPhone", e.getContactPhone());
         vo.put("registeredCapital", e.getRegisteredCapital());
         vo.put("registerDate", e.getRegisterDate());
-        vo.put("employeeCount", e.getEmployeeCount());
         vo.put("businessScope", e.getBusinessScope());
         if (e.getParkId() != null) {
             ParkInfo park = parkMapper.selectById(e.getParkId());
@@ -137,7 +137,8 @@ public class EnterpriseController {
      */
     @PostMapping
     @ApiOperation(value = "新增企业", notes = "新增入驻企业信息")
-    public R<Void> saveEnterprise(@Valid @RequestBody EnterpriseSaveDTO saveDTO) {
+    public R<Void> saveEnterprise(@Valid @RequestBody EnterpriseSaveDTO saveDTO, HttpServletRequest request) {
+        checkLogin(request); // 登录校验
         log.info("新增企业：enterpriseName={}, parkId={}", saveDTO.getEnterpriseName(), saveDTO.getParkId());
         enterpriseService.saveEnterprise(saveDTO);
         return R.ok("新增成功", null);
@@ -152,7 +153,9 @@ public class EnterpriseController {
      */
     @PutMapping("/{id}")
     @ApiOperation(value = "修改企业", notes = "修改入驻企业信息")
-    public R<Void> updateEnterprise(@PathVariable Long id, @Valid @RequestBody EnterpriseSaveDTO saveDTO) {
+    public R<Void> updateEnterprise(@PathVariable Long id, @Valid @RequestBody EnterpriseSaveDTO saveDTO,
+                                     HttpServletRequest request) {
+        checkLogin(request); // 登录校验
         saveDTO.setId(id);
         log.info("修改企业：id={}, enterpriseName={}", id, saveDTO.getEnterpriseName());
         enterpriseService.updateEnterprise(saveDTO);
@@ -168,7 +171,9 @@ public class EnterpriseController {
     @DeleteMapping("/{id}")
     @ApiOperation(value = "删除企业", notes = "根据企业ID删除企业")
     public R<Void> deleteEnterprise(
-            @ApiParam(value = "企业ID", required = true) @PathVariable Long id) {
+            @ApiParam(value = "企业ID", required = true) @PathVariable Long id,
+            HttpServletRequest request) {
+        checkLogin(request); // 登录校验
         log.info("删除企业：id={}", id);
         enterpriseService.deleteEnterprise(id);
         return R.ok("删除成功", null);
@@ -338,6 +343,17 @@ public class EnterpriseController {
         } catch (Exception ex) {
             throw new com.park.common.exception.BusinessException(
                     com.park.common.result.ResultCode.FAILURE, "导出失败：" + ex.getMessage());
+        }
+    }
+
+    /**
+     * 登录校验：任意已登录用户均可通过
+     */
+    private void checkLogin(HttpServletRequest request) {
+        Object roleTypeObj = request.getAttribute("roleType");
+        if (!(roleTypeObj instanceof Integer)) {
+            throw new com.park.common.exception.BusinessException(
+                    com.park.common.result.ResultCode.FORBIDDEN, "无权限");
         }
     }
 

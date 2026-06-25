@@ -35,4 +35,7 @@ public class EvaluationSaveDTO {
 
     @ApiModelProperty(value = "驳回类别")
     private String rejectCategory;
+
+    @ApiModelProperty(value = "园区端附加数据JSON")
+    private String parkExtraData;
 }
