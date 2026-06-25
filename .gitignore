@@ -78,3 +78,6 @@ need/
 
 # IDE 临时目录
 .qoder/
+
+# 敏感文件
+token.txt

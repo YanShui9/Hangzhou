@@ -110,8 +110,8 @@
               <el-table-column prop="parkName" label="园区名称" min-width="160" show-overflow-tooltip />
               <el-table-column prop="enterpriseName" label="入驻企业名称" min-width="220" show-overflow-tooltip />
               <el-table-column prop="creditCode" label="统一社会信用代码" width="200" show-overflow-tooltip />
-              <el-table-column prop="entryTime" label="入驻起止时间" width="150" align="center" show-overflow-tooltip />
-              <el-table-column prop="address" label="企业注册地址" min-width="260" show-overflow-tooltip />
+              <el-table-column prop="settledDate" label="入驻起止时间" width="150" align="center" show-overflow-tooltip />
+              <el-table-column prop="registeredAddress" label="企业注册地址" min-width="260" show-overflow-tooltip />
             </el-table>
           </div>
 
@@ -133,42 +133,31 @@
             </div>
 
             <div class="upload-section">
-              <div class="upload-section-title">产业发展数据模板</div>
-              <div class="upload-section-body">
-                <div class="upload-section-left">
-                  <el-upload
-                    v-if="isAuditMode && !isCityAdmin"
-                    :show-file-list="false"
-                    :before-upload="(file, fileList) => handleFileUpload(file, fileList, 'enterprise', 'enterpriseFileList')"
-                    :auto-upload="true"
-                    accept=".xlsx,.xls"
-                  >
-                    <el-button size="small" type="primary" icon="el-icon-upload2">上传xlsx</el-button>
-                  </el-upload>
-                  <div class="upload-section-file">
-                    <template v-if="enterpriseFileList && enterpriseFileList.length > 0">
-                      <i class="el-icon-document" style="color:#409EFF;"></i>
-                      <span>{{ enterpriseFileList[enterpriseFileList.length - 1].fileName }}</span>
-                    </template>
-                    <span v-else class="file-not-uploaded">园区端未上传文件</span>
+              <div class="upload-section-title">企业培育附件</div>
+              <div class="upload-section-body" style="display:block;">
+                <div v-if="enterpriseFileList && enterpriseFileList.length > 0">
+                  <div v-for="(file, idx) in enterpriseFileList" :key="'ent-'+idx" class="file-item-row">
+                    <span class="file-icon"><i class="el-icon-document"></i></span>
+                    <span class="file-name" :title="file.fileName">{{ file.fileName || file.projectName || '附件'+(idx+1) }}</span>
+                    <span
+                      v-if="file.fileUrl"
+                      class="file-preview-link"
+                      @click="handlePreview(file)"
+                    >预览</span>
                   </div>
                 </div>
-                <div class="upload-section-right">
-                  <span
-                    v-if="enterpriseFileList && enterpriseFileList.length > 0 && enterpriseFileList[enterpriseFileList.length - 1].fileUrl"
-                    class="file-preview-link"
-                    @click="handlePreview(enterpriseFileList[enterpriseFileList.length - 1])"
-                  >预览</span>
-                  <div class="score-input-inline">
-                    <span style="color:#909399;font-size:13px;">得分：</span>
-                    <el-input
-                      v-model="formData.enterpriseScore"
-                      placeholder="0.0"
-                      size="small"
-                      style="width: 100px;"
-                      :disabled="!isAuditMode"
-                    />
-                  </div>
+                <div v-else class="file-not-uploaded-row">
+                  <span class="file-not-uploaded">园区端未上传文件</span>
+                </div>
+                <div class="score-input-inline" style="margin-top:12px;">
+                  <span style="color:#909399;font-size:13px;">得分：</span>
+                  <el-input
+                    v-model="formData.enterpriseScore"
+                    placeholder="0.0"
+                    size="small"
+                    style="width: 100px;"
+                    :disabled="!isAuditMode"
+                  />
                 </div>
               </div>
             </div>
@@ -226,9 +215,9 @@
                 <div class="tech-row-cell"><span class="field-label-inline">姓名</span><span class="field-value-inline">{{ item.name || '-' }}</span></div>
                 <div class="tech-row-cell"><span class="field-label-inline">日期</span><span class="field-value-inline">{{ item.date || '-' }}</span></div>
                 <div class="tech-row-cell"><span class="field-label-inline">所属企业</span><span class="field-value-inline">{{ item.company || '-' }}</span></div>
-                <div class="tech-row-cell tech-score-wrap">
-                  <span class="field-label-inline">得分</span>
-                  <el-input v-model="item.score" size="small" style="width: 140px" placeholder="请输入得分" :disabled="true" />
+                <div class="tech-row-cell">
+                  <span v-if="item.fileName" class="field-value-inline">{{ item.fileName }}</span>
+                  <span v-if="item.fileUrl" class="file-preview-link" @click="handlePreview(item)">预览</span>
                 </div>
               </div>
             </div>
@@ -257,26 +246,23 @@
             </div>
 
             <div class="file-section">
-              <div class="section-subtitle">相关附件</div>
-              <div v-if="!techFileList || techFileList.length === 0" class="file-empty">暂无附件</div>
-              <div v-for="(file, idx) in techFileList" :key="'t' + idx" class="file-item-row">
-                <span class="file-icon"><i class="el-icon-document"></i></span>
-                <span class="file-name" :title="file.fileName">{{ file.fileName }}</span>
-                <span
-                  v-if="file.fileUrl"
-                  class="file-preview-link"
-                  @click="handlePreview(file)"
-                >预览</span>
-                <span v-else class="file-preview-disabled">预览</span>
-                <div class="score-input-inline">
-                  <el-input
-                    v-model="formData.techScore2"
-                    placeholder="请输入得分（满分5分）"
-                    size="small"
-                    style="width: 180px;"
-                    :disabled="!isAuditMode"
-                  />
+              <div class="section-subtitle">科研合作项目附件</div>
+              <div v-if="!techProjectData || techProjectData.length === 0" class="file-empty">暂无附件</div>
+              <div v-else>
+                <div v-for="(proj, idx) in techProjectData" :key="'tp'+idx" class="file-item-row">
+                  <span class="file-icon"><i class="el-icon-document"></i></span>
+                  <span class="file-name" :title="proj.projectName || proj.fileName">{{ proj.projectName || proj.fileName || '项目'+(idx+1) }}</span>
+                  <span v-if="proj.fileUrl" class="file-preview-link" @click="handlePreview(proj)">预览</span>
                 </div>
+              </div>
+              <div class="score-input-inline" style="margin-top:8px;">
+                <el-input
+                  v-model="formData.techScore2"
+                  placeholder="请输入得分（满分5分）"
+                  size="small"
+                  style="width: 180px;"
+                  :disabled="!isAuditMode"
+                />
               </div>
             </div>
 
@@ -309,44 +295,30 @@
             <div class="two-col-section">
               <div class="col-item">
                 <div class="section-subtitle">助企服务站建设材料</div>
-                <div class="file-item-row" v-if="serviceFileList1 && serviceFileList1.length > 0">
-                  <span class="file-icon"><i class="el-icon-document"></i></span>
-                  <span class="file-name" :title="serviceFileList1[serviceFileList1.length - 1].fileName">{{ serviceFileList1[serviceFileList1.length - 1].fileName }}</span>
-                  <span
-                    v-if="serviceFileList1[serviceFileList1.length - 1].fileUrl"
-                    class="file-preview-link"
-                    @click="handlePreview(serviceFileList1[serviceFileList1.length - 1])"
-                  >预览</span>
-                  <div class="score-input-inline">
-                    <el-input v-model="formData.serviceScore1" placeholder="请输入得分（满分5分）" size="small" style="width: 180px;" :disabled="!isAuditMode" />
+                <div v-if="serviceFileList1 && serviceFileList1.length > 0">
+                  <div v-for="(file, idx) in serviceFileList1" :key="'s1-'+idx" class="file-item-row">
+                    <span class="file-icon"><i class="el-icon-document"></i></span>
+                    <span class="file-name" :title="file.fileName">{{ file.fileName }}</span>
+                    <span v-if="file.fileUrl" class="file-preview-link" @click="handlePreview(file)">预览</span>
                   </div>
                 </div>
-                <div v-else class="file-not-uploaded-row">
-                  <span class="file-not-uploaded">园区端未上传文件</span>
-                  <div class="score-input-inline">
-                    <el-input v-model="formData.serviceScore1" placeholder="请输入得分（满分5分）" size="small" style="width: 180px;" :disabled="!isAuditMode" />
-                  </div>
+                <div v-else class="file-not-uploaded-row"><span class="file-not-uploaded">园区端未上传文件</span></div>
+                <div class="score-input-inline" style="margin-top:8px;">
+                  <el-input v-model="formData.serviceScore1" placeholder="请输入得分（满分5分）" size="small" style="width: 180px;" :disabled="!isAuditMode" />
                 </div>
               </div>
               <div class="col-item">
                 <div class="section-subtitle">一站式代办服务材料</div>
-                <div class="file-item-row" v-if="serviceFileList2 && serviceFileList2.length > 0">
-                  <span class="file-icon"><i class="el-icon-document"></i></span>
-                  <span class="file-name" :title="serviceFileList2[serviceFileList2.length - 1].fileName">{{ serviceFileList2[serviceFileList2.length - 1].fileName }}</span>
-                  <span
-                    v-if="serviceFileList2[serviceFileList2.length - 1].fileUrl"
-                    class="file-preview-link"
-                    @click="handlePreview(serviceFileList2[serviceFileList2.length - 1])"
-                  >预览</span>
-                  <div class="score-input-inline">
-                    <el-input v-model="formData.serviceScore2" placeholder="请输入得分（满分5分）" size="small" style="width: 180px;" :disabled="!isAuditMode" />
+                <div v-if="serviceFileList2 && serviceFileList2.length > 0">
+                  <div v-for="(file, idx) in serviceFileList2" :key="'s2-'+idx" class="file-item-row">
+                    <span class="file-icon"><i class="el-icon-document"></i></span>
+                    <span class="file-name" :title="file.fileName">{{ file.fileName }}</span>
+                    <span v-if="file.fileUrl" class="file-preview-link" @click="handlePreview(file)">预览</span>
                   </div>
                 </div>
-                <div v-else class="file-not-uploaded-row">
-                  <span class="file-not-uploaded">园区端未上传文件</span>
-                  <div class="score-input-inline">
-                    <el-input v-model="formData.serviceScore2" placeholder="请输入得分（满分5分）" size="small" style="width: 180px;" :disabled="!isAuditMode" />
-                  </div>
+                <div v-else class="file-not-uploaded-row"><span class="file-not-uploaded">园区端未上传文件</span></div>
+                <div class="score-input-inline" style="margin-top:8px;">
+                  <el-input v-model="formData.serviceScore2" placeholder="请输入得分（满分5分）" size="small" style="width: 180px;" :disabled="!isAuditMode" />
                 </div>
               </div>
             </div>
@@ -354,23 +326,16 @@
             <!-- 党团工会 -->
             <div class="file-section" style="margin-top: 12px;">
               <div class="section-subtitle">党团工会活动材料</div>
-              <div class="file-item-row" v-if="serviceFileList3 && serviceFileList3.length > 0">
-                <span class="file-icon"><i class="el-icon-document"></i></span>
-                <span class="file-name" :title="serviceFileList3[serviceFileList3.length - 1].fileName">{{ serviceFileList3[serviceFileList3.length - 1].fileName }}</span>
-                <span
-                  v-if="serviceFileList3[serviceFileList3.length - 1].fileUrl"
-                  class="file-preview-link"
-                  @click="handlePreview(serviceFileList3[serviceFileList3.length - 1])"
-                >预览</span>
-                <div class="score-input-inline">
-                  <el-input v-model="formData.serviceScore3" placeholder="请输入得分（满分5分）" size="small" style="width: 180px;" :disabled="!isAuditMode" />
+              <div v-if="serviceFileList3 && serviceFileList3.length > 0">
+                <div v-for="(file, idx) in serviceFileList3" :key="'s3-'+idx" class="file-item-row">
+                  <span class="file-icon"><i class="el-icon-document"></i></span>
+                  <span class="file-name" :title="file.fileName">{{ file.fileName }}</span>
+                  <span v-if="file.fileUrl" class="file-preview-link" @click="handlePreview(file)">预览</span>
                 </div>
               </div>
-              <div v-else class="file-not-uploaded-row">
-                <span class="file-not-uploaded">园区端未上传文件</span>
-                <div class="score-input-inline">
-                  <el-input v-model="formData.serviceScore3" placeholder="请输入得分（满分5分）" size="small" style="width: 180px;" :disabled="!isAuditMode" />
-                </div>
+              <div v-else class="file-not-uploaded-row"><span class="file-not-uploaded">园区端未上传文件</span></div>
+              <div class="score-input-inline" style="margin-top:8px;">
+                <el-input v-model="formData.serviceScore3" placeholder="请输入得分（满分5分）" size="small" style="width: 180px;" :disabled="!isAuditMode" />
               </div>
             </div>
 
@@ -398,23 +363,16 @@
 
             <div class="file-section">
               <div class="section-subtitle">园区大脑数字化相关资料</div>
-              <div class="file-item-row" v-if="serviceFileList4 && serviceFileList4.length > 0">
-                <span class="file-icon"><i class="el-icon-document"></i></span>
-                <span class="file-name" :title="serviceFileList4[serviceFileList4.length - 1].fileName">{{ serviceFileList4[serviceFileList4.length - 1].fileName }}</span>
-                <span
-                  v-if="serviceFileList4[serviceFileList4.length - 1].fileUrl"
-                  class="file-preview-link"
-                  @click="handlePreview(serviceFileList4[serviceFileList4.length - 1])"
-                >预览</span>
-                <div class="score-input-inline">
-                  <el-input v-model="formData.serviceScore4" placeholder="请输入得分（满分5分）" size="small" style="width: 180px;" :disabled="!isAuditMode" />
+              <div v-if="serviceFileList4 && serviceFileList4.length > 0">
+                <div v-for="(file, idx) in serviceFileList4" :key="'s4-'+idx" class="file-item-row">
+                  <span class="file-icon"><i class="el-icon-document"></i></span>
+                  <span class="file-name" :title="file.fileName">{{ file.fileName }}</span>
+                  <span v-if="file.fileUrl" class="file-preview-link" @click="handlePreview(file)">预览</span>
                 </div>
               </div>
-              <div v-else class="file-not-uploaded-row">
-                <span class="file-not-uploaded">园区端未上传文件</span>
-                <div class="score-input-inline">
-                  <el-input v-model="formData.serviceScore4" placeholder="请输入得分（满分5分）" size="small" style="width: 180px;" :disabled="!isAuditMode" />
-                </div>
+              <div v-else class="file-not-uploaded-row"><span class="file-not-uploaded">园区端未上传文件</span></div>
+              <div class="score-input-inline" style="margin-top:8px;">
+                <el-input v-model="formData.serviceScore4" placeholder="请输入得分（满分5分）" size="small" style="width: 180px;" :disabled="!isAuditMode" />
               </div>
             </div>
 
@@ -443,44 +401,30 @@
             <div class="two-col-section">
               <div class="col-item">
                 <div class="section-subtitle">普惠性服务活动</div>
-                <div class="file-item-row" v-if="serviceFileList5 && serviceFileList5.length > 0">
-                  <span class="file-icon"><i class="el-icon-document"></i></span>
-                  <span class="file-name" :title="serviceFileList5[serviceFileList5.length - 1].fileName">{{ serviceFileList5[serviceFileList5.length - 1].fileName }}</span>
-                  <span
-                    v-if="serviceFileList5[serviceFileList5.length - 1].fileUrl"
-                    class="file-preview-link"
-                    @click="handlePreview(serviceFileList5[serviceFileList5.length - 1])"
-                  >预览</span>
-                  <div class="score-input-inline">
-                    <el-input v-model="formData.serviceScore5" placeholder="请输入得分（满分3分）" size="small" style="width: 180px;" :disabled="!isAuditMode" />
+                <div v-if="serviceFileList5 && serviceFileList5.length > 0">
+                  <div v-for="(file, idx) in serviceFileList5" :key="'s5-'+idx" class="file-item-row">
+                    <span class="file-icon"><i class="el-icon-document"></i></span>
+                    <span class="file-name" :title="file.fileName">{{ file.fileName }}</span>
+                    <span v-if="file.fileUrl" class="file-preview-link" @click="handlePreview(file)">预览</span>
                   </div>
                 </div>
-                <div v-else class="file-not-uploaded-row">
-                  <span class="file-not-uploaded">园区端未上传文件</span>
-                  <div class="score-input-inline">
-                    <el-input v-model="formData.serviceScore5" placeholder="请输入得分（满分3分）" size="small" style="width: 180px;" :disabled="!isAuditMode" />
-                  </div>
+                <div v-else class="file-not-uploaded-row"><span class="file-not-uploaded">园区端未上传文件</span></div>
+                <div class="score-input-inline" style="margin-top:8px;">
+                  <el-input v-model="formData.serviceScore5" placeholder="请输入得分（满分3分）" size="small" style="width: 180px;" :disabled="!isAuditMode" />
                 </div>
               </div>
               <div class="col-item">
                 <div class="section-subtitle">个性化服务活动</div>
-                <div class="file-item-row" v-if="serviceFileList6 && serviceFileList6.length > 0">
-                  <span class="file-icon"><i class="el-icon-document"></i></span>
-                  <span class="file-name" :title="serviceFileList6[serviceFileList6.length - 1].fileName">{{ serviceFileList6[serviceFileList6.length - 1].fileName }}</span>
-                  <span
-                    v-if="serviceFileList6[serviceFileList6.length - 1].fileUrl"
-                    class="file-preview-link"
-                    @click="handlePreview(serviceFileList6[serviceFileList6.length - 1])"
-                  >预览</span>
-                  <div class="score-input-inline">
-                    <el-input v-model="formData.serviceScore6" placeholder="请输入得分（满分3分）" size="small" style="width: 180px;" :disabled="!isAuditMode" />
+                <div v-if="serviceFileList6 && serviceFileList6.length > 0">
+                  <div v-for="(file, idx) in serviceFileList6" :key="'s6-'+idx" class="file-item-row">
+                    <span class="file-icon"><i class="el-icon-document"></i></span>
+                    <span class="file-name" :title="file.fileName">{{ file.fileName }}</span>
+                    <span v-if="file.fileUrl" class="file-preview-link" @click="handlePreview(file)">预览</span>
                   </div>
                 </div>
-                <div v-else class="file-not-uploaded-row">
-                  <span class="file-not-uploaded">园区端未上传文件</span>
-                  <div class="score-input-inline">
-                    <el-input v-model="formData.serviceScore6" placeholder="请输入得分（满分3分）" size="small" style="width: 180px;" :disabled="!isAuditMode" />
-                  </div>
+                <div v-else class="file-not-uploaded-row"><span class="file-not-uploaded">园区端未上传文件</span></div>
+                <div class="score-input-inline" style="margin-top:8px;">
+                  <el-input v-model="formData.serviceScore6" placeholder="请输入得分（满分3分）" size="small" style="width: 180px;" :disabled="!isAuditMode" />
                 </div>
               </div>
             </div>
@@ -509,23 +453,16 @@
 
             <div class="file-section">
               <div class="section-subtitle">项目名称</div>
-              <div class="file-item-row" v-if="serviceFileList7 && serviceFileList7.length > 0">
-                <span class="file-icon"><i class="el-icon-document"></i></span>
-                <span class="file-name" :title="serviceFileList7[serviceFileList7.length - 1].fileName">{{ serviceFileList7[serviceFileList7.length - 1].fileName }}</span>
-                <span
-                  v-if="serviceFileList7[serviceFileList7.length - 1].fileUrl"
-                  class="file-preview-link"
-                  @click="handlePreview(serviceFileList7[serviceFileList7.length - 1])"
-                >预览</span>
-                <div class="score-input-inline">
-                  <el-input v-model="formData.serviceScore7" placeholder="请输入得分（满分3分）" size="small" style="width: 180px;" :disabled="!isAuditMode" />
+              <div v-if="serviceFileList7 && serviceFileList7.length > 0">
+                <div v-for="(file, idx) in serviceFileList7" :key="'s7-'+idx" class="file-item-row">
+                  <span class="file-icon"><i class="el-icon-document"></i></span>
+                  <span class="file-name" :title="file.fileName">{{ file.fileName }}</span>
+                  <span v-if="file.fileUrl" class="file-preview-link" @click="handlePreview(file)">预览</span>
                 </div>
               </div>
-              <div v-else class="file-not-uploaded-row">
-                <span class="file-not-uploaded">园区端未上传文件</span>
-                <div class="score-input-inline">
-                  <el-input v-model="formData.serviceScore7" placeholder="请输入得分（满分3分）" size="small" style="width: 180px;" :disabled="!isAuditMode" />
-                </div>
+              <div v-else class="file-not-uploaded-row"><span class="file-not-uploaded">园区端未上传文件</span></div>
+              <div class="score-input-inline" style="margin-top:8px;">
+                <el-input v-model="formData.serviceScore7" placeholder="请输入得分（满分3分）" size="small" style="width: 180px;" :disabled="!isAuditMode" />
               </div>
             </div>
 
@@ -645,6 +582,26 @@
               </div>
             </div>
 
+            <div class="upload-section" style="margin-top: 16px;">
+              <div class="upload-section-title">园区上传附件</div>
+              <div class="upload-section-body" style="display:block;">
+                <div v-if="benefitFileList && benefitFileList.length > 0">
+                  <div v-for="(file, idx) in benefitFileList" :key="'bf-'+idx" class="file-item-row">
+                    <span class="file-icon"><i class="el-icon-document"></i></span>
+                    <span class="file-name" :title="file.fileName">{{ file.fileName || '附件'+(idx+1) }}</span>
+                    <span
+                      v-if="file.fileUrl"
+                      class="file-preview-link"
+                      @click="handlePreview(file)"
+                    >预览</span>
+                  </div>
+                </div>
+                <div v-else class="file-not-uploaded-row">
+                  <span class="file-not-uploaded">园区端未上传文件</span>
+                </div>
+              </div>
+            </div>
+
             <div class="opinion-section">
               <div class="section-subtitle">意见</div>
               <el-input
@@ -755,6 +712,22 @@
                 <div class="ds-title">⑥重大事故</div>
                 <div class="ds-score">{{ districtSafetyDGrade === 'yes' ? '直接列D档' : '不直接列D档' }}</div>
               </div>
+            </div>
+
+            <div class="file-section">
+              <div class="section-subtitle">区县端上传文件</div>
+              <div v-if="districtSafetyFiles && districtSafetyFiles.length > 0">
+                <div v-for="(file, idx) in districtSafetyFiles" :key="'sf-'+idx" class="file-item-row">
+                  <span class="file-icon"><i class="el-icon-document"></i></span>
+                  <span class="file-name" :title="file.fileName || file.name">{{ file.fileName || file.name }}</span>
+                  <span
+                    v-if="file.fileUrl || file.url"
+                    class="file-preview-link"
+                    @click="handlePreview({ fileName: file.fileName || file.name, fileUrl: file.fileUrl || file.url })"
+                  >预览</span>
+                </div>
+              </div>
+              <div v-else class="file-not-uploaded">区县端未上传文件</div>
             </div>
 
             <div class="opinion-section">
@@ -903,14 +876,8 @@
       </div>
     </div>
 
-    <div v-if="showAuditRecord" class="audit-record-panel" @click.self="showAuditRecord = false">
-      <div class="panel-content">
-        <div v-for="(item, index) in auditHistory" :key="index" :class="['history-item', item.active ? 'active' : '']">
-          <div class="history-content">{{ item.content }}</div>
-          <div class="history-time">{{ item.time }}</div>
-        </div>
-      </div>
-    </div>
+    <!-- 审核记录弹窗 -->
+    <AuditTimeline :visible.sync="showAuditRecord" :history="auditHistory" />
 
     <!-- 文件预览弹窗 -->
     <el-dialog
@@ -948,12 +915,15 @@
 </template>
 
 <script>
-import { getAuditDetail, updateAuditDetail, getAuditHistory, uploadAuditFile, saveEvaluationScore, downloadAuditFile } from '@/api/audit'
+import { getAuditDetail, getAuditHistory, uploadAuditFile, saveEvaluationScore, downloadAuditFile } from '@/api/audit'
+import { cityPassEvaluation, cityRejectEvaluation } from '@/api/evaluation'
 import LuckyExcel from 'luckyexcel'
 import { renderAsync } from 'docx-preview'
+import AuditTimeline from '@/components/AuditTimeline.vue'
 
 export default {
   name: 'AdminAuditDetail',
+  components: { AuditTimeline },
   data() {
     const navItems = [
       { index: 'basic', label: '1-基础指标' },
@@ -1035,6 +1005,8 @@ export default {
       // 区县端安全生产评分快照（区县审核时锁定，市级只读）
       districtSafetyScores: ['', '', '', '', ''],
       districtSafetyDGrade: 'no',
+      // 区县端上传的安全生产文件
+      districtSafetyFiles: [],
       // 文件预览
       previewVisible: false,
       previewLoading: false,
@@ -1195,6 +1167,11 @@ export default {
                 ds[4] != null ? String(ds[4]) : ''
               ]
               this.districtSafetyDGrade = s.districtSafety.dGrade || 'no'
+              if (s.districtSafety.files) {
+                this.districtSafetyFiles = s.districtSafety.files
+              }
+            } else if (s.safety && s.safety.files) {
+              this.districtSafetyFiles = s.safety.files
             }
             if (s.other) {
               this.formData.otherDGrade = s.other.dGrade1 || s.other.dGrade || 'no'
@@ -1217,6 +1194,10 @@ export default {
 
           // 解析园区端提交的 parkExtraData - 字段名与园区端 add.vue 保持一致
           const extra = data.extraData || {}
+          // 图一：基础指标"我已知晓" - 从 extraData 读取（园区端保存在此）
+          if (extra.basicAcknowledged) {
+            this.basicAcknowledged = extra.basicAcknowledged === 'known'
+          }
           if (extra.serviceFiles) {
             const sf = extra.serviceFiles
             this.serviceFileList1 = sf.enterpriseService || []
@@ -1230,16 +1211,35 @@ export default {
           if (extra.benefitFiles) {
             this.benefitFileList = extra.benefitFiles || []
           }
-          if (extra.fileSections) {
-            const fs = extra.fileSections
-            this.enterpriseFileList = fs.enterpriseFiles || []
-            this.otherFileList = fs.otherFiles || []
+          // fileSections 是数组（基础指标文件），不是对象
+          if (extra.fileSections && Array.isArray(extra.fileSections)) {
+            this.otherFileList = extra.fileSections
+          } else if (extra.otherFiles) {
+            this.otherFileList = extra.otherFiles
           }
 
           // 子表数据
-          this.techTableData = data.techInnovations || this.techTableData
-          this.techProjectData = data.techProjects || []
+          // 图四：科技创新 - 从 techInnovations 提取文件信息
+          const rawTechInnovations = data.techInnovations || []
+          this.techTableData = rawTechInnovations.map(item => ({
+            level: item.category || '',
+            name: item.name || '',
+            date: item.date || '',
+            company: item.company || '',
+            fileName: item.fileName || '',
+            fileUrl: item.fileUrl || '',
+            projectName: item.projectName || '',
+            score: ''
+          }))
+          // 科研合作项目 - 提取文件信息
+          this.techProjectData = (data.techProjects || []).map(item => ({
+            projectName: item.name || '',
+            fileName: item.fileName || '',
+            fileUrl: item.fileUrl || ''
+          }))
+          // 图二：企业培育 - 从 cultivationRecords 子表读取（园区端存在子表里）
           this.cultivationData = data.cultivationRecords || []
+          this.enterpriseFileList = this.cultivationData
 
           this.formData.parkName = data.parkName || ''
           this.formData.year = data.year || ''
@@ -1256,30 +1256,30 @@ export default {
     applyMockDetail(id) {
       this.formData = {
         ...this.formData,
-        basicResult1: '通过',
-        enterpriseScore: '4',
-        enterpriseOpinion: '企业培育情况良好，符合要求',
-        techOpinion: '科技创新能力较强',
-        techScore2: '3',
-        techOpinion2: '科研合作成果显著',
-        serviceScore1: '4',
-        serviceScore2: '5',
-        serviceScore3: '3',
-        serviceOpinion1: '助企服务机制完善',
-        serviceScore4: '4',
-        serviceOpinion2: '数字化建设较好',
-        serviceScore5: '2',
-        serviceScore6: '3',
-        serviceOpinion3: '服务活动开展正常',
-        serviceScore7: '2',
-        serviceOpinion4: '合作项目推进顺利',
-        benefitScore1: '6',
-        benefitScore2: '5',
-        benefitScore3: '4',
-        benefitScore4: '3',
-        benefitScore5: '2',
-        benefitScore6: '1',
-        benefitOpinion: '亩均效益达到全市平均水平',
+        basicResult1: '',
+        enterpriseScore: '',
+        enterpriseOpinion: '',
+        techOpinion: '',
+        techScore2: '',
+        techOpinion2: '',
+        serviceScore1: '',
+        serviceScore2: '',
+        serviceScore3: '',
+        serviceOpinion1: '',
+        serviceScore4: '',
+        serviceOpinion2: '',
+        serviceScore5: '',
+        serviceScore6: '',
+        serviceOpinion3: '',
+        serviceScore7: '',
+        serviceOpinion4: '',
+        benefitScore1: '',
+        benefitScore2: '',
+        benefitScore3: '',
+        benefitScore4: '',
+        benefitScore5: '',
+        benefitScore6: '',
+        benefitOpinion: '',
         safetyScore1: '',
         safetyScore2: '',
         safetyScore3: '',
@@ -1291,20 +1291,10 @@ export default {
         rejectIndex: '',
         resultOpinion: ''
       }
-      this.highTechFileList = [
-        { name: '2025年高新技术企业名单.pdf', url: '' }
-      ]
-      this.techFileList = [
-        { name: '科研合作项目材料.pdf', url: '' }
-      ]
-      this.industryTableData = [
-        { parkName: '盛惠哈源科创园', enterpriseName: '杭州某科技有限公司', creditCode: '91330100MA2XXXXXXX', entryTime: '2025.01-至今', address: '杭州市余杭区XX路XX号' },
-        { parkName: '盛惠哈源科创园', enterpriseName: '浙江某生物医药有限公司', creditCode: '91330100MA2YYYYYYY', entryTime: '2025.03-至今', address: '杭州市余杭区XX路XX号' }
-      ]
-      this.techTableData = [
-        { level: 'C类', name: '张三', date: '2025-06', company: '杭州某科技有限公司', score: '' },
-        { level: 'D类', name: '李四', date: '2025-09', company: '浙江某生物医药有限公司', score: '' }
-      ]
+      this.highTechFileList = []
+      this.techFileList = []
+      this.industryTableData = []
+      this.techTableData = []
     },
 
     async loadAuditHistory() {
@@ -1312,22 +1302,10 @@ export default {
       if (!id) return
       try {
         const res = await getAuditHistory(id)
-        if (res && res.data && Array.isArray(res.data) && res.data.length > 0) {
-          this.auditHistory = res.data
-        } else {
-          this.auditHistory = [
-            { content: '园区端提交评价材料', time: '2026-06-01 09:00:00', active: false },
-            { content: '区县管理员审核通过', time: '2026-06-10 14:30:00', active: false },
-            { content: '待市级管理员审核', time: '2026-06-10 14:30:00', active: true }
-          ]
-        }
+        this.auditHistory = (res && res.data && Array.isArray(res.data)) ? res.data : []
       } catch (e) {
         console.error('获取审核历史失败', e)
-        this.auditHistory = [
-          { content: '园区端提交评价材料', time: '2026-06-01 09:00:00', active: false },
-          { content: '区县管理员审核通过', time: '2026-06-10 14:30:00', active: false },
-          { content: '待市级管理员审核', time: '2026-06-10 14:30:00', active: true }
-        ]
+        this.auditHistory = []
       }
     },
 
@@ -1366,6 +1344,9 @@ export default {
       }
     },
     toggleAuditRecord() {
+      if (!this.showAuditRecord) {
+        this.loadAuditHistory()
+      }
       this.showAuditRecord = !this.showAuditRecord
     },
     goBackToList() {
@@ -1543,7 +1524,13 @@ export default {
           return
         }
         this.saveLoading = true
-        await updateAuditDetail({ id, ...this.formData })
+        const scoreDetail = JSON.stringify(this.buildScoreDetail())
+        await saveEvaluationScore(id, scoreDetail)
+        if (this.formData.result1 === 'pass') {
+          await cityPassEvaluation(id)
+        } else {
+          await cityRejectEvaluation(id)
+        }
         this.$message.success('审核完成')
         this.$router.push('/admin/audit')
       } catch (e) {
@@ -1651,11 +1638,10 @@ export default {
         })
       })
     },
-    handlePreviewClosed() {
+    handlePreviewClosed(done) {
       if (window.luckysheet) {
         window.luckysheet.destroy()
       }
-      // 清理 docx 预览容器
       const docxContainer = document.getElementById('audit-docx-preview')
       if (docxContainer) {
         docxContainer.innerHTML = ''
@@ -1664,6 +1650,7 @@ export default {
         window.URL.revokeObjectURL(this.previewBlobUrl)
         this.previewBlobUrl = ''
       }
+      done()
     }
   }
 }
@@ -2103,29 +2090,70 @@ export default {
 }
 
 .panel-content {
-  width: 400px;
-  max-height: 100%;
-  overflow-y: auto;
-  background: #FFFFFF;
-  box-shadow: -2px 0 12px rgba(0, 0, 0, 0.1);
-  padding: 16px;
-}
+      width: 400px;
+      max-height: 100%;
+      overflow-y: auto;
+      background: #FFFFFF;
+      box-shadow: -2px 0 12px rgba(0, 0, 0, 0.1);
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+    }
 
-.history-item {
-  padding: 12px 0;
-  border-bottom: 1px solid #EBEEF5;
-}
+    .panel-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 14px 16px;
+      border-bottom: 1px solid #EBEEF5;
+      flex-shrink: 0;
+    }
 
-.history-item:last-child {
-  border-bottom: none;
-}
+    .panel-title {
+      font-size: 15px;
+      font-weight: 600;
+      color: #303133;
+    }
 
-.history-item.active {
-  background: #FAFCFF;
-  padding: 12px;
-  margin: 0 -16px;
-  padding-left: 16px;
-}
+    .panel-close {
+      font-size: 18px;
+      color: #909399;
+      cursor: pointer;
+      transition: color 0.2s;
+    }
+
+    .panel-close:hover {
+      color: #F56C6C;
+    }
+
+    .panel-empty {
+      text-align: center;
+      color: #909399;
+      padding: 60px 0;
+      font-size: 14px;
+    }
+
+    .panel-list {
+      padding: 12px 16px;
+      flex: 1;
+      overflow-y: auto;
+    }
+
+    .history-item {
+      padding: 12px 0;
+      border-bottom: 1px solid #EBEEF5;
+    }
+
+    .history-item:last-child {
+      border-bottom: none;
+    }
+
+    .history-item.active {
+      background: #FAFCFF;
+      padding: 12px;
+      margin: 0 -16px;
+      padding-left: 16px;
+    }
 
 .history-content {
   font-size: 13px;

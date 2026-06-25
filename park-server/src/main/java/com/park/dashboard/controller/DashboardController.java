@@ -3,8 +3,11 @@ package com.park.dashboard.controller;
 import com.park.auth.entity.SysUser;
 import com.park.auth.service.AuthService;
 import com.park.common.result.R;
+import com.park.dashboard.dto.BigScreenStatsDTO;
 import com.park.dashboard.dto.DashboardStatsDTO;
-import com.park.dashboard.dto.QuarterlyStatsDTO;
+import com.park.dashboard.dto.DistrictDataDTO;
+import com.park.dashboard.dto.EvaluationAnalysisDTO;
+import com.park.dashboard.dto.MonthlyStatsDTO;
 import com.park.dashboard.dto.ParkRankDTO;
 import com.park.dashboard.service.DashboardService;
 import com.park.system.entity.DistrictInfo;
@@ -81,14 +84,60 @@ public class DashboardController {
      * @param request HTTP 请求
      * @return 季度统计列表（4个季度）
      */
-    @GetMapping("/quarterly-stats")
+    @GetMapping("/monthly-stats")
     @ApiOperation(value = "获取季度统计", notes = "指定年份每季度的运营数据汇总")
-    public R<List<QuarterlyStatsDTO>> getQuarterlyStats(
+    public R<List<MonthlyStatsDTO>> getMonthlyStats(
             @ApiParam(value = "年份", example = "2026") @RequestParam(defaultValue = "2026") int year,
             HttpServletRequest request) {
         UserScope scope = resolveUserScope(request);
-        List<QuarterlyStatsDTO> quarterlyStats = dashboardService.getQuarterlyStats(year, scope.districtName, scope.parkId);
+        List<MonthlyStatsDTO> quarterlyStats = dashboardService.getQuarterlyStats(year, scope.districtName, scope.parkId);
         return R.ok(quarterlyStats);
+    }
+
+    /**
+     * 获取数据大屏市级汇总统计（仅市级管理员 roleType=1 调用）
+     * 所有字段均来自数据库真实聚合，无 mock 值
+     *
+     * @param year    评价年度
+     * @param request HTTP 请求
+     * @return 市级汇总统计
+     */
+    @GetMapping("/big-screen-stats")
+    @ApiOperation(value = "数据大屏-市级汇总统计", notes = "返回市级真实聚合数据，供大屏左侧/右侧统计卡片使用")
+    public R<BigScreenStatsDTO> getBigScreenStats(
+            @ApiParam(value = "年份", example = "2026") @RequestParam(defaultValue = "2026") int year,
+            HttpServletRequest request) {
+        BigScreenStatsDTO stats = dashboardService.getBigScreenStats(year);
+        return R.ok(stats);
+    }
+
+    /**
+     * 获取数据大屏各区县园区分布数据（仅市级管理员 roleType=1 调用）
+     *
+     * @param request HTTP 请求
+     * @return 区县分布列表
+     */
+    @GetMapping("/district-data")
+    @ApiOperation(value = "数据大屏-区县分布", notes = "返回13个区县的园区分布真实聚合数据")
+    public R<List<DistrictDataDTO>> getDistrictData(HttpServletRequest request) {
+        List<DistrictDataDTO> data = dashboardService.getDistrictData();
+        return R.ok(data);
+    }
+
+    /**
+     * 获取园区评价分析数据（数据大屏第二个标签页）
+     *
+     * @param year    评价年度
+     * @param request HTTP 请求
+     * @return 评价分析统计
+     */
+    @GetMapping("/evaluation-analysis")
+    @ApiOperation(value = "数据大屏-园区评价分析", notes = "返回园区评价分析数据，用于数据大屏第二个标签页")
+    public R<EvaluationAnalysisDTO> getEvaluationAnalysis(
+            @ApiParam(value = "年份", example = "2026") @RequestParam(defaultValue = "2026") int year,
+            HttpServletRequest request) {
+        EvaluationAnalysisDTO analysis = dashboardService.getEvaluationAnalysis(year);
+        return R.ok(analysis);
     }
 
     // ==================== 私有方法 ====================

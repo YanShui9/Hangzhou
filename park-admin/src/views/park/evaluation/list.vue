@@ -55,9 +55,10 @@
               </span>
             </template>
           </el-table-column>
-          <el-table-column label="操作" min-width="220" align="center">
+          <el-table-column label="操作" min-width="260" align="center">
             <template slot-scope="scope">
               <el-button type="text" @click="handleView(scope.row)">查看</el-button>
+              <el-button v-if="scope.row.status > 0" type="text" @click="viewAuditHistory(scope.row)">审核记录</el-button>
               <el-button v-if="scope.row.status === 0" type="text" @click="handleEdit(scope.row)">编辑</el-button>
               <el-button v-if="scope.row.status === 0" type="text" style="color:#67c23a" @click="handleSubmit(scope.row)">提交</el-button>
               <el-button v-if="scope.row.status === 4" type="text" style="color:#e6a23c" @click="handleEdit(scope.row)">修改</el-button>
@@ -134,29 +135,8 @@
       </div>
     </el-dialog>
 
-    <el-dialog title="审核历史" :visible.sync="historyDialogVisible" width="600px">
-      <el-table :data="auditHistory" border stripe>
-        <el-table-column prop="auditorName" label="审核人" width="100" align="center" />
-        <el-table-column prop="auditorRole" label="审核级别" width="100" align="center">
-          <template slot-scope="scope">
-            {{ scope.row.auditorRole === 1 ? '市级终审' : '区县初审' }}
-          </template>
-        </el-table-column>
-        <el-table-column prop="action" label="审核结果" width="100" align="center">
-          <template slot-scope="scope">
-            <span class="status-indicator">
-              <span :class="['status-dot', scope.row.action === 1 ? 'status-dot--green' : 'status-dot--red']"></span>
-              <span class="status-text">{{ scope.row.action === 1 ? '通过' : '驳回' }}</span>
-            </span>
-          </template>
-        </el-table-column>
-        <el-table-column prop="opinion" label="审核意见" min-width="200" />
-        <el-table-column prop="createTime" label="审核时间" width="180" align="center" />
-      </el-table>
-      <div slot="footer">
-        <el-button @click="historyDialogVisible = false">关 闭</el-button>
-      </div>
-    </el-dialog>
+    <!-- 审核记录对话框 -->
+    <AuditTimeline :visible.sync="historyDialogVisible" :history="auditHistory" />
 
     <el-dialog title="选择评价年度" :visible.sync="yearSelectVisible" width="360px" :close-on-click-modal="false">
       <div class="year-select-content">
@@ -178,9 +158,11 @@ import { getEvaluationPage, submitEvaluation, getEvaluationById, checkSubmittedE
 import { getAuditHistory } from '@/api/audit'
 import { getParkDetail } from '@/api/park'
 import { mapGetters } from 'vuex'
+import AuditTimeline from '@/components/AuditTimeline.vue'
 
 export default {
   name: 'ParkEvaluationList',
+  components: { AuditTimeline },
   data() {
     const currentYear = new Date().getFullYear()
     return {
@@ -318,6 +300,7 @@ export default {
       if (status === 1) return 'orange'
       if (status === 2) return 'blue'
       if (status === 3) return 'green'
+      if (status === 5) return 'blue'
       return 'red'
     },
 
@@ -326,6 +309,7 @@ export default {
       if (status === 1) return '区县待审核'
       if (status === 2) return '市级待审核'
       if (status === 3) return '审核通过'
+      if (status === 5) return '市级待审核'
       return '退回'
     },
 
@@ -418,12 +402,14 @@ export default {
     },
 
     async viewAuditHistory(row) {
+      this.auditHistory = []
+      this.historyDialogVisible = true
       try {
         const res = await getAuditHistory(row.id)
-        this.auditHistory = res.data || []
-        this.historyDialogVisible = true
+        this.auditHistory = (res && res.data && Array.isArray(res.data)) ? res.data : []
       } catch (e) {
         console.error('获取审核历史失败', e)
+        this.auditHistory = []
       }
     },
 
@@ -698,5 +684,77 @@ export default {
   display: flex;
   flex-direction: column;
   gap: 12px;
+}
+
+/* 审核记录时间线样式 */
+.history-empty {
+  text-align: center;
+  color: #909399;
+  padding: 40px 0;
+  font-size: 14px;
+}
+
+.history-timeline {
+  max-height: 480px;
+  overflow-y: auto;
+  padding-left: 20px;
+  position: relative;
+}
+
+.history-timeline::before {
+  content: '';
+  position: absolute;
+  left: 5px;
+  top: 4px;
+  bottom: 4px;
+  width: 2px;
+  background: #e8e8e8;
+}
+
+.history-item {
+  position: relative;
+  margin-bottom: 20px;
+}
+
+.history-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #d9d9d9;
+  border: 2px solid #fff;
+  box-shadow: 0 0 0 2px #e8e8e8;
+  position: absolute;
+  left: -15px;
+  top: 4px;
+  z-index: 1;
+}
+
+.history-dot--active {
+  background: #67c23a;
+  box-shadow: 0 0 0 2px #b3e19d;
+}
+
+.history-card {
+  background: #fff;
+  border-radius: 6px;
+  padding: 12px 14px;
+  border: 1px solid #e8e8e8;
+}
+
+.history-item--active .history-card {
+  background: #f0f9eb;
+  border-color: #b3e19d;
+}
+
+.history-content {
+  font-size: 14px;
+  color: #303133;
+  line-height: 1.5;
+}
+
+.history-time {
+  font-size: 12px;
+  color: #909399;
+  margin-top: 6px;
 }
 </style>

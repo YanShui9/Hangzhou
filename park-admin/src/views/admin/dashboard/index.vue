@@ -11,9 +11,7 @@
         <div class="chart-header">
           <div class="chart-bar"></div>
           <span class="chart-name">季度运营趋势</span>
-          <el-select v-model="selectedYear" size="mini" style="width: 100px;" @change="fetchQuarterlyStats">
-            <el-option v-for="item in yearOptions" :key="item.value" :label="item.label" :value="item.value" />
-          </el-select>
+          <span class="chart-tag">2026年</span>
         </div>
         <div ref="trendChart" class="chart-area"></div>
       </div>
@@ -59,7 +57,7 @@
 
 <script>
 import * as echarts from 'echarts'
-import { getStats, getTopParks, getQuarterlyStats } from '@/api/dashboard'
+import { getStats, getTopParks, getMonthlyStats } from '@/api/dashboard'
 import StatCard from '@/components/StatCard.vue'
 
 export default {
@@ -69,10 +67,9 @@ export default {
     return {
       stats: {},
       topParks: [],
-      quarterlyData: [],
+      monthlyData: [],
       recentEvaluations: [],
-      yearOptions: [],
-      selectedYear: new Date().getFullYear(),
+      selectedYear: 2026,
       trendChart: null,
       rankChart: null
     }
@@ -88,7 +85,6 @@ export default {
     }
   },
   mounted() {
-    this.initYearOptions()
     this.fetchData()
     window.addEventListener('resize', this.handleResize)
   },
@@ -99,7 +95,7 @@ export default {
   },
   methods: {
     async fetchData() {
-      await Promise.all([this.fetchStats(), this.fetchTopParks(), this.fetchQuarterlyStats()])
+      await Promise.all([this.fetchStats(), this.fetchTopParks(), this.fetchMonthlyStats()])
     },
     async fetchStats() {
       try { const res = await getStats(); this.stats = res.data || {} } catch (e) { console.error(e) }
@@ -111,10 +107,10 @@ export default {
         this.$nextTick(() => this.renderRankChart())
       } catch (e) { console.error(e) }
     },
-    async fetchQuarterlyStats() {
+    async fetchMonthlyStats() {
       try {
-        const res = await getQuarterlyStats({ year: this.selectedYear })
-        this.quarterlyData = res.data || []
+        const res = await getMonthlyStats({ year: this.selectedYear })
+        this.monthlyData = res.data || []
         this.$nextTick(() => this.renderTrendChart())
       } catch (e) { console.error(e) }
     },
@@ -122,19 +118,20 @@ export default {
       if (!this.$refs.trendChart) return
       if (this.trendChart) this.trendChart.dispose()
       this.trendChart = echarts.init(this.$refs.trendChart)
-      const quarters = this.quarterlyData.map(item => {
-        const match = item.quarter && item.quarter.match(/Q(\d)/)
-        return match ? '第' + match[1] + '季度' : (item.quarter || '-')
-      })
+      const months = this.monthlyData.map(item => item.month.split('-')[1] + '月')
       this.trendChart.setOption({
         tooltip: { trigger: 'axis', backgroundColor: 'white', borderColor: '#E5E7EB', borderWidth: 1, textStyle: { color: '#1F2937', fontSize: 12 } },
-        legend: { data: ['就业人数', '企业数量'], bottom: 0, textStyle: { color: '#6B7280', fontSize: 11 } },
+        legend: { data: ['营收', '就业人数', '企业数量'], bottom: 0, textStyle: { color: '#6B7280', fontSize: 11 } },
         grid: { left: '3%', right: '4%', bottom: '15%', top: '5%', containLabel: true },
-        xAxis: { type: 'category', data: quarters, axisLine: { lineStyle: { color: '#E5E7EB' } }, axisTick: { show: false }, axisLabel: { color: '#6B7280', fontSize: 11 } },
-        yAxis: { type: 'value', axisLine: { show: false }, axisTick: { show: false }, splitLine: { lineStyle: { color: '#F3F4F6' } }, axisLabel: { color: '#6B7280', fontSize: 11 } },
+        xAxis: { type: 'category', data: months, axisLine: { lineStyle: { color: '#E5E7EB' } }, axisTick: { show: false }, axisLabel: { color: '#6B7280', fontSize: 11 } },
+        yAxis: [
+          { type: 'value', position: 'left', axisLine: { show: false }, axisTick: { show: false }, splitLine: { lineStyle: { color: '#F3F4F6' } }, axisLabel: { color: '#6B7280', fontSize: 11 } },
+          { type: 'value', position: 'right', axisLine: { show: false }, axisTick: { show: false }, splitLine: { show: false }, axisLabel: { color: '#6B7280', fontSize: 11 } }
+        ],
         series: [
-          { name: '就业人数', type: 'line', smooth: true, symbol: 'circle', symbolSize: 5, lineStyle: { width: 2, color: '#059669' }, itemStyle: { color: '#059669' }, data: this.quarterlyData.map(item => item.employment) },
-          { name: '企业数量', type: 'line', smooth: true, symbol: 'circle', symbolSize: 5, lineStyle: { width: 2, color: '#D97706' }, itemStyle: { color: '#D97706' }, data: this.quarterlyData.map(item => item.enterpriseCount) }
+          { name: '营收', type: 'line', smooth: true, symbol: 'circle', symbolSize: 5, lineStyle: { width: 2, color: '#1E40AF' }, itemStyle: { color: '#1E40AF' }, areaStyle: { color: { type: 'linear', x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: 'rgba(30, 64, 175, 0.08)' }, { offset: 1, color: 'rgba(30, 64, 175, 0.01)' }] } }, data: this.monthlyData.map(item => item.revenue) },
+          { name: '就业人数', type: 'line', smooth: true, symbol: 'circle', symbolSize: 5, lineStyle: { width: 2, color: '#059669' }, itemStyle: { color: '#059669' }, yAxisIndex: 1, data: this.monthlyData.map(item => item.employment) },
+          { name: '企业数量', type: 'line', smooth: true, symbol: 'circle', symbolSize: 5, lineStyle: { width: 2, color: '#D97706' }, itemStyle: { color: '#D97706' }, yAxisIndex: 1, data: this.monthlyData.map(item => item.enterpriseCount) }
         ]
       })
     },
@@ -161,12 +158,6 @@ export default {
     handleResize() {
       if (this.trendChart) this.trendChart.resize()
       if (this.rankChart) this.rankChart.resize()
-    },
-    initYearOptions() {
-      const currentYear = new Date().getFullYear()
-      for (let y = currentYear; y >= currentYear - 3; y--) {
-        this.yearOptions.push({ label: y + '年', value: y })
-      }
     }
   }
 }

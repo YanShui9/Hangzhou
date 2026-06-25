@@ -3,7 +3,7 @@
     <div class="filter-container">
       <el-input
         v-model="queryParams.keyword"
-        placeholder="企业名称/统一信用代码"
+        placeholder="企业名称"
         style="width: 240px;"
         class="filter-item"
         clearable
@@ -124,9 +124,10 @@
           {{ maskPhone(row.contactPhone) }}
         </template>
       </el-table-column>
-      <el-table-column label="操作" width="120" align="center" fixed="right">
+      <el-table-column label="操作" width="180" align="center" fixed="right">
         <template slot-scope="{ row }">
           <el-button type="text" size="small" @click="handleViewDetail(row)">查看详情</el-button>
+          <el-button type="text" size="small" style="color:#f56c6c" @click="handleDelete(row)">删除</el-button>
         </template>
       </el-table-column>
     </el-table>
@@ -148,7 +149,7 @@
 </template>
 
 <script>
-import { getEnterpriseList } from '@/api/enterprise'
+import { getEnterpriseList, deleteEnterprise } from '@/api/enterprise'
 import { mapGetters } from 'vuex'
 import * as XLSX from 'xlsx'
 
@@ -169,13 +170,14 @@ export default {
       parkOptions: [],
       districtOptions: ['上城区', '下城区', '西湖区', '江干区', '拱墅区', '滨江区', '萧山区', '余杭区', '富阳区', '临安区', '桐庐县', '建德市', '淳安县'],
       honorOptions: [
-        { value: '国家高新技术企业', label: '国家高新技术企业' },
-        { value: '专精特新', label: '专精特新' },
-        { value: '小巨人', label: '小巨人' },
-        { value: '隐形冠军', label: '隐形冠军' },
-        { value: '单项冠军', label: '单项冠军' },
-        { value: '科技型中小企业', label: '科技型中小企业' },
-        { value: '创新型中小企业', label: '创新型中小企业' }
+        { value: 'new_national_high_tech', label: '国家高新技术企业' },
+        { value: 'new_specialty_giant', label: '专精特新小巨人' },
+        { value: 'new_specialty_sme', label: '专精特新中小企业' },
+        { value: 'new_provincial_hidden_champion', label: '省级隐形冠军' },
+        { value: 'new_single_champion', label: '单项冠军' },
+        { value: 'new_ipo', label: '上市企业' },
+        { value: 'innovative_sme', label: '创新型中小企业' },
+        { value: 'new_provincial_tech_small', label: '省级科技型中小企业' }
       ],
       registerStatusOptions: [
         { value: '存续/在业', label: '存续/在业' },
@@ -301,6 +303,20 @@ export default {
     },
     handleViewDetail(row) {
       this.$router.push({ name: 'ParkEnterpriseDetail', params: { id: row.id } })
+    },
+    handleDelete(row) {
+      this.$confirm(`确认删除企业「${row.enterpriseName}」吗？删除后不可恢复。`, '提示', {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }).then(() => {
+        deleteEnterprise(row.id).then(() => {
+          this.$message.success('删除成功')
+          this.getList()
+        }).catch(err => {
+          this.$message.error('删除失败：' + (err.message || '请稍后重试'))
+        })
+      }).catch(() => {})
     },
     handleSizeChange(val) {
       this.queryParams.pageSize = val

@@ -122,8 +122,8 @@
               <el-table-column prop="parkName" label="园区名称" min-width="120" />
               <el-table-column prop="enterpriseName" label="入驻企业名称" min-width="200" />
               <el-table-column prop="creditCode" label="统一社会信用代码" min-width="180" />
-              <el-table-column prop="registerDate" label="入驻起止时间" min-width="150" />
-              <el-table-column prop="address" label="企业注册地址" min-width="200" />
+              <el-table-column prop="settledDate" label="入驻起止时间" min-width="150" />
+              <el-table-column prop="registeredAddress" label="企业注册地址" min-width="200" />
             </el-table>
           </div>
           <div class="bottom-actions">
@@ -157,9 +157,15 @@
           </div>
           <div v-if="cultivationList && cultivationList.length > 0" class="table-wrapper" style="margin-top:12px;">
             <el-table :data="cultivationList" border style="width: 100%;" max-height="300px">
-              <el-table-column prop="enterpriseName" label="企业名称" min-width="180" />
-              <el-table-column prop="honorType" label="培育类型" min-width="150" />
-              <el-table-column prop="occurTime" label="发生时间" min-width="120" />
+              <el-table-column label="项目名称" min-width="180">
+                <template slot-scope="scope">{{ scope.row.projectName || scope.row.fileName || '-' }}</template>
+              </el-table-column>
+              <el-table-column label="附件" min-width="200">
+                <template slot-scope="scope">
+                  <a href="javascript:void(0)" v-if="scope.row.fileUrl" @click="handleFilePreview(scope.row)">{{ scope.row.fileName || '查看附件' }}</a>
+                  <span v-else>{{ scope.row.fileName || '-' }}</span>
+                </template>
+              </el-table-column>
             </el-table>
           </div>
           <div class="bottom-actions">
@@ -185,14 +191,27 @@
           <div class="tip-box info">
             <span>④根据杭州市高层次人才分类目录标准，评价年度内园区企业新认定A、B、C、D类人才的，每人分别得3分、2分、1.5分、1分。</span>
           </div>
-          <div class="table-wrapper">
-            <el-table :data="talentList" border style="width: 100%;" max-height="200px">
-              <el-table-column prop="level" label="类别" width="80" />
-              <el-table-column prop="name" label="姓名" width="100" />
-              <el-table-column prop="certDate" label="认定日期" width="120" />
-              <el-table-column prop="company" label="推荐科技" />
-              <el-table-column prop="score" label="得分" width="120" align="center" />
-            </el-table>
+          <div class="file-section">
+            <div class="file-title">科技创新附件</div>
+            <div v-if="!talentList || talentList.length === 0" class="empty-file-tip">园区端未上传文件</div>
+            <div v-else v-for="(item, idx) in talentList" :key="'tech-'+idx" class="file-item tech-file-item">
+              <i class="el-icon-file-text"></i>
+              <div class="tech-file-info">
+                <div class="tech-file-name">{{ item.fileName || '附件' + (idx + 1) }}</div>
+                <div class="tech-file-meta">
+                  <span v-if="item.projectName">项目：{{ item.projectName }}</span>
+                  <span v-if="item.level" class="meta-sep">｜</span>
+                  <span v-if="item.level">类别：{{ item.level }}</span>
+                  <span v-if="item.name" class="meta-sep">｜</span>
+                  <span v-if="item.name">姓名：{{ item.name }}</span>
+                  <span v-if="item.certDate" class="meta-sep">｜</span>
+                  <span v-if="item.certDate">认定日期：{{ item.certDate }}</span>
+                  <span v-if="item.company" class="meta-sep">｜</span>
+                  <span v-if="item.company">企业：{{ item.company }}</span>
+                </div>
+              </div>
+              <a href="javascript:void(0)" class="file-action" @click="handleFilePreview(item)">预览</a>
+            </div>
           </div>
           <div class="tip-box info">
             <span>⑤园区与科研院所建立合作关系，在园区开展科研成果转化并在评价年度形成500万元以上产出的，每项得1分。</span>
@@ -200,10 +219,13 @@
           <div v-if="techProjectList && techProjectList.length > 0" class="table-wrapper">
             <div class="file-title" style="margin-bottom:8px;">院所合作项目</div>
             <el-table :data="techProjectList" border style="width: 100%;" max-height="200px">
-              <el-table-column prop="projectName" label="合作项目" min-width="180" />
-              <el-table-column prop="institute" label="合作院所" min-width="150" />
-              <el-table-column prop="outputValue" label="产出(万元)" min-width="100" />
-              <el-table-column prop="cooperateDate" label="合作日期" min-width="120" />
+              <el-table-column prop="projectName" label="合作项目" min-width="200" />
+              <el-table-column label="附件" min-width="200">
+                <template slot-scope="scope">
+                  <a href="javascript:void(0)" v-if="scope.row.fileUrl" @click="handleFilePreview(scope.row)">{{ scope.row.fileName || '查看附件' }}</a>
+                  <span v-else>{{ scope.row.fileName || '-' }}</span>
+                </template>
+              </el-table-column>
             </el-table>
           </div>
           <div class="bottom-actions">
@@ -392,7 +414,7 @@
                 <i class="el-icon-file-text"></i>
                 <span class="file-name">{{ file.name }}</span>
                 <span class="file-size">{{ file.size }}</span>
-                <a href="javascript:void(0)" class="file-action preview" @click="openPreviewDialog(file.name)">预览</a>
+                <a href="javascript:void(0)" class="file-action preview" @click="handleFilePreview(file)">预览</a>
                 <a href="javascript:void(0)" class="file-action delete" @click="deleteSafetyFile(index)">删除</a>
               </div>
             </div>
@@ -425,6 +447,17 @@
           <div class="tip-box info">
             <span>④评价年度承诺函。</span>
           </div>
+          
+          <!-- 园区上传的附件 -->
+          <div v-if="otherFileList.length > 0" class="attachment-list">
+            <div class="attachment-title">园区上传附件</div>
+            <div v-for="(file, index) in otherFileList" :key="index" class="attachment-item">
+              <i class="el-icon-document"></i>
+              <span class="attachment-name">{{ file.fileName }}</span>
+              <span class="action-link preview-link" @click.stop="handleFilePreview(file)">预览</span>
+            </div>
+          </div>
+          
           <!-- 评价结果模块 -->
           <div class="audit-conclusion">
             <div class="conclusion-title">审核结论</div>
@@ -461,26 +494,7 @@
     </el-dialog>
 
     <!-- 审核记录对话框 -->
-    <el-dialog title="审核记录" :visible.sync="auditRecordsDialogVisible" width="600px" :close-on-click-modal="false" :show-close="true">
-      <div class="timeline-container">
-        <div v-if="auditRecords.length === 0" class="empty-tip">暂无审核记录</div>
-        <div
-          v-for="(record, index) in auditRecords"
-          :key="index"
-          class="timeline-item"
-          :class="{ 'active': record.active }"
-        >
-          <div class="timeline-dot" :class="record.active ? 'success' : 'default'"></div>
-          <div class="timeline-card">
-            <div class="record-time">{{ record.auditTime }}</div>
-            <div class="record-content">{{ record.content }}</div>
-          </div>
-        </div>
-      </div>
-      <div slot="footer" class="dialog-footer">
-        <el-button @click="auditRecordsDialogVisible = false">关闭</el-button>
-      </div>
-    </el-dialog>
+    <AuditTimeline :visible.sync="auditRecordsDialogVisible" :history="auditRecords" />
 
     <!-- 行文文件预览组件 -->
     <FilePreview :visible.sync="filePreviewVisible" :file-url="previewUrl" :file-name="previewDialogTitle" />
@@ -488,13 +502,15 @@
 </template>
 
 <script>
-import { getEvaluationDetail, submitAudit, getAuditHistory, getParkFiles, uploadParkFile } from '@/api/audit'
+import { getEvaluationDetail, submitAudit, getAuditHistory, getParkFiles, uploadParkFile, saveEvaluationScore } from '@/api/audit'
+import { uploadFile } from '@/api/tech-innovation'
 import { mapGetters } from 'vuex'
 import FilePreview from '@/components/FilePreview.vue'
+import AuditTimeline from '@/components/AuditTimeline.vue'
 
 export default {
   name: 'AuditDetail',
-  components: { FilePreview },
+  components: { FilePreview, AuditTimeline },
   data() {
     return {
       activeIndex: '1',
@@ -568,6 +584,7 @@ export default {
       talentList: [],
       // 安全生产附件列表
       safetyFiles: [],
+      safetyUploading: false,
       // 园区端上传的文件（来自 parkExtraData）- 字段名与园区端 add.vue 保持一致
       serviceFiles: {
         enterpriseService: [], oneStopService: [], unionActivity: [],
@@ -590,6 +607,15 @@ export default {
     }
   },
   methods: {
+    formatDate(dateStr) {
+      if (!dateStr) return ''
+      const d = new Date(dateStr)
+      if (isNaN(d.getTime())) return dateStr
+      const y = d.getFullYear()
+      const m = String(d.getMonth() + 1).padStart(2, '0')
+      const day = String(d.getDate()).padStart(2, '0')
+      return `${y}-${m}-${day}`
+    },
     async fetchDetail(id) {
       try {
         const res = await getEvaluationDetail(id)
@@ -615,27 +641,73 @@ export default {
           if (tech.total != null) this.auditForm.techScore = String(tech.total)
         }
 
+        // 回填安全生产评分（优先使用 districtSafety 快照，其次用 safety）
+        const safetyDetail = scoreDetail.districtSafety || scoreDetail.safety
+        if (safetyDetail) {
+          const sScores = safetyDetail.scores || []
+          if (sScores[0] != null) this.auditForm.safetyScore1 = String(sScores[0])
+          if (sScores[1] != null) this.auditForm.safetyScore2 = String(sScores[1])
+          if (sScores[2] != null) this.auditForm.safetyScore3 = String(sScores[2])
+          if (sScores[3] != null) this.auditForm.safetyScore4 = String(sScores[3])
+          if (sScores[4] != null) this.auditForm.safetyScore5 = String(sScores[4])
+          // dGrade "yes"/"no" → safetyResult "1"(直接判D档)/"2"(不直接判D档)
+          if (safetyDetail.dGrade) {
+            this.auditForm.safetyResult = safetyDetail.dGrade === 'yes' ? '1' : '2'
+          }
+          // 回填区县端上传的安全生产文件
+          if (Array.isArray(safetyDetail.files) && safetyDetail.files.length > 0) {
+            this.safetyFiles = safetyDetail.files.map(f => ({
+              name: f.fileName || f.name,
+              fileName: f.fileName || f.name,
+              fileUrl: f.fileUrl || f.url || '',
+              size: ''
+            }))
+          }
+        }
+
         // 解析园区端提交的 parkExtraData（文件元数据）
         const extra = this.evaluationInfo.extraData || {}
+        if (extra.basicAcknowledged) {
+          this.auditForm.basicConfirm = extra.basicAcknowledged === 'known'
+        }
         if (extra.serviceFiles) {
           this.serviceFiles = Object.assign({}, this.serviceFiles, extra.serviceFiles)
         }
         if (extra.benefitFiles) {
           this.benefitFileList = extra.benefitFiles || []
         }
-        if (extra.fileSections) {
-          this.enterpriseFileList = extra.fileSections.enterpriseFiles || []
+        if (extra.fileSections && extra.fileSections.otherFiles) {
           this.otherFileList = extra.fileSections.otherFiles || []
+        } else if (extra.otherFiles) {
+          this.otherFileList = extra.otherFiles || []
         }
 
         // 产业发展企业列表（按 parkId 关联）
         this.enterpriseList = this.evaluationInfo.enterprises || []
-        // 科技创新人才
-        this.talentList = this.evaluationInfo.techInnovations || []
-        // 院所合作项目
-        this.techProjectList = this.evaluationInfo.techProjects || []
+        // 科技创新人才（字段映射：category→level，date→certDate，company→company）
+        const rawTalents = this.evaluationInfo.techInnovations || []
+        this.talentList = rawTalents.map(item => ({
+          level: item.category || '',
+          name: item.name || '',
+          certDate: item.date ? this.formatDate(item.date) : '',
+          company: item.company || '',
+          fileUrl: item.fileUrl || '',
+          fileName: item.fileName || '',
+          projectName: item.projectName || ''
+        }))
+        // 院所合作项目（字段映射：name→projectName）
+        const rawProjects = this.evaluationInfo.techProjects || []
+        this.techProjectList = rawProjects.map(item => ({
+          projectName: item.name || '',
+          fileUrl: item.fileUrl || '',
+          fileName: item.fileName || ''
+        }))
         // 企业培育记录
         this.cultivationList = this.evaluationInfo.cultivationRecords || []
+        // 企业培育文件：从 cultivationRecords 子表提取（园区端存在子表里）
+        if (this.cultivationList && this.cultivationList.length > 0) {
+          this.enterpriseFileList = this.cultivationList
+        }
 
         // 加载行文文件（区县上传的盖章文件，本年度所有评价材料自动显示）
         if (this.evaluationInfo.parkId) {
@@ -740,6 +812,7 @@ export default {
         const maxSize = 50 * 1024 * 1024
         if (file.size > maxSize) {
           this.$message.error('文件大小不能超过50MB')
+          event.target.value = ''
           return
         }
         // 检查文件类型
@@ -747,6 +820,7 @@ export default {
         const ext = file.name.substring(file.name.lastIndexOf('.')).toLowerCase()
         if (!allowedTypes.includes(ext)) {
           this.$message.error('支持格式:.doc,.docx,.xls,.xlsx,.pdf,.png,.jpg,.jpeg')
+          event.target.value = ''
           return
         }
         // 转换文件大小显示
@@ -759,14 +833,27 @@ export default {
           size = (size / 1024).toFixed(2)
           unit = 'KB'
         }
-        // 添加到文件列表
-        this.safetyFiles.push({
-          name: file.name,
-          size: `${size} ${unit}`
+        // 实际上传文件到服务器
+        const formData = new FormData()
+        formData.append('file', file)
+        formData.append('bizType', 'industry')
+        this.safetyUploading = true
+        uploadFile(formData).then(res => {
+          const data = res.data || res
+          this.safetyFiles.push({
+            name: file.name,
+            fileName: file.name,
+            fileUrl: data.url || data.fileUrl || '',
+            size: `${size} ${unit}`
+          })
+          this.$message.success('文件上传成功')
+        }).catch(e => {
+          console.error('安全生产文件上传失败', e)
+          this.$message.error('文件上传失败')
+        }).finally(() => {
+          this.safetyUploading = false
+          event.target.value = ''
         })
-        this.$message.success('文件上传成功')
-        // 清空文件输入
-        event.target.value = ''
       }
     },
 
@@ -909,6 +996,8 @@ export default {
       
       this.submitting = true
       try {
+        // 提交审核前先保存安全生产评分到 scoreDetail（含 districtSafety 快照供市级端展示）
+        await this.saveSafetyScore()
         const response = await submitAudit({
           evaluationId: this.evaluationInfo.id,
           action: parseInt(this.auditForm.finalResult),
@@ -929,20 +1018,60 @@ export default {
       }
     },
 
+    // 构建安全生产评分 scoreDetail（合并到现有 scoreDetail，仅更新安全生产部分）
+    buildSafetyScoreDetail() {
+      const num = v => {
+        const n = parseFloat(v)
+        return isNaN(n) ? 0 : n
+      }
+      const scores = [
+        num(this.auditForm.safetyScore1),
+        num(this.auditForm.safetyScore2),
+        num(this.auditForm.safetyScore3),
+        num(this.auditForm.safetyScore4),
+        num(this.auditForm.safetyScore5)
+      ]
+      // safetyResult: "1"=直接判D档, "2"=不直接判D档 → dGrade: "yes"/"no"
+      const dGrade = this.auditForm.safetyResult === '1' ? 'yes' : 'no'
+      // 保留现有 scoreDetail 其他字段，仅更新安全生产部分
+      const existing = (this.evaluationInfo.scoreDetailMap && typeof this.evaluationInfo.scoreDetailMap === 'object')
+        ? JSON.parse(JSON.stringify(this.evaluationInfo.scoreDetailMap))
+        : {}
+      // 区县端上传的安全生产文件（fileName + fileUrl）
+      const files = this.safetyFiles.map(f => ({ fileName: f.fileName, fileUrl: f.fileUrl }))
+      existing.safety = { scores, dGrade, files }
+      // 区县端评分快照（区县审核时锁定，市级端只读展示）
+      existing.districtSafety = { scores, dGrade, files }
+      return JSON.stringify(existing)
+    },
+
+    // 保存安全生产评分
+    async saveSafetyScore() {
+      if (!this.evaluationInfo.id) return false
+      try {
+        const scoreDetail = this.buildSafetyScoreDetail()
+        await saveEvaluationScore(this.evaluationInfo.id, scoreDetail)
+        // 同步本地 scoreDetailMap，避免重复保存时丢失其他字段
+        this.evaluationInfo.scoreDetailMap = JSON.parse(scoreDetail)
+        return true
+      } catch (e) {
+        console.error('保存安全生产评分失败', e)
+        this.$message.error('保存安全生产评分失败')
+        return false
+      }
+    },
+
     // 查看审核记录
     async viewAuditRecords() {
       this.auditRecordsDialogVisible = true
+      this.auditRecords = []
       if (!this.evaluationInfo.id) {
         return
       }
       try {
         const response = await getAuditHistory(this.evaluationInfo.id)
         if (response.code === 200 && response.data) {
-          this.auditRecords = response.data.map(item => ({
-            content: item.content || '',
-            auditTime: item.time || '',
-            active: item.active === true
-          }))
+          this.auditRecords = response.data
         } else {
           this.auditRecords = []
         }
@@ -953,12 +1082,15 @@ export default {
     },
 
     // 保存
-    handleSave() {
-      this.$message.success('保存成功')
+    async handleSave() {
+      const ok = await this.saveSafetyScore()
+      if (ok) {
+        this.$message.success('保存成功')
+      }
     },
 
     saveDraft() {
-      this.$message.success('保存成功')
+      this.handleSave()
     },
 
     goBack() {
@@ -1009,6 +1141,7 @@ export default {
 .main-content {
   display: flex;
   height: calc(100vh - 130px);
+  min-width: 900px;
 }
 
 .left-sidebar {
@@ -1089,6 +1222,8 @@ export default {
   flex: 1;
   padding: 20px;
   overflow-y: auto;
+  min-width: 0;
+  box-sizing: border-box;
 }
 
 .tab-content {
@@ -1552,6 +1687,31 @@ export default {
   background: #fafafa;
   border-radius: 4px;
   text-align: center;
+}
+
+.tech-file-item {
+  align-items: flex-start;
+}
+.tech-file-item .el-icon-file-text {
+  margin-top: 2px;
+}
+.tech-file-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.tech-file-name {
+  font-size: 14px;
+  color: #303133;
+}
+.tech-file-meta {
+  font-size: 12px;
+  color: #909399;
+}
+.meta-sep {
+  margin: 0 4px;
+  color: #dcdfe6;
 }
 
 .file-list {

@@ -6,6 +6,8 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.park.audit.dto.AuditDTO;
 import com.park.audit.entity.AuditRecord;
 import com.park.audit.service.AuditService;
+import com.park.auth.entity.SysUser;
+import com.park.auth.service.AuthService;
 import com.park.common.exception.BusinessException;
 import com.park.common.result.PageResult;
 import com.park.common.result.R;
@@ -13,6 +15,8 @@ import com.park.common.result.ResultCode;
 import com.park.evaluation.entity.EvaluationRecord;
 import com.park.park.entity.ParkInfo;
 import com.park.park.mapper.ParkMapper;
+import com.park.system.entity.DistrictInfo;
+import com.park.system.mapper.DistrictMapper;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import lombok.extern.slf4j.Slf4j;
@@ -42,6 +46,12 @@ public class AuditController {
     @Autowired
     private ParkMapper parkMapper;
 
+    @Autowired
+    private AuthService authService;
+
+    @Autowired
+    private DistrictMapper districtMapper;
+
     /**
      * 获取审核列表（待审核 + 已审核）
      * 支持多条件筛选：园区名称、园区类型、审核状态、参评状态、评价年份
@@ -70,25 +80,64 @@ public class AuditController {
         Integer roleType = getRoleType(request);
         Integer auditLevel = getAuditLevel(roleType);
 
-        // 1. 如果有园区名称或园区类型筛选，先查park_info获取parkIds
+        // 1. 数据权限隔离：区县管理员只能查看本区县园区
         List<Long> filteredParkIds = null;
+        if (roleType == 2) {
+            Long userId = getUserIdFromRequest(request);
+            SysUser user = authService.getUserById(userId);
+            if (user == null) {
+                throw new BusinessException(ResultCode.FORBIDDEN, "无法获取用户信息");
+            }
+            List<ParkInfo> districtParks = new ArrayList<>();
+            if (user.getDistrictId() != null) {
+                districtParks = parkMapper.selectList(
+                        new LambdaQueryWrapper<ParkInfo>()
+                                .eq(ParkInfo::getDistrictId, user.getDistrictId())
+                                .select(ParkInfo::getId)
+                );
+                if (districtParks.isEmpty()) {
+                    DistrictInfo district = districtMapper.selectById(user.getDistrictId());
+                    if (district != null && district.getDistrictName() != null) {
+                        districtParks = parkMapper.selectList(
+                                new LambdaQueryWrapper<ParkInfo>()
+                                        .eq(ParkInfo::getDistrictName, district.getDistrictName())
+                                        .select(ParkInfo::getId)
+                        );
+                    }
+                }
+            }
+            if (districtParks.isEmpty()) {
+                return R.ok(PageResult.of(new ArrayList<>(), 0, pageNum, pageSize));
+            }
+            filteredParkIds = districtParks.stream().map(ParkInfo::getId).collect(Collectors.toList());
+        }
+
+        // 2. 如果有园区名称或园区类型筛选，在数据权限范围内进一步过滤
         if (StringUtils.hasText(name) || parkType != null) {
             LambdaQueryWrapper<ParkInfo> parkWrapper = new LambdaQueryWrapper<>();
             if (StringUtils.hasText(name)) {
                 parkWrapper.like(ParkInfo::getParkName, name);
             }
             if (parkType != null) {
-                // 前端传数字：1=制造类, 2=服务类；后端存字符串
-                String parkTypeStr = (parkType == 1) ? "制造类" : "服务类";
-                parkWrapper.eq(ParkInfo::getParkType, parkTypeStr);
+                if (parkType == 1) {
+                    parkWrapper.like(ParkInfo::getParkType, "制造");
+                } else {
+                    parkWrapper.like(ParkInfo::getParkType, "服务");
+                }
             }
             parkWrapper.select(ParkInfo::getId);
             List<ParkInfo> parks = parkMapper.selectList(parkWrapper);
-            filteredParkIds = parks.stream().map(ParkInfo::getId).collect(Collectors.toList());
-            if (filteredParkIds.isEmpty()) {
-                // 没有匹配的园区，直接返回空
+            List<Long> searchParkIds = parks.stream().map(ParkInfo::getId).collect(Collectors.toList());
+            if (searchParkIds.isEmpty()) {
                 return R.ok(PageResult.of(new ArrayList<>(), 0, pageNum, pageSize));
             }
+            if (filteredParkIds != null) {
+                searchParkIds.retainAll(filteredParkIds);
+                if (searchParkIds.isEmpty()) {
+                    return R.ok(PageResult.of(new ArrayList<>(), 0, pageNum, pageSize));
+                }
+            }
+            filteredParkIds = searchParkIds;
         }
 
         // 2. 查询评价记录（带筛选条件）
@@ -155,11 +204,11 @@ public class AuditController {
             if (park != null) {
                 vo.put("parkName", park.getParkName());
                 vo.put("districtName", park.getDistrictName());
-                // parkType字符串转数字：制造类→1, 服务类→2
+                // parkType字符串转数字：制造类/生产性制造类→1, 服务类/生产性服务类→2
                 String pt = park.getParkType();
                 Integer ptNum = null;
-                if ("制造类".equals(pt)) ptNum = 1;
-                else if ("服务类".equals(pt)) ptNum = 2;
+                if (pt != null && (pt.contains("制造") || pt.equals("制造类"))) ptNum = 1;
+                else if (pt != null && (pt.contains("服务") || pt.equals("服务类"))) ptNum = 2;
                 vo.put("parkType", ptNum);
             }
             voList.add(vo);
@@ -179,22 +228,22 @@ public class AuditController {
      */
     private void applyStatusFilter(LambdaQueryWrapper<EvaluationRecord> wrapper, String status, Integer auditLevel) {
         if (auditLevel == 2) {
-            // 区县审核：1=待区县审, 2=待市局审, 3=通过, 4=驳回
+            // 区县审核：1=待区县审, 2=区县已通过(待上报), 5=已上报, 3=通过, 4=驳回
             if ("pending".equals(status)) {
                 wrapper.eq(EvaluationRecord::getStatus, 1);
             } else if ("audited".equals(status)) {
-                wrapper.in(EvaluationRecord::getStatus, Arrays.asList(2, 3, 4));
+                wrapper.in(EvaluationRecord::getStatus, Arrays.asList(2, 5, 3, 4));
             } else {
-                wrapper.in(EvaluationRecord::getStatus, Arrays.asList(1, 2, 3, 4));
+                wrapper.in(EvaluationRecord::getStatus, Arrays.asList(1, 2, 5, 3, 4));
             }
         } else {
-            // 市级审核
+            // 市级审核：5=已上报(待市局审), 3=通过, 4=驳回
             if ("pending".equals(status)) {
-                wrapper.eq(EvaluationRecord::getStatus, 2);
+                wrapper.eq(EvaluationRecord::getStatus, 5);
             } else if ("audited".equals(status)) {
                 wrapper.in(EvaluationRecord::getStatus, Arrays.asList(3, 4));
             } else {
-                wrapper.in(EvaluationRecord::getStatus, Arrays.asList(2, 3, 4));
+                wrapper.in(EvaluationRecord::getStatus, Arrays.asList(5, 3, 4));
             }
         }
     }
@@ -204,10 +253,11 @@ public class AuditController {
      */
     private void applyDefaultStatusFilter(LambdaQueryWrapper<EvaluationRecord> wrapper, Integer auditLevel) {
         if (auditLevel == 2) {
-            // 区县端显示：1=待区县审, 2=待市局审(区县已通过), 3=通过, 4=驳回
-            wrapper.in(EvaluationRecord::getStatus, Arrays.asList(1, 2, 3, 4));
+            // 区县端显示：1=待区县审, 2=区县已通过(待上报), 5=已上报, 3=通过, 4=驳回
+            wrapper.in(EvaluationRecord::getStatus, Arrays.asList(1, 2, 5, 3, 4));
         } else {
-            wrapper.in(EvaluationRecord::getStatus, Arrays.asList(2, 3, 4));
+            // 市级端显示：5=已上报(待市局审), 3=通过, 4=驳回
+            wrapper.in(EvaluationRecord::getStatus, Arrays.asList(5, 3, 4));
         }
     }
 
@@ -305,6 +355,16 @@ public class AuditController {
             return (Integer) roleTypeObj;
         }
         return 2;
+    }
+
+    private Long getUserIdFromRequest(HttpServletRequest request) {
+        Object userIdObj = request.getAttribute("userId");
+        if (userIdObj instanceof Integer) {
+            return ((Integer) userIdObj).longValue();
+        } else if (userIdObj instanceof Long) {
+            return (Long) userIdObj;
+        }
+        throw new BusinessException(ResultCode.FORBIDDEN, "无法获取用户信息");
     }
 
     private Integer getAuditLevel(Integer roleType) {

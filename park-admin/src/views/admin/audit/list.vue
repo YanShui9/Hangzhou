@@ -76,7 +76,7 @@
           >
             <el-option label="未提交" value="未提交" />
             <el-option label="区县待审核" value="区县待审核" />
-            <el-option label="区县审核通过" value="区县审核通过" />
+            <el-option label="区县已通过" value="区县已通过" />
             <el-option label="区县审核驳回" value="区县审核驳回" />
             <el-option label="已终止" value="已终止" />
             <el-option label="市级待审核" value="市级待审核" />
@@ -121,7 +121,7 @@
         </div>
 
         <div class="filter-actions-right">
-          <el-button size="small" type="primary" @click="handleOpenYearDialog">发起年度填报</el-button>
+          <el-button v-if="false" size="small" type="primary" @click="handleOpenYearDialog">发起年度填报</el-button>
         </div>
       </div>
     </div>

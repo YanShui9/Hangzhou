@@ -19,9 +19,9 @@
       >
         <el-option
           v-for="item in honorOptions"
-          :key="item"
-          :label="item"
-          :value="item"
+          :key="item.value"
+          :label="item.label"
+          :value="item.value"
         />
       </el-select>
       <el-select
@@ -64,7 +64,7 @@
               <th width="180">统一信用代码</th>
               <th width="100">所属区域</th>
               <th width="150">所属园区</th>
-              <th width="100">企业荣誉</th>
+              <th width="150">企业荣誉</th>
               <th width="100">登记状态</th>
               <th width="100">法定代表人</th>
               <th width="100">联系人</th>
@@ -108,7 +108,53 @@
                   @mouseleave="hideTooltip"
                 >{{ truncateText(getParkName(row.parkId), 12) }}</span>
               </td>
-              <td width="100" align="center">{{ row.enterpriseHonor || row.honor || '-' }}</td>
+              <td width="150">
+                <div class="honor-cell">
+                  <el-tooltip
+                    v-if="getHonorTags(row.enterpriseHonor).length > 3"
+                    effect="light"
+                    placement="top-start"
+                  >
+                    <div slot="content" style="max-width: 280px;">
+                      <el-tag
+                        v-for="honor in getHonorTags(row.enterpriseHonor)"
+                        :key="honor"
+                        :type="getHonorTagType(honor)"
+                        size="mini"
+                        class="honor-tag"
+                      >
+                        {{ honor }}
+                      </el-tag>
+                    </div>
+                    <div>
+                      <el-tag
+                        v-for="(honor, idx) in getHonorTags(row.enterpriseHonor).slice(0, 3)"
+                        :key="honor"
+                        :type="getHonorTagType(honor)"
+                        size="mini"
+                        class="honor-tag"
+                      >
+                        {{ honor }}
+                      </el-tag>
+                      <span class="honor-more">
+                        +{{ getHonorTags(row.enterpriseHonor).length - 3 }}更多
+                      </span>
+                    </div>
+                  </el-tooltip>
+                  <div v-else-if="getHonorTags(row.enterpriseHonor).length > 0">
+                    <el-tag
+                      v-for="honor in getHonorTags(row.enterpriseHonor)"
+                      :key="honor"
+                      :type="getHonorTagType(honor)"
+                      size="mini"
+                      class="honor-tag"
+                    >
+                      {{ honor }}
+                    </el-tag>
+                  </div>
+                  <span v-else>-</span>
+                </div>
+              </td>
               <td width="100" align="center">{{ row.status || '-' }}</td>
               <td width="100" align="center">{{ row.legalPerson || '-' }}</td>
               <td width="100" align="center">{{ row.contactName || '-' }}</td>
@@ -179,10 +225,14 @@ export default {
       loading: false,
       parkOptions: [],
       honorOptions: [
-        '高新技术企业',
-        '科技型中小企业',
-        '省级研发中心',
-        '市级研发中心'
+        { value: '国家高新技术企业', label: '国家高新技术企业' },
+        { value: '专精特新小巨人', label: '专精特新小巨人' },
+        { value: '省专精特新中小企业', label: '省专精特新中小企业' },
+        { value: '省级隐形冠军', label: '省级隐形冠军' },
+        { value: '单项冠军', label: '单项冠军' },
+        { value: '上市企业', label: '上市企业' },
+        { value: '创新型中小企业', label: '创新型中小企业' },
+        { value: '省科技型中小企业', label: '省科技型中小企业' }
       ],
       tooltipVisible: false,
       tooltipText: '',
@@ -268,6 +318,49 @@ export default {
     },
     handleScroll() {
       // 滚动处理
+    },
+    getHonorTags(honorStr) {
+      if (!honorStr) return []
+      const honorMap = {
+        'existing_above_scale': '现存规上',
+        'new_above_scale': '新增规上',
+        'retired_above_scale': '退出规上',
+        'new_single_champion': '单项冠军',
+        'new_ipo': '上市企业',
+        'new_specialty_giant': '专精特新小巨人',
+        'new_provincial_hidden_champion': '省级隐形冠军',
+        'new_specialty_sme': '省专精特新中小企业',
+        'new_national_high_tech': '国家高新技术企业',
+        'innovative_sme': '创新型中小企业',
+        'new_provincial_tech_small': '省科技型中小企业',
+        'new_first_equipment': '首台套装备',
+        'first_version': '首版次软件',
+        'first_batch': '首批次新材料',
+        'provincial_excellent_industrial': '省级优秀工业产品',
+        'zhejiang_made_quality': '浙江制造精品',
+        'new_national_rd_agency': '国家级研发机构',
+        'new_provincial_rd_agency': '省级研发机构',
+        'new_municipal_rd_agency': '市级研发机构',
+        'public_service_platform': '公共服务平台',
+        'early_invest_innovation': '早期投资创新',
+        'enterprise_incubator': '企业孵化器',
+        'talent_a_class': 'A类人才',
+        'talent_b_class': 'B类人才',
+        'talent_c_class': 'C类人才'
+      }
+      return honorStr.split('/').map(h => honorMap[h] || h).filter(h => h)
+    },
+    getHonorTagType(honor) {
+      if (honor.includes('国家高新技术')) return 'danger'
+      if (honor.includes('省专精特新')) return 'warning'
+      if (honor.includes('专精特新小巨人')) return 'danger'
+      if (honor.includes('省级隐形冠军')) return 'success'
+      if (honor.includes('单项冠军')) return 'warning'
+      if (honor.includes('上市企业')) return 'danger'
+      if (honor.includes('创新型')) return 'info'
+      if (honor.includes('省科技型')) return 'primary'
+      if (honor.includes('科技型中小企业')) return 'primary'
+      return 'info'
     }
   }
 }
@@ -450,5 +543,21 @@ export default {
 .go-page {
   font-size: 13px;
   color: #606266;
+}
+
+.honor-cell {
+  line-height: normal;
+}
+
+.honor-tag {
+  margin-right: 4px;
+  margin-bottom: 4px;
+}
+
+.honor-more {
+  color: #909399;
+  font-size: 12px;
+  margin-left: 2px;
+  cursor: default;
 }
 </style>

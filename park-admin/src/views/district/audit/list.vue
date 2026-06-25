@@ -42,7 +42,7 @@
         </div>
         <div class="stat-info">
           <span class="stat-value">{{ stats.passed }}</span>
-          <span class="stat-label">区县审核通过</span>
+          <span class="stat-label">区县已通过</span>
         </div>
       </div>
       <div class="stat-card" :class="{ active: activeCard === 'rejected' }" @click="handleCardClick('rejected', '4')">
@@ -85,7 +85,8 @@
           <el-option label="全部审核状态" value="" />
           <el-option label="未提交" value="0" />
           <el-option label="区县待审核" value="1" />
-          <el-option label="待市局审核" value="2" />
+          <el-option label="区县已通过" value="2" />
+          <el-option label="已上报" value="5" />
           <el-option label="审核通过" value="3" />
           <el-option label="审核驳回" value="4" />
           <el-option label="已终止" value="6" />
@@ -301,7 +302,7 @@
 <script>
 import { getAuditList, submitAudit, getParkFiles, uploadParkFile, deleteParkFile, getFilePreviewUrl } from '@/api/audit'
 import { getParkList } from '@/api/park'
-import { updateEvaluationStatus, districtPassEvaluation } from '@/api/evaluation'
+import { updateEvaluationStatus, districtPassEvaluation, reportToCity } from '@/api/evaluation'
 import FilePreview from '@/components/FilePreview.vue'
 
 export default {
@@ -778,7 +779,7 @@ export default {
       const map = {
         0: '未提交',
         1: '区县待审核',
-        2: '待市局审核',
+        2: '区县已通过',
         3: '审核通过',
         4: '审核驳回',
         5: '已上报',
@@ -798,25 +799,26 @@ export default {
         this.$message.warning('请先选择要上报的园区')
         return
       }
-      // 校验选中记录必须是区县待审核状态
-      const invalidRows = this.selectedRows.filter(row => row.auditStatus !== 1)
+      // 校验选中记录必须是区县已审核通过状态（status=2）
+      const invalidRows = this.selectedRows.filter(row => row.auditStatus !== 2)
       if (invalidRows.length > 0) {
-        this.$message.warning('只能上报区县待审核状态的记录')
+        this.$message.warning('只能上报区县已审核通过的记录，请先完成审核')
         return
       }
 
-      this.$confirm(`确认将选中的${this.selectedRows.length}条记录上报管理端？`, '提示', {
+      this.$confirm(`确认将选中的${this.selectedRows.length}条记录上报至市级管理端？上报后市级才能审核。`, '提示', {
         confirmButtonText: '确定',
         cancelButtonText: '取消',
         type: 'warning',
         iconClass: 'el-icon-warning'
       }).then(() => {
-        // 循环调用区县审核通过接口
-        const promises = this.selectedRows.map(row => districtPassEvaluation(row.id))
+        // 循环调用一键上报接口
+        const promises = this.selectedRows.map(row => reportToCity(row.id))
         Promise.all(promises).then(() => {
           this.$message.success('上报成功')
           this.selectedRows = []
           this.fetchList()
+          this.fetchStats()
         }).catch(() => {
           this.$message.error('部分记录上报失败，请重试')
           this.fetchList()

@@ -11,11 +11,14 @@ const routes = [
     meta: { title: '登录' }
   },
   // 数据驾驶舱独立路由（不依赖layout，新窗口打开）
+  // 不设 roles 限制：新窗口共享 localStorage，多标签页登录不同角色时 roleType 可能与主窗口不一致，
+  // 导致权限校验失败被重定向到 /district/park。入口已由 Sidebar 的 v-if="hasRole([1])" 限制仅市级可见，
+  // 后端 big-screen 接口亦不校验角色，故此处放开角色限制与后端行为一致。
   {
     path: '/admin/big-screen',
     name: 'AdminBigScreen',
     component: () => import('@/views/admin/dashboard/big-screen.vue'),
-    meta: { title: '杭州市小微园区数据大屏', roles: [1] }
+    meta: { title: '杭州市小微园区数据大屏' }
   },
   {
     path: '/',

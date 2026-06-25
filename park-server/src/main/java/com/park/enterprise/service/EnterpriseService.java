@@ -95,6 +95,37 @@ public class EnterpriseService {
             queryWrapper.eq(EnterpriseInfo::getIsParticipate, queryDTO.getIsParticipate());
         }
 
+        // 企业荣誉筛选：通过 enterprise_honor_record 表反查匹配的企业
+        if (StringUtils.hasText(queryDTO.getEnterpriseHonor())) {
+            LambdaQueryWrapper<EnterpriseHonorRecord> honorWrapper = new LambdaQueryWrapper<>();
+            honorWrapper.eq(EnterpriseHonorRecord::getHonorType, queryDTO.getEnterpriseHonor());
+            java.util.List<EnterpriseHonorRecord> honorRecords = enterpriseHonorRecordMapper.selectList(honorWrapper);
+            if (honorRecords.isEmpty()) {
+                // 没有匹配的企业荣誉，返回空结果
+                queryWrapper.eq(EnterpriseInfo::getId, -1L);
+            } else {
+                // 收集匹配企业的 credit_code 和 enterprise_name
+                java.util.Set<String> creditCodes = new java.util.HashSet<>();
+                java.util.Set<String> enterpriseNames = new java.util.HashSet<>();
+                for (EnterpriseHonorRecord hr : honorRecords) {
+                    if (StringUtils.hasText(hr.getCreditCode())) {
+                        creditCodes.add(hr.getCreditCode());
+                    }
+                    if (StringUtils.hasText(hr.getEnterpriseName())) {
+                        enterpriseNames.add(hr.getEnterpriseName());
+                    }
+                }
+                // 用 credit_code in 或 enterprise_name in 过滤企业
+                if (!creditCodes.isEmpty()) {
+                    queryWrapper.in(EnterpriseInfo::getCreditCode, creditCodes);
+                } else if (!enterpriseNames.isEmpty()) {
+                    queryWrapper.in(EnterpriseInfo::getEnterpriseName, enterpriseNames);
+                } else {
+                    queryWrapper.eq(EnterpriseInfo::getId, -1L);
+                }
+            }
+        }
+
         // 所属区县筛选（districtName 是 transient 字段，不能在DB层筛选，由内存过滤）
 
         // 按创建时间降序排序
@@ -114,11 +145,14 @@ public class EnterpriseService {
                     }
                 }
             }
-            // 填充企业荣誉（按园区汇总，仅显示核心荣誉类型）
-            if (enterprise.getParkId() != null) {
+            // 填充企业荣誉（查询所有荣誉类型）
+            if (StringUtils.hasText(enterprise.getCreditCode()) || StringUtils.hasText(enterprise.getEnterpriseName())) {
                 LambdaQueryWrapper<EnterpriseHonorRecord> honorWrapper = new LambdaQueryWrapper<>();
-                honorWrapper.eq(EnterpriseHonorRecord::getParkId, enterprise.getParkId());
-                honorWrapper.in(EnterpriseHonorRecord::getHonorType, DISPLAY_HONOR_TYPES);
+                if (StringUtils.hasText(enterprise.getCreditCode())) {
+                    honorWrapper.eq(EnterpriseHonorRecord::getCreditCode, enterprise.getCreditCode());
+                } else {
+                    honorWrapper.eq(EnterpriseHonorRecord::getEnterpriseName, enterprise.getEnterpriseName());
+                }
                 java.util.List<EnterpriseHonorRecord> honorRecords = enterpriseHonorRecordMapper.selectList(honorWrapper);
                 if (!honorRecords.isEmpty()) {
                     String honorText = honorRecords.stream()
@@ -155,10 +189,14 @@ public class EnterpriseService {
                 }
             }
         }
-        // 填充企业荣誉（按园区汇总，仅显示核心荣誉类型）
-        if (enterprise.getParkId() != null) {
+        // 填充企业荣誉（按企业查询，仅显示核心荣誉类型）
+        if (StringUtils.hasText(enterprise.getCreditCode()) || StringUtils.hasText(enterprise.getEnterpriseName())) {
             LambdaQueryWrapper<EnterpriseHonorRecord> honorWrapper = new LambdaQueryWrapper<>();
-            honorWrapper.eq(EnterpriseHonorRecord::getParkId, enterprise.getParkId());
+            if (StringUtils.hasText(enterprise.getCreditCode())) {
+                honorWrapper.eq(EnterpriseHonorRecord::getCreditCode, enterprise.getCreditCode());
+            } else {
+                honorWrapper.eq(EnterpriseHonorRecord::getEnterpriseName, enterprise.getEnterpriseName());
+            }
             honorWrapper.in(EnterpriseHonorRecord::getHonorType, DISPLAY_HONOR_TYPES);
             java.util.List<EnterpriseHonorRecord> honorRecords = enterpriseHonorRecordMapper.selectList(honorWrapper);
             if (!honorRecords.isEmpty()) {

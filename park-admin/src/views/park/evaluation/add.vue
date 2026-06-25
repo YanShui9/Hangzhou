@@ -478,6 +478,20 @@
                 <span class="action-link preview-link" @click="handlePreviewPromiseTemplate">预览</span>
               </div>
             </div>
+            
+            <div class="batch-upload-bar" style="margin-top:24px;">
+              <el-tooltip content="支持格式:.docx, .xls, .xlsx, .pdf, .png, .jpg, .jpeg | 文件大小限制:50MB" placement="top">
+                <el-button type="primary" plain size="small" @click="handleOtherUpload" :disabled="isViewMode">上传附件</el-button>
+              </el-tooltip>
+            </div>
+            <div v-if="otherFiles.length > 0" class="service-file-list">
+              <div v-for="(file, index) in otherFiles" :key="index" class="service-file-item">
+                <i class="el-icon-document"></i>
+                <span class="service-file-name">{{ file.fileName }}</span>
+                <span class="action-link preview-link" @click.stop="handlePreview(file)">预览</span>
+                <span v-if="!isViewMode" class="action-link delete-link" @click.stop="handleDeleteOtherFile(index)">删除</span>
+              </div>
+            </div>
           </div>
           <div class="panel-footer">
             <el-button size="small" @click="handlePrev" :disabled="isViewMode">上一步</el-button>
@@ -503,6 +517,7 @@
     <input ref="servicePersonalizedInput" type="file" multiple style="display:none" @change="(e) => onServiceFileChange(e, 'personalizedService')" />
     <input ref="serviceCooperationInput" type="file" multiple style="display:none" @change="(e) => onServiceFileChange(e, 'cooperationProject')" />
     <input ref="benefitFileInput" type="file" multiple style="display:none" @change="onBenefitFileChange" />
+    <input ref="otherFileInput" type="file" multiple style="display:none" @change="onOtherFileChange" />
     <!-- 文件预览弹窗 -->
     <FilePreview
       :visible.sync="previewVisible"
@@ -606,6 +621,7 @@ export default {
       isViewMode: false,
       fileSections: [],
       benefitFiles: [],
+      otherFiles: [],
       submitLoading: false,
       saveLoading: false
     }
@@ -670,6 +686,9 @@ export default {
             }
             if (Array.isArray(extra.benefitFiles)) {
               this.benefitFiles = extra.benefitFiles
+            }
+            if (Array.isArray(extra.otherFiles)) {
+              this.otherFiles = extra.otherFiles
             }
             if (Array.isArray(extra.fileSections)) {
               this.fileSections = extra.fileSections
@@ -791,6 +810,7 @@ export default {
         basicAcknowledged: this.form.basicAcknowledged,
         serviceFiles: this.serviceFiles,
         benefitFiles: this.benefitFiles,
+        otherFiles: this.otherFiles,
         fileSections: this.fileSections
       }
       const saveDTO = {
@@ -891,7 +911,14 @@ export default {
         const result = response.data
 
         if (response.code === 200) {
-          this.enterpriseList = result.dataList || []
+          const rawList = result.dataList || []
+          this.enterpriseList = rawList.map(item => ({
+            parkName: item.parkName || item.belongParkName || '',
+            enterpriseName: item.enterpriseName || '',
+            creditCode: item.unifiedCreditCode || '',
+            settledTime: item.settledDate || '',
+            enterpriseAddress: item.registeredAddress || ''
+          }))
           if (result.errorList && result.errorList.length > 0) {
             this.importErrors = result.errorList
             this.importErrorsVisible = true
@@ -1271,6 +1298,47 @@ export default {
         this.previewVisible = true
       } else {
         this.$message.warning('文件地址不存在')
+      }
+    },
+    // 其他 - 上传附件
+    handleOtherUpload() {
+      this.$refs.otherFileInput.click()
+    },
+    // 其他 - 文件选择回调
+    async onOtherFileChange(event) {
+      const files = event.target.files
+      if (!files || files.length === 0) return
+      for (let i = 0; i < files.length; i++) {
+        try {
+          const formData = new FormData()
+          formData.append('file', files[i])
+          formData.append('bizType', 'other')
+          const res = await uploadFile(formData)
+          const data = res.data || res
+          this.otherFiles.push({
+            fileId: data.id,
+            fileName: data.name,
+            fileUrl: data.url
+          })
+        } catch (err) {
+          this.$message.error('文件上传失败：' + files[i].name)
+        }
+      }
+      event.target.value = ''
+    },
+    // 其他 - 删除文件
+    async handleDeleteOtherFile(index) {
+      try {
+        await this.$confirm('确定删除文件？', '提示', { type: 'warning' })
+        const file = this.otherFiles[index]
+        if (file.fileId) {
+          await deleteFile(file.fileId).catch(() => {})
+        }
+        this.otherFiles.splice(index, 1)
+      } catch (err) {
+        if (err !== 'cancel' && err?.message) {
+          this.$message.error('删除失败：' + err.message)
+        }
       }
     },
     // 预览承诺函模板

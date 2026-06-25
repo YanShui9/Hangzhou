@@ -54,11 +54,13 @@
         <el-card class="chart-card" shadow="hover">
           <div slot="header" class="card-header">
             <span class="card-title">运营数据趋势</span>
-            <el-select v-model="selectedYear" size="small" style="width: 100px;" @change="fetchQuarterlyStats">
-              <el-option v-for="item in yearOptions" :key="item.value" :label="item.label" :value="item.value" />
+            <el-select v-model="selectedYear" size="small" style="width: 100px;" @change="fetchMonthlyStats">
+              <el-option label="2026年" :value="2026" />
+              <el-option label="2025年" :value="2025" />
+              <el-option label="2024年" :value="2024" />
             </el-select>
           </div>
-          <div ref="quarterlyChart" class="chart-container"></div>
+          <div ref="monthlyChart" class="chart-container"></div>
         </el-card>
       </el-col>
     </el-row>
@@ -84,7 +86,7 @@
 
 <script>
 import * as echarts from 'echarts'
-import { getStats, getTopParks, getQuarterlyStats } from '@/api/dashboard'
+import { getStats, getTopParks, getMonthlyStats } from '@/api/dashboard'
 
 export default {
   name: 'ParkDashboard',
@@ -92,22 +94,20 @@ export default {
     return {
       stats: {},
       latestScore: '--',
-      quarterlyData: [],
-      yearOptions: [],
-      selectedYear: new Date().getFullYear(),
-      quarterlyChart: null
+      monthlyData: [],
+      selectedYear: 2026,
+      monthlyChart: null
     }
   },
   mounted() {
-    this.initYearOptions()
     this.fetchData()
     window.addEventListener('resize', this.handleResize)
   },
   beforeDestroy() {
     window.removeEventListener('resize', this.handleResize)
-    if (this.quarterlyChart) {
-      this.quarterlyChart.dispose()
-      this.quarterlyChart = null
+    if (this.monthlyChart) {
+      this.monthlyChart.dispose()
+      this.monthlyChart = null
     }
   },
   methods: {
@@ -116,7 +116,7 @@ export default {
       await Promise.all([
         this.fetchStats(),
         this.fetchLatestScore(),
-        this.fetchQuarterlyStats()
+        this.fetchMonthlyStats()
       ])
     },
 
@@ -135,7 +135,7 @@ export default {
       try {
         const res = await getTopParks({ limit: 1 })
         const data = res.data || []
-        if (data.length > 0 && data[0].score != null) {
+        if (data.length > 0 && data[0].score) {
           this.latestScore = data[0].score
         }
       } catch (e) {
@@ -143,41 +143,36 @@ export default {
       }
     },
 
-    /** 获取季度统计 */
-    async fetchQuarterlyStats() {
+    /** 获取月度统计 */
+    async fetchMonthlyStats() {
       try {
-        const res = await getQuarterlyStats({ year: this.selectedYear })
-        this.quarterlyData = res.data || []
+        const res = await getMonthlyStats({ year: this.selectedYear })
+        this.monthlyData = res.data || []
         this.$nextTick(() => {
-          this.renderQuarterlyChart()
+          this.renderMonthlyChart()
         })
       } catch (e) {
-        console.error('获取季度统计失败:', e)
+        console.error('获取月度统计失败:', e)
       }
     },
 
     /** 渲染运营趋势图表 */
-    renderQuarterlyChart() {
-      if (!this.$refs.quarterlyChart) return
+    renderMonthlyChart() {
+      if (!this.$refs.monthlyChart) return
 
-      const dom = this.$refs.quarterlyChart
-      if (dom.clientWidth === 0 || dom.clientHeight === 0) {
-        setTimeout(() => this.renderQuarterlyChart(), 100)
-        return
+      if (this.monthlyChart) {
+        this.monthlyChart.dispose()
       }
 
-      if (this.quarterlyChart) {
-        this.quarterlyChart.dispose()
-      }
+      this.monthlyChart = echarts.init(this.$refs.monthlyChart)
 
-      this.quarterlyChart = echarts.init(dom)
-
-      const quarters = this.quarterlyData.map(item => {
-        const match = item.quarter.match(/Q(\d)/)
-        return match ? '第' + match[1] + '季度' : item.quarter
+      const months = this.monthlyData.map(item => {
+        const parts = item.month.split('-')
+        return parts[1] + '月'
       })
-      const employmentData = this.quarterlyData.map(item => item.employment)
-      const enterpriseData = this.quarterlyData.map(item => item.enterpriseCount)
+      const revenueData = this.monthlyData.map(item => item.revenue)
+      const employmentData = this.monthlyData.map(item => item.employment)
+      const enterpriseData = this.monthlyData.map(item => item.enterpriseCount)
 
       const option = {
         tooltip: {
@@ -198,13 +193,17 @@ export default {
             let html = '<div style="font-weight:bold;margin-bottom:8px;">' + params[0].axisValue + '</div>'
             params.forEach(function (item) {
               const marker = '<span style="display:inline-block;margin-right:5px;border-radius:10px;width:10px;height:10px;background-color:' + item.color + ';"></span>'
-              html += '<div style="margin:4px 0;">' + marker + item.seriesName + '：' + item.value + '</div>'
+              let value = item.value
+              if (item.seriesName === '营收（万元）') {
+                value = value.toFixed(2)
+              }
+              html += '<div style="margin:4px 0;">' + marker + item.seriesName + '：' + value + '</div>'
             })
             return html
           }
         },
         legend: {
-          data: ['就业人数', '企业数量'],
+          data: ['营收（万元）', '就业人数', '企业数量'],
           top: 0,
           right: 20,
           textStyle: {
@@ -221,7 +220,7 @@ export default {
         },
         xAxis: {
           type: 'category',
-          data: quarters,
+          data: months,
           axisLine: {
             lineStyle: {
               color: '#dcdfe6'
@@ -235,38 +234,94 @@ export default {
             fontSize: 11
           }
         },
-        yAxis: {
-          type: 'value',
-          name: '人数 / 数量',
-          nameTextStyle: {
-            color: '#606266',
-            fontSize: 11
-          },
-          axisLine: {
-            show: true,
-            lineStyle: {
-              color: '#67C23A'
+        yAxis: [
+          {
+            type: 'value',
+            name: '营收（万元）',
+            nameTextStyle: {
+              color: '#606266',
+              fontSize: 11,
+              padding: [0, 40, 0, 0]
+            },
+            position: 'left',
+            axisLine: {
+              show: true,
+              lineStyle: {
+                color: '#409EFF'
+              }
+            },
+            axisTick: {
+              show: false
+            },
+            axisLabel: {
+              color: '#606266',
+              fontSize: 11,
+              formatter: '{value}'
+            },
+            splitLine: {
+              lineStyle: {
+                type: 'dashed',
+                color: '#ebeef5'
+              }
             }
           },
-          axisTick: {
-            show: false
-          },
-          axisLabel: {
-            color: '#606266',
-            fontSize: 11,
-            formatter: '{value}'
-          },
-          splitLine: {
-            lineStyle: {
-              type: 'dashed',
-              color: '#ebeef5'
+          {
+            type: 'value',
+            name: '人数 / 数量',
+            nameTextStyle: {
+              color: '#606266',
+              fontSize: 11,
+              padding: [0, 0, 0, 40]
+            },
+            position: 'right',
+            axisLine: {
+              show: true,
+              lineStyle: {
+                color: '#67C23A'
+              }
+            },
+            axisTick: {
+              show: false
+            },
+            axisLabel: {
+              color: '#606266',
+              fontSize: 11,
+              formatter: '{value}'
+            },
+            splitLine: {
+              show: false
             }
           }
-        },
+        ],
         series: [
+          {
+            name: '营收（万元）',
+            type: 'line',
+            yAxisIndex: 0,
+            smooth: true,
+            symbol: 'circle',
+            symbolSize: 8,
+            lineStyle: {
+              width: 3,
+              color: '#409EFF'
+            },
+            itemStyle: {
+              color: '#409EFF',
+              borderWidth: 2,
+              borderColor: '#fff'
+            },
+            areaStyle: {
+              color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                { offset: 0, color: 'rgba(64, 158, 255, 0.3)' },
+                { offset: 1, color: 'rgba(64, 158, 255, 0.02)' }
+              ])
+            },
+            data: revenueData
+          },
           {
             name: '就业人数',
             type: 'line',
+            yAxisIndex: 1,
             smooth: true,
             symbol: 'diamond',
             symbolSize: 8,
@@ -284,6 +339,7 @@ export default {
           {
             name: '企业数量',
             type: 'line',
+            yAxisIndex: 1,
             smooth: true,
             symbol: 'triangle',
             symbolSize: 8,
@@ -301,7 +357,7 @@ export default {
         ]
       }
 
-      this.quarterlyChart.setOption(option)
+      this.monthlyChart.setOption(option)
     },
 
     /** 格式化营收金额 */
@@ -312,16 +368,8 @@ export default {
 
     /** 窗口大小变化时重绘图表 */
     handleResize() {
-      if (this.quarterlyChart) {
-        this.quarterlyChart.resize()
-      }
-    },
-
-    /** 初始化年份选项 */
-    initYearOptions() {
-      const currentYear = new Date().getFullYear()
-      for (let y = currentYear; y >= currentYear - 3; y--) {
-        this.yearOptions.push({ label: y + '年', value: y })
+      if (this.monthlyChart) {
+        this.monthlyChart.resize()
       }
     }
   }

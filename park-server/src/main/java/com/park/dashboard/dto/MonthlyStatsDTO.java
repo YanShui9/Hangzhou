@@ -8,9 +8,10 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.io.Serializable;
+import java.math.BigDecimal;
 
 /**
- * 季度统计 DTO
+ * 月度统计 DTO
  *
  * @author park-team
  */
@@ -18,13 +19,16 @@ import java.io.Serializable;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@ApiModel(description = "季度统计")
-public class QuarterlyStatsDTO implements Serializable {
+@ApiModel(description = "月度统计")
+public class MonthlyStatsDTO implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
-    @ApiModelProperty(value = "季度标识（yyyy-Qn）")
-    private String quarter;
+    @ApiModelProperty(value = "月份（yyyy-MM）")
+    private String month;
+
+    @ApiModelProperty(value = "营收金额（万元）")
+    private BigDecimal revenue;
 
     @ApiModelProperty(value = "就业人数")
     private Integer employment;

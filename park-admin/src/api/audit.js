@@ -285,10 +285,17 @@ export function saveEvaluationScore(id, scoreDetail) {
 
 /**
  * 预览/下载审核详情中的附件文件
- * @param {String} fileUrl 文件URL（如 /uploads/audit/805/enterprise/xxx.xlsx）
+ * @param {String} fileUrl 文件URL（如 /uploads/audit/805/enterprise/xxx.xlsx 或 /api/files/preview/xxx.png）
  * @returns {Promise<Blob>}
  */
 export function downloadAuditFile(fileUrl) {
+  if (fileUrl && fileUrl.startsWith('/api/files/preview/')) {
+    return request({
+      url: fileUrl,
+      method: 'get',
+      responseType: 'blob'
+    })
+  }
   return request({
     url: '/api/common/download',
     method: 'get',

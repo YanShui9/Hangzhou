@@ -155,10 +155,10 @@ public class AuditService {
                 newStatus = 4; // 4=驳回
             }
         } else if (roleType == 1) {
-            // 市级管理员 - 终审
-            if (evaluation.getStatus() != 2) {
+            // 市级管理员 - 终审（期望状态：5=已上报）
+            if (evaluation.getStatus() != 5) {
                 throw new BusinessException(ResultCode.FAILURE,
-                        "当前状态不允许市级审核，期望状态：2(待市局审)，实际状态：" + evaluation.getStatus());
+                        "当前状态不允许市级审核，期望状态：5(已上报)，实际状态：" + evaluation.getStatus());
             }
             if (auditDTO.getAction() == 1) {
                 newStatus = 3; // 3=通过
@@ -202,5 +202,16 @@ public class AuditService {
         wrapper.eq(AuditRecord::getEvaluationId, evaluationId);
         wrapper.orderByDesc(AuditRecord::getCreateTime);
         return auditMapper.selectList(wrapper);
+    }
+
+    /**
+     * 保存审核记录（供外部调用，如"一键上报"）
+     *
+     * @param auditRecord 审核记录
+     */
+    public void saveAuditRecord(AuditRecord auditRecord) {
+        auditMapper.insert(auditRecord);
+        log.info("审核记录保存成功：id={}, evaluationId={}, action={}",
+                auditRecord.getId(), auditRecord.getEvaluationId(), auditRecord.getAction());
     }
 }

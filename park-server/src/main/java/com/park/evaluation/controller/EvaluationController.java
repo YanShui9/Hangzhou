@@ -67,7 +67,8 @@ public class EvaluationController {
     static {
         AUDIT_STATUS_MAP.put(0, "未提交");
         AUDIT_STATUS_MAP.put(1, "区县待审核");
-        AUDIT_STATUS_MAP.put(2, "市级待审核");
+        AUDIT_STATUS_MAP.put(2, "区县已通过");
+        AUDIT_STATUS_MAP.put(5, "市级待审核");
         AUDIT_STATUS_MAP.put(3, "市级审核通过");
         AUDIT_STATUS_MAP.put(4, "市级审核驳回");
     }
@@ -336,24 +337,122 @@ public class EvaluationController {
         return R.ok(detail);
     }
 
+    /**
+     * 查询审核历史（详细版，串联三端活动记录）
+     * 包含：园区端提交、区县端审核、市级端审核
+     *
+     * @param id 评价记录ID
+     * @return 审核历史列表（按时间升序，最近一条标记 active=true）
+     */
     @GetMapping("/{id}/history")
-    @ApiOperation(value = "查询审核历史", notes = "获取某条评价记录的审核历史列表")
+    @ApiOperation(value = "查询审核历史（详细）", notes = "获取某条评价记录的完整审核历史，含三端活动详情")
     public R<List<Map<String, Object>>> getAuditHistory(@PathVariable Long id) {
-        List<AuditRecord> records = auditService.getAuditHistory(id);
-        List<Map<String, Object>> history = new ArrayList<>();
-        for (int i = 0; i < records.size(); i++) {
-            AuditRecord record = records.get(i);
-            Map<String, Object> item = new LinkedHashMap<>();
-
-            String role = record.getAuditorRole() == 1 ? "市级管理员" : "区县管理员";
-            String action = record.getAction() == 1 ? "审核通过" : "审核驳回";
-            String content = record.getAuditorName() + "(" + role + ")" + action + "了评价材料";
-
-            item.put("content", content);
-            item.put("time", record.getCreateTime());
-            item.put("active", i == 0);
-            history.add(item);
+        // 1. 查询评价记录（获取园区名和创建时间）
+        EvaluationRecord evaluation = evaluationMapper.selectById(id);
+        if (evaluation == null) {
+            return R.ok(new ArrayList<>());
         }
+        ParkInfo park = parkMapper.selectById(evaluation.getParkId());
+        String parkName = park != null ? park.getParkName() : "园区";
+
+        // 2. 查询所有审核记录（区县+市级）
+        List<AuditRecord> auditRecords = auditService.getAuditHistory(id);
+
+        // 3. 构建完整的审核历史列表（按时间升序排列）
+        List<Map<String, Object>> history = new ArrayList<>();
+
+        // 【第一步】园区端提交记录：来自 evaluation_record.createTime
+        if (evaluation.getCreateTime() != null) {
+            Map<String, Object> step1 = new LinkedHashMap<>();
+            step1.put("terminal", "park");
+            step1.put("terminalName", "园区端");
+            step1.put("actorName", parkName);
+            step1.put("action", "submit");
+            step1.put("actionName", "提交评价");
+            step1.put("opinion", null);
+            step1.put("time", evaluation.getCreateTime());
+            step1.put("previousStatus", "草稿");
+            step1.put("currentStatus", "待区县审");
+            step1.put("active", false);
+            history.add(step1);
+        }
+
+        // 找到区县端审核记录和上报记录
+        AuditRecord districtRecord = null;
+        AuditRecord reportRecord = null;
+        AuditRecord cityRecord = null;
+        for (AuditRecord ar : auditRecords) {
+            if (ar.getAuditorRole() != null && ar.getAuditorRole() == 2) {
+                if (ar.getAction() != null && ar.getAction() == 3) {
+                    if (reportRecord == null) reportRecord = ar; // 上报记录
+                } else if (districtRecord == null) {
+                    districtRecord = ar; // 审核通过/驳回记录
+                }
+            } else if (ar.getAuditorRole() != null && ar.getAuditorRole() == 1) {
+                if (cityRecord == null) cityRecord = ar;
+            }
+        }
+
+        // 【第二步】区县端审核记录
+        if (districtRecord != null && districtRecord.getCreateTime() != null) {
+            String districtAction = districtRecord.getAction() == 1 ? "审核通过" : "审核驳回";
+            String districtStatus = districtRecord.getAction() == 1 ? "区县已通过" : "已驳回";
+            Map<String, Object> step2 = new LinkedHashMap<>();
+            step2.put("terminal", "district");
+            step2.put("terminalName", "区县端");
+            step2.put("actorName", districtRecord.getAuditorName());
+            step2.put("action", districtRecord.getAction() == 1 ? "pass" : "reject");
+            step2.put("actionName", districtAction);
+            step2.put("opinion", districtRecord.getOpinion());
+            step2.put("time", districtRecord.getCreateTime());
+            step2.put("previousStatus", "待区县审");
+            step2.put("currentStatus", districtStatus);
+            step2.put("active", false);
+            history.add(step2);
+        }
+
+        // 【第三步】区县端上报记录
+        if (reportRecord != null && reportRecord.getCreateTime() != null) {
+            Map<String, Object> step3 = new LinkedHashMap<>();
+            step3.put("terminal", "district");
+            step3.put("terminalName", "区县端");
+            step3.put("actorName", reportRecord.getAuditorName());
+            step3.put("action", "report");
+            step3.put("actionName", "一键上报");
+            step3.put("opinion", reportRecord.getOpinion());
+            step3.put("time", reportRecord.getCreateTime());
+            step3.put("previousStatus", "区县已通过");
+            step3.put("currentStatus", "待市局审");
+            step3.put("active", false);
+            history.add(step3);
+        }
+
+        // 【第四步】市级端审核记录
+        if (cityRecord != null && cityRecord.getCreateTime() != null) {
+            String cityAction = cityRecord.getAction() == 1 ? "审核通过" : "审核驳回";
+            String cityStatus = cityRecord.getAction() == 1 ? "审核通过" : "已驳回";
+            Map<String, Object> step4 = new LinkedHashMap<>();
+            step4.put("terminal", "city");
+            step4.put("terminalName", "市级端");
+            step4.put("actorName", cityRecord.getAuditorName());
+            step4.put("action", cityRecord.getAction() == 1 ? "pass" : "reject");
+            step4.put("actionName", cityAction);
+            step4.put("opinion", cityRecord.getOpinion());
+            step4.put("time", cityRecord.getCreateTime());
+            step4.put("previousStatus", "待市局审");
+            step4.put("currentStatus", cityStatus);
+            step4.put("active", true);
+            history.add(step4);
+        }
+
+        // 兼容旧格式（content, time, active），供旧前端使用
+        for (Map<String, Object> item : history) {
+            String tn = (String) item.get("terminalName");
+            String an = (String) item.get("actionName");
+            String actor = (String) item.get("actorName");
+            item.put("content", actor + "(" + tn + ")" + an);
+        }
+
         return R.ok(history);
     }
 
@@ -505,6 +604,50 @@ public class EvaluationController {
     }
 
     /**
+     * 区县一键上报（状态从 2=区县已通过 改为 5=已上报）
+     * 区县审核通过后，需选中记录点击"一键上报"，市级管理端才能审核
+     *
+     * @param id      评价记录ID
+     * @param request HTTP请求
+     * @return 操作结果
+     */
+    @PostMapping("/{id}/report")
+    @ApiOperation(value = "区县一键上报", notes = "将区县已审核通过的记录上报至市级（状态从2改为5）")
+    public R<Void> reportToCity(@PathVariable Long id, HttpServletRequest request) {
+        checkAuditPermission(request, 2);
+        checkEvaluationOwnership(request, id);
+        Long auditorId = extractUserId(request);
+
+        EvaluationRecord record = evaluationMapper.selectById(id);
+        if (record == null) {
+            throw new BusinessException(ResultCode.DATA_NOT_FOUND, "评价记录不存在");
+        }
+        if (record.getStatus() != 2) {
+            throw new BusinessException(ResultCode.FAILURE,
+                    "只能上报区县已审核通过的记录，期望状态：2，实际状态：" + record.getStatus());
+        }
+
+        // 更新状态为 5=已上报
+        record.setStatus(5);
+        evaluationMapper.updateById(record);
+        log.info("评价记录上报市级成功：evaluationId={}, auditorId={}", id, auditorId);
+
+        // 写入审核记录（action=3 表示上报）
+        AuditRecord auditRecord = new AuditRecord();
+        auditRecord.setEvaluationId(id);
+        auditRecord.setAuditorId(auditorId);
+        SysUser auditor = authService.getUserById(auditorId);
+        auditRecord.setAuditorName(auditor != null ? auditor.getRealName() : null);
+        auditRecord.setAuditorRole(2);
+        auditRecord.setAction(3);
+        auditRecord.setOpinion("区县已上报至市级");
+        auditRecord.setCreateTime(java.time.LocalDateTime.now());
+        auditService.saveAuditRecord(auditRecord);
+
+        return R.ok();
+    }
+
+    /**
      * 市级审核通过（状态从 2=待市局审 改为 3=通过）
      *
      * @param id      评价记录ID
@@ -515,12 +658,13 @@ public class EvaluationController {
     @ApiOperation(value = "市级审核通过", notes = "市级管理员审核通过评价记录")
     public R<Void> cityPass(@PathVariable Long id, HttpServletRequest request) {
         checkAuditPermission(request, 1); // 校验市级管理员权限
-        evaluationService.cityPass(id);
+        Long auditorId = extractUserId(request);
+        evaluationService.cityPass(id, auditorId);
         return R.ok();
     }
 
     /**
-     * 市级审核驳回（状态从 2=待市局审 改为 4=驳回）
+     * 市级审核驳回（状态从 5=已上报 改为 4=驳回）
      *
      * @param id      评价记录ID
      * @param request HTTP请求
@@ -530,7 +674,8 @@ public class EvaluationController {
     @ApiOperation(value = "市级审核驳回", notes = "市级管理员审核驳回评价记录")
     public R<Void> cityReject(@PathVariable Long id, HttpServletRequest request) {
         checkAuditPermission(request, 1); // 校验市级管理员权限
-        evaluationService.cityReject(id);
+        Long auditorId = extractUserId(request);
+        evaluationService.cityReject(id, auditorId);
         return R.ok();
     }
 

@@ -81,6 +81,39 @@ export function districtRejectEvaluation(id) {
 }
 
 /**
+ * 区县一键上报（状态从 区县已通过 改为 已上报，市级才能审核）
+ * @param {Number} id 评价记录ID
+ */
+export function reportToCity(id) {
+  return request({
+    url: `/api/evaluations/${id}/report`,
+    method: 'post'
+  })
+}
+
+/**
+ * 市级审核通过（状态从 待市局审 改为 审核通过）
+ * @param {Number} id 评价记录ID
+ */
+export function cityPassEvaluation(id) {
+  return request({
+    url: `/api/evaluations/${id}/city-pass`,
+    method: 'post'
+  })
+}
+
+/**
+ * 市级审核驳回（状态从 待市局审 改为 驳回）
+ * @param {Number} id 评价记录ID
+ */
+export function cityRejectEvaluation(id) {
+  return request({
+    url: `/api/evaluations/${id}/city-reject`,
+    method: 'post'
+  })
+}
+
+/**
  * 检查园区当年是否已提交评价
  * @param {Object} params 参数对象 { parkId, year }
  */

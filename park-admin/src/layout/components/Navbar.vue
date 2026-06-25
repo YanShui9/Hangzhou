@@ -137,6 +137,28 @@ export default {
       if (path.startsWith('/admin/enterprise/detail/')) {
         return ['入驻企业', '企业详情']
       }
+      // 区县端园区详情/编辑
+      if (path.startsWith('/district/park/detail/')) {
+        return ['园区列表', '园区详情']
+      }
+      if (path.startsWith('/district/park/edit/')) {
+        return ['园区列表', '编辑园区']
+      }
+      if (path.startsWith('/district/park/add')) {
+        return ['园区列表', '新增园区']
+      }
+      // 区县端入驻企业详情
+      if (path.startsWith('/district/enterprise/detail/')) {
+        return ['入驻企业', '企业详情']
+      }
+      // 区县端审核详情
+      if (path.startsWith('/district/audit/detail/')) {
+        return ['评价审核', '审核详情']
+      }
+      // 园区端企业详情
+      if (path.startsWith('/park/enterprise/detail/')) {
+        return ['入驻企业', '企业详情']
+      }
       // 系统设置子页面：系统设置 / X
       const systemMap = {
         '/system/district-users': ['系统设置', '区县账号'],
@@ -164,6 +186,7 @@ export default {
       // 普通页面：单级标题
       const titleMap = {
         '/dashboard': '数据驾驶舱',
+        '/admin/big-screen': '数据驾驶舱',
         '/district/dashboard': '数据看板',
         '/park/dashboard': '数据看板',
         '/admin/park': '园区列表',
@@ -176,6 +199,7 @@ export default {
         '/admin/audit': '评价审核',
         '/district/audit': '评价审核',
         '/park/evaluation': '评价列表',
+        '/park/evaluation/add': ['评价列表', '评价填报'],
         '/admin/result': '评价结果',
         '/district/result': '评价结果',
         '/park/result': '评价结果'

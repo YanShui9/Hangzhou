@@ -112,4 +112,36 @@ public class AuthController {
         log.info("用户登出");
         return R.ok();
     }
+
+    /**
+     * 修改密码
+     * 校验原密码后更新为新密码（BCrypt 加密）
+     *
+     * @param body    请求体 { oldPassword, newPassword }
+     * @param request HTTP 请求（携带 Token）
+     * @return 操作结果
+     */
+    @PostMapping("/change-password")
+    @ApiOperation(value = "修改密码", notes = "校验原密码后更新为新密码")
+    public R<Void> changePassword(@RequestBody Map<String, String> body, HttpServletRequest request) {
+        Object userIdObj = request.getAttribute("userId");
+        Long userId = null;
+        if (userIdObj instanceof Integer) {
+            userId = ((Integer) userIdObj).longValue();
+        } else if (userIdObj instanceof Long) {
+            userId = (Long) userIdObj;
+        }
+        if (userId == null) {
+            return R.fail("无法获取用户信息");
+        }
+
+        String oldPassword = body.get("oldPassword");
+        String newPassword = body.get("newPassword");
+        if (oldPassword == null || oldPassword.isEmpty() || newPassword == null || newPassword.isEmpty()) {
+            return R.fail("原密码和新密码不能为空");
+        }
+
+        authService.changePassword(userId, oldPassword, newPassword);
+        return R.ok();
+    }
 }

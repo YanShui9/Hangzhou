@@ -165,4 +165,38 @@ public class AuthService {
         queryWrapper.eq(SysUser::getUsername, username);
         return userMapper.selectOne(queryWrapper);
     }
+
+    /**
+     * 修改密码
+     *
+     * @param userId      用户ID
+     * @param oldPassword 原密码（明文）
+     * @param newPassword 新密码（明文）
+     */
+    public void changePassword(Long userId, String oldPassword, String newPassword) {
+        // 1. 查询用户（显式包含 password 字段）
+        LambdaQueryWrapper<SysUser> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(SysUser::getId, userId);
+        queryWrapper.select(SysUser.class, info -> true);
+        SysUser user = userMapper.selectOne(queryWrapper);
+        if (user == null) {
+            throw new BusinessException(ResultCode.USER_NOT_FOUND);
+        }
+
+        // 2. 校验原密码
+        if (user.getPassword() == null || !passwordEncoder.matches(oldPassword, user.getPassword())) {
+            throw new BusinessException(ResultCode.USER_PASSWORD_ERROR);
+        }
+
+        // 3. 新密码不能与原密码相同
+        if (passwordEncoder.matches(newPassword, user.getPassword())) {
+            throw new BusinessException(ResultCode.FAILURE, "新密码不能与原密码相同");
+        }
+
+        // 4. 加密新密码并更新
+        String encodedNewPassword = passwordEncoder.encode(newPassword);
+        user.setPassword(encodedNewPassword);
+        userMapper.updateById(user);
+        log.info("用户修改密码成功：userId={}, username={}", userId, user.getUsername());
+    }
 }

@@ -170,7 +170,7 @@ public class EvaluationService {
 
         Map<String, Integer> summary = new LinkedHashMap<>();
         summary.put("total", all.size());
-        summary.put("cityPending", (int) all.stream().filter(r -> r.getStatus() != null && r.getStatus() == 2).count());
+        summary.put("cityPending", (int) all.stream().filter(r -> r.getStatus() != null && r.getStatus() == 5).count());
         summary.put("cityPassed", (int) all.stream().filter(r -> r.getStatus() != null && r.getStatus() == 3).count());
         summary.put("cityReturned", (int) all.stream().filter(r -> r.getStatus() != null && r.getStatus() == 4).count());
         return summary;
@@ -418,8 +418,8 @@ public class EvaluationService {
         if (record == null) {
             throw new BusinessException(ResultCode.DATA_NOT_FOUND, "评价记录不存在");
         }
-        // 允许 status=1(待区县审)或2(待市局审)时保存
-        if (record.getStatus() != 1 && record.getStatus() != 2) {
+        // 允许 status=1(待区县审)、2(区县已通过)、5(已上报/待市局审)时保存
+        if (record.getStatus() != 1 && record.getStatus() != 2 && record.getStatus() != 5) {
             throw new BusinessException(ResultCode.FAILURE, "当前状态不允许保存打分");
         }
         record.setScoreDetail(scoreDetail);
@@ -471,6 +471,22 @@ public class EvaluationService {
                     .eq(ParkEvaluationScore::getYear, record.getYear());
         scoreMapper.delete(scoreWrapper);
 
+        LambdaQueryWrapper<EvaluationEnterprise> eeWrapper = new LambdaQueryWrapper<>();
+        eeWrapper.eq(EvaluationEnterprise::getEvaluationId, id);
+        evaluationEnterpriseMapper.delete(eeWrapper);
+
+        LambdaQueryWrapper<TechInnovation> techInnoWrapper = new LambdaQueryWrapper<>();
+        techInnoWrapper.eq(TechInnovation::getEvaluationId, id);
+        techInnovationMapper.delete(techInnoWrapper);
+
+        LambdaQueryWrapper<TechProject> techProjQuery = new LambdaQueryWrapper<>();
+        techProjQuery.eq(TechProject::getEvaluationId, id);
+        techProjectMapper.delete(techProjQuery);
+
+        LambdaQueryWrapper<CultivationRecord> cultWrapper = new LambdaQueryWrapper<>();
+        cultWrapper.eq(CultivationRecord::getEvaluationId, id);
+        cultivationRecordMapper.delete(cultWrapper);
+
         evaluationMapper.deleteById(id);
         log.info("评价记录已删除：id={}, parkId={}, year={}", id, record.getParkId(), record.getYear());
     }
@@ -496,20 +512,21 @@ public class EvaluationService {
     }
 
     /**
-     * 市级审核通过（状态从 2=待市局审 改为 3=通过）
+     * 市级审核通过（状态从 5=已上报 改为 3=通过）
      * 同步打分数据到 park_evaluation_score
      *
      * @param id 评价记录ID
+     * @param auditorId 审核人ID
      */
     @Transactional(rollbackFor = Exception.class)
-    public void cityPass(Long id) {
+    public void cityPass(Long id, Long auditorId) {
         EvaluationRecord record = evaluationMapper.selectById(id);
         if (record == null) {
             throw new BusinessException(ResultCode.DATA_NOT_FOUND, "评价记录不存在");
         }
-        if (!Integer.valueOf(2).equals(record.getStatus())) {
+        if (!Integer.valueOf(5).equals(record.getStatus())) {
             throw new BusinessException(ResultCode.FAILURE,
-                    "当前状态不允许执行此操作，期望状态：2，实际状态：" + record.getStatus());
+                    "当前状态不允许执行此操作，期望状态：5(已上报)，实际状态：" + record.getStatus());
         }
 
         // 1. 更新审核状态
@@ -519,16 +536,50 @@ public class EvaluationService {
 
         // 2. 同步打分到 park_evaluation_score
         syncToParkEvaluationScore(record);
+
+        // 3. 创建审核记录
+        AuditRecord auditRecord = new AuditRecord();
+        auditRecord.setEvaluationId(id);
+        auditRecord.setAuditorId(auditorId);
+        auditRecord.setAuditorRole(1);
+        auditRecord.setAction(1);
+        auditRecord.setOpinion("市级审核通过");
+        auditRecord.setCreateTime(java.time.LocalDateTime.now());
+        auditMapper.insert(auditRecord);
+        log.info("市级审核记录创建成功：evaluationId={}", id);
     }
 
     /**
-     * 市级审核驳回（状态从 2=待市局审 改为 4=驳回）
+     * 市级审核驳回（状态从 5=已上报 改为 4=驳回）
      *
      * @param id 评价记录ID
+     * @param auditorId 审核人ID
      */
     @Transactional(rollbackFor = Exception.class)
-    public void cityReject(Long id) {
-        updateStatus(id, 2, 4, "市级审核驳回");
+    public void cityReject(Long id, Long auditorId) {
+        EvaluationRecord record = evaluationMapper.selectById(id);
+        if (record == null) {
+            throw new BusinessException(ResultCode.DATA_NOT_FOUND, "评价记录不存在");
+        }
+        if (!Integer.valueOf(5).equals(record.getStatus())) {
+            throw new BusinessException(ResultCode.FAILURE,
+                    "当前状态不允许执行此操作，期望状态：5(已上报)，实际状态：" + record.getStatus());
+        }
+
+        record.setStatus(4); // 4=驳回
+        evaluationMapper.updateById(record);
+        log.info("评价记录市级审核驳回：id={}", id);
+
+        // 创建审核记录
+        AuditRecord auditRecord = new AuditRecord();
+        auditRecord.setEvaluationId(id);
+        auditRecord.setAuditorId(auditorId);
+        auditRecord.setAuditorRole(1);
+        auditRecord.setAction(2);
+        auditRecord.setOpinion("市级审核驳回");
+        auditRecord.setCreateTime(java.time.LocalDateTime.now());
+        auditMapper.insert(auditRecord);
+        log.info("市级审核记录创建成功：evaluationId={}", id);
     }
 
     /**

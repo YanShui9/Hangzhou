@@ -4,8 +4,10 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.park.auth.entity.SysUser;
 import com.park.auth.service.AuthService;
+import com.park.common.exception.BusinessException;
 import com.park.common.result.PageResult;
 import com.park.common.result.R;
+import com.park.common.result.ResultCode;
 import com.alibaba.excel.EasyExcel;
 import com.park.enterprise.dto.EnterpriseExportDTO;
 import com.park.enterprise.dto.EnterpriseQueryDTO;
@@ -173,7 +175,33 @@ public class EnterpriseController {
     public R<Void> deleteEnterprise(
             @ApiParam(value = "企业ID", required = true) @PathVariable Long id,
             HttpServletRequest request) {
-        checkLogin(request); // 登录校验
+        checkLogin(request);
+
+        // 数据权限校验：园区管理员只能删除本园区的企业
+        Object roleTypeObj = request.getAttribute("roleType");
+        Integer roleType = (roleTypeObj instanceof Integer) ? (Integer) roleTypeObj : null;
+        if (roleType != null && roleType == 3) {
+            Object userIdObj = request.getAttribute("userId");
+            Long userId = null;
+            if (userIdObj instanceof Integer) {
+                userId = ((Integer) userIdObj).longValue();
+            } else if (userIdObj instanceof Long) {
+                userId = (Long) userIdObj;
+            }
+            if (userId != null) {
+                SysUser user = authService.getUserById(userId);
+                if (user != null && user.getParkId() != null) {
+                    EnterpriseInfo enterprise = enterpriseService.getEnterpriseById(id);
+                    if (enterprise == null) {
+                        throw new BusinessException(ResultCode.DATA_NOT_FOUND, "企业不存在");
+                    }
+                    if (!user.getParkId().equals(enterprise.getParkId())) {
+                        throw new BusinessException(ResultCode.FORBIDDEN, "无权操作其他园区的企业数据");
+                    }
+                }
+            }
+        }
+
         log.info("删除企业：id={}", id);
         enterpriseService.deleteEnterprise(id);
         return R.ok("删除成功", null);
@@ -239,6 +267,8 @@ public class EnterpriseController {
     @GetMapping("/honor/summary")
     @ApiOperation(value = "企业荣誉数量统计汇总表", notes = "按园区维度统计企业荣誉数量")
     public R<PageResult<java.util.Map<String, Object>>> getEnterpriseHonorSummary(EnterpriseQueryDTO queryDTO,
+                                                                                   @RequestParam(required = false) String region,
+                                                                                   @RequestParam(required = false) String type,
                                                                                    HttpServletRequest request) {
         applyDataPermission(queryDTO, request);
         // 简化实现：按 park 维度聚合
@@ -246,10 +276,23 @@ public class EnterpriseController {
                 new com.baomidou.mybatisplus.extension.plugins.pagination.Page<>(queryDTO.getPageNum(), queryDTO.getPageSize());
         com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<ParkInfo> w =
                 new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<>();
-        // 优先按 enterpriseName 模糊搜索（前端传入的 parkName 也可兼容）
+        // 园区名称模糊搜索
+        if (org.springframework.util.StringUtils.hasText(queryDTO.getParkName())) {
+            w.like(ParkInfo::getParkName, queryDTO.getParkName());
+        }
+        // 区域筛选
+        if (org.springframework.util.StringUtils.hasText(region)) {
+            w.eq(ParkInfo::getDistrictName, region);
+        }
+        // 园区类型筛选
+        if (org.springframework.util.StringUtils.hasText(type)) {
+            w.like(ParkInfo::getParkType, type);
+        }
+        // 兼容旧参数：enterpriseName / districtName
         if (org.springframework.util.StringUtils.hasText(queryDTO.getEnterpriseName())) {
             w.like(ParkInfo::getParkName, queryDTO.getEnterpriseName());
-        } else if (org.springframework.util.StringUtils.hasText(queryDTO.getDistrictName())) {
+        }
+        if (org.springframework.util.StringUtils.hasText(queryDTO.getDistrictName())) {
             w.like(ParkInfo::getDistrictName, queryDTO.getDistrictName());
         }
         IPage<ParkInfo> parkPage = parkMapper.selectPage(page, w);
@@ -300,7 +343,7 @@ public class EnterpriseController {
     @ApiOperation(value = "企业指标列表", notes = "按园区维度查询企业指标")
     public R<PageResult<java.util.Map<String, Object>>> getEnterpriseIndicatorList(EnterpriseQueryDTO queryDTO,
                                                                                     HttpServletRequest request) {
-        return getEnterpriseHonorSummary(queryDTO, request);
+        return getEnterpriseHonorSummary(queryDTO, null, null, request);
     }
 
     /**

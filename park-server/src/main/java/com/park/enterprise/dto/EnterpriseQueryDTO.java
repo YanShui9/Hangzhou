@@ -44,4 +44,10 @@ public class EnterpriseQueryDTO extends PageQuery {
 
     @ApiModelProperty(value = "企业荣誉")
     private String enterpriseHonor;
+
+    @ApiModelProperty(value = "园区名称（模糊查询）")
+    private String parkName;
+
+    @ApiModelProperty(value = "园区类型")
+    private String parkType;
 }
