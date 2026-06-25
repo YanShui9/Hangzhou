@@ -2,8 +2,10 @@
   <div class="navbar">
     <div class="breadcrumb">
       <span>首页</span>
-      <span class="separator">/</span>
-      <span class="current">{{ currentTitle }}</span>
+      <template v-for="(item, index) in breadcrumbItems">
+        <span :key="'sep-'+index" class="separator">/</span>
+        <span :key="index" :class="{ current: index === breadcrumbItems.length - 1 }">{{ item }}</span>
+      </template>
     </div>
     <div class="user-menu">
       <el-dropdown trigger="click" @command="handleCommand">
@@ -123,18 +125,49 @@ export default {
       const name = this.userInfo.realName || this.userInfo.username || '管'
       return name.charAt(0)
     },
-    currentTitle() {
+    breadcrumbItems() {
       const path = this.$route.path
-      // 处理动态路由（带参数的路径）
+      // 动态路由处理
       if (path.startsWith('/admin/park/detail/')) {
-        return '园区详情'
+        return ['园区列表', '园区详情']
       }
+      if (path.startsWith('/admin/audit/detail/')) {
+        return ['评价审核', '审核详情']
+      }
+      if (path.startsWith('/admin/enterprise/detail/')) {
+        return ['入驻企业', '企业详情']
+      }
+      // 系统设置子页面：系统设置 / X
+      const systemMap = {
+        '/system/district-users': ['系统设置', '区县账号'],
+        '/system/park-users': ['系统设置', '园区账号'],
+        '/system/data-warehouse': ['系统设置', '数据仓库'],
+        '/system/enterprise-info': ['系统设置', '企业信息'],
+        '/system/enterprise-info/edit': ['系统设置', '企业信息', '编辑'],
+        '/system/admin-users': ['系统设置', '管理员账号']
+      }
+      if (systemMap[path]) {
+        return systemMap[path]
+      }
+      // 评价结果子页面
+      const resultMap = {
+        '/admin/result/park': ['评价结果', '园区评价'],
+        '/admin/result/enterprise': ['评价结果', '企业指标'],
+        '/district/result/park': ['评价结果', '园区评价'],
+        '/district/result/enterprise': ['评价结果', '企业指标'],
+        '/park/result/park': ['评价结果', '园区评价'],
+        '/park/result/enterprise': ['评价结果', '企业指标']
+      }
+      if (resultMap[path]) {
+        return resultMap[path]
+      }
+      // 普通页面：单级标题
       const titleMap = {
         '/dashboard': '数据驾驶舱',
         '/district/dashboard': '数据看板',
         '/park/dashboard': '数据看板',
         '/admin/park': '园区列表',
-        '/admin/park/add': '新增园区',
+        '/admin/park/add': ['园区列表', '新增园区'],
         '/district/park': '园区列表',
         '/park/mine': '我的园区',
         '/admin/enterprise': '入驻企业',
@@ -144,20 +177,14 @@ export default {
         '/district/audit': '评价审核',
         '/park/evaluation': '评价列表',
         '/admin/result': '评价结果',
-        '/admin/result/park': '园区评价',
-        '/admin/result/enterprise': '企业指标',
         '/district/result': '评价结果',
-        '/district/result/park': '园区评价',
-        '/park/result': '评价结果',
-        '/park/result/park': '园区评价',
-        '/system/settings': '系统设置',
-        '/system/district-users': '区县账号',
-        '/system/park-users': '园区账号',
-        '/system/data-warehouse': '数据仓库',
-        '/system/enterprise-info': '企业信息',
-        '/system/enterprise-info/edit': '编辑企业信息'
+        '/park/result': '评价结果'
       }
-      return titleMap[path] || '首页'
+      const title = titleMap[path]
+      if (Array.isArray(title)) {
+        return title
+      }
+      return title ? [title] : []
     }
   },
   methods: {

@@ -2,13 +2,6 @@
   <div class="district-user-page page-list-flex">
     <!-- 顶部操作区 -->
     <div class="top-bar">
-      <!-- 面包屑 -->
-      <div class="breadcrumb-area">
-        <span class="breadcrumb-text">系统设置</span>
-        <span class="breadcrumb-sep">&gt;</span>
-        <span class="breadcrumb-text active">区县账号</span>
-      </div>
-
       <!-- 搜索 -->
       <div class="search-area">
         <el-input

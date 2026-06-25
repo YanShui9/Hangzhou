@@ -1,14 +1,7 @@
 <template>
   <div class="data-warehouse-page page-list-flex">
-    <!-- 顶部操作区：面包屑 + 搜索 + 操作按钮 -->
+    <!-- 顶部操作区：搜索 + 操作按钮 -->
     <div class="top-bar">
-      <!-- 面包屑 -->
-      <div class="breadcrumb-area">
-        <span class="breadcrumb-text">系统设置</span>
-        <span class="breadcrumb-sep">&gt;</span>
-        <span class="breadcrumb-text active">数据仓库</span>
-      </div>
-
       <!-- 搜索 -->
       <div class="search-area">
         <el-input

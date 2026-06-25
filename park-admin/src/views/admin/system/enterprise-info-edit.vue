@@ -2,15 +2,6 @@
   <div class="enterprise-edit-page">
     <!-- 顶部操作区 -->
     <div class="top-bar">
-      <!-- 面包屑 -->
-      <div class="breadcrumb-area">
-        <span class="breadcrumb-text">系统设置</span>
-        <span class="breadcrumb-sep">&gt;</span>
-        <span class="breadcrumb-text">企业信息</span>
-        <span class="breadcrumb-sep">&gt;</span>
-        <span class="breadcrumb-text active">编辑</span>
-      </div>
-
       <!-- 右侧按钮 -->
       <div class="action-area">
         <el-button
@@ -204,6 +195,20 @@
             </el-form-item>
           </el-col>
         </el-row>
+
+        <!-- 第6行：备注（跨4列） -->
+        <el-row :gutter="20">
+          <el-col :span="24">
+            <el-form-item label="备注" prop="remark">
+              <el-input
+                v-model="dataForm.remark"
+                type="textarea"
+                :rows="3"
+                placeholder="请输入备注"
+              />
+            </el-form-item>
+          </el-col>
+        </el-row>
       </el-form>
     </el-card>
   </div>
@@ -242,8 +247,9 @@ export default {
         { value: 'advanced_manufacturing', label: '先进制造' }
       ],
       statusOptions: [
-        { value: 1, label: '参评' },
-        { value: 2, label: '未参评' }
+        { value: '在营', label: '在营' },
+        { value: '迁出', label: '迁出' },
+        { value: '注销', label: '注销' }
       ],
       dataForm: {
         enterpriseName: '',
@@ -259,7 +265,8 @@ export default {
         contactPhone: '',
         registeredCapital: '',
         registerDate: '',
-        businessScope: ''
+        businessScope: '',
+        remark: ''
       },
       dataRules: {
         enterpriseName: [{ required: true, message: '请输入企业名称', trigger: 'blur' }],
@@ -303,7 +310,8 @@ export default {
           contactPhone: data.contactPhone || '',
           registeredCapital: data.registeredCapital || '',
           registerDate: data.registerDate || '',
-          businessScope: data.businessScope || ''
+          businessScope: data.businessScope || '',
+          remark: data.remark || ''
         }
       } catch (e) {
         console.error('获取企业信息详情失败', e)

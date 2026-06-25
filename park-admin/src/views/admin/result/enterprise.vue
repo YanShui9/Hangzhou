@@ -1,11 +1,5 @@
 <template>
   <div class="enterprise-result-container page-list-flex">
-    <div class="breadcrumb-bar">
-      <span class="breadcrumb-link">评价结果</span>
-      <i class="el-icon-arrow-right breadcrumb-sep"></i>
-      <span class="breadcrumb-current">企业指标</span>
-    </div>
-
     <!-- 搜索筛选区 -->
     <div class="filter-bar">
       <div class="filter-left">

@@ -2,13 +2,6 @@
   <div class="enterprise-info-page page-list-flex">
     <!-- 顶部操作区 -->
     <div class="top-bar">
-      <!-- 面包屑 -->
-      <div class="breadcrumb-area">
-        <span class="breadcrumb-text">系统设置</span>
-        <span class="breadcrumb-sep">&gt;</span>
-        <span class="breadcrumb-text active">企业信息</span>
-      </div>
-
       <!-- 搜索 -->
       <div class="search-area">
         <el-input
@@ -49,7 +42,7 @@
         </el-select>
         <el-select
           v-model="queryParams.status"
-          placeholder="全部状态"
+          placeholder="企业状态"
           clearable
           size="small"
           style="width: 120px; margin-left: 8px;"
@@ -274,8 +267,9 @@ export default {
       districtOptions: [],
       parkOptions: [],
       statusOptions: [
-        { value: 1, label: '参评' },
-        { value: 2, label: '未参评' }
+        { value: '在营', label: '在营' },
+        { value: '迁出', label: '迁出' },
+        { value: '注销', label: '注销' }
       ],
       pageSizeOptions: [10, 20, 50, 100],
       dataList: [],

@@ -1,12 +1,6 @@
 <template>
   <div class="admin-user-page page-list-flex">
     <div class="top-bar">
-      <div class="breadcrumb-area">
-        <span class="breadcrumb-text">系统设置</span>
-        <span class="breadcrumb-sep">&gt;</span>
-        <span class="breadcrumb-text active">管理员账号</span>
-      </div>
-
       <div class="search-area">
         <el-input
           v-model="queryParams.name"

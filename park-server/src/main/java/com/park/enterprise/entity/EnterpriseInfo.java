@@ -77,5 +77,5 @@ public class EnterpriseInfo extends BaseEntity {
     private transient String enterpriseHonor;
 
     @ApiModelProperty(value = "备注")
-    private transient String remark;
+    private String remark;
 }
