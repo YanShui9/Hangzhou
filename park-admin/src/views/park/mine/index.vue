@@ -6,13 +6,16 @@
         </el-tab-pane>
         <el-tab-pane label="园区简介" name="intro">
         </el-tab-pane>
-        <el-tab-pane label="运营数据" name="stats">
-        </el-tab-pane>
       </el-tabs>
-      <el-button type="primary" class="save-btn" @click="handleSave">保存</el-button>
+      <el-button v-if="!isEditing" type="text" class="edit-btn" @click="handleEdit">编辑</el-button>
+      <template v-else>
+        <el-button type="primary" class="save-btn" @click="handleSave">保存</el-button>
+        <el-button type="text" class="cancel-btn" @click="handleCancel">取消</el-button>
+      </template>
     </div>
 
-    <div v-show="activeTab === 'basic'" class="tab-content">
+    <div class="tab-scroll-container">
+      <div v-show="activeTab === 'basic'" class="tab-content">
       <div class="info-section">
         <div class="section-title">基本信息</div>
         <div class="info-grid">
@@ -22,7 +25,7 @@
           </div>
           <div class="info-item">
             <label>园区状态</label>
-            <span>{{ parkInfo.status === 1 ? '已运营' : parkInfo.status === 2 ? '建设中' : '-' }}</span>
+            <span>{{ parkInfo.parkStatus || '-' }}</span>
           </div>
           <div class="info-item">
             <label>土地性质</label>
@@ -34,19 +37,26 @@
           </div>
           <div class="info-item">
             <label class="required">园区地址</label>
-            <span>{{ parkInfo.address || '-' }}</span>
+            <el-input v-if="isEditing" v-model="formData.address" placeholder="请输入园区地址" />
+            <span v-else>{{ parkInfo.address || '-' }}</span>
           </div>
           <div class="info-item">
             <label>是否升级改造</label>
-            <span>{{ parkInfo.isUpgrade === 1 ? '是' : parkInfo.isUpgrade === 0 ? '否' : '-' }}</span>
+            <el-select v-if="isEditing" v-model="formData.isUpgradable" placeholder="请选择">
+              <el-option label="是" value="是" />
+              <el-option label="否" value="否" />
+            </el-select>
+            <span v-else>{{ parkInfo.isUpgradable || '-' }}</span>
           </div>
           <div class="info-item">
             <label>改造提升内容</label>
-            <span>{{ parkInfo.upgradeContent || '-' }}</span>
+            <el-input v-if="isEditing" v-model="formData.upgradeContent" placeholder="请输入改造提升内容" />
+            <span v-else>{{ parkInfo.upgradeContent || '-' }}</span>
           </div>
           <div class="info-item">
             <label>开发模式</label>
-            <span>{{ parkInfo.devMode || '-' }}</span>
+            <el-input v-if="isEditing" v-model="formData.devMode" placeholder="请输入开发模式" />
+            <span v-else>{{ parkInfo.devMode || '-' }}</span>
           </div>
           <div class="info-item">
             <label>土地来源</label>
@@ -58,11 +68,11 @@
           </div>
           <div class="info-item">
             <label>园区类型</label>
-            <span>{{ parkInfo.parkTypeName || '-' }}</span>
+            <span>{{ parkInfo.parkType || '-' }}</span>
           </div>
           <div class="info-item">
             <label>主导产业</label>
-            <span>{{ parkInfo.mainIndustry || '-' }}</span>
+            <span>{{ parkInfo.leadingIndustry || '-' }}</span>
           </div>
         </div>
       </div>
@@ -72,32 +82,38 @@
         <div class="info-grid">
           <div class="info-item">
             <label class="required">运营单位</label>
-            <el-input v-model="formData.operatingCompany" placeholder="请输入运营单位" />
+            <el-input v-if="isEditing" v-model="formData.operatorUnit" placeholder="请输入运营单位" />
+            <span v-else>{{ parkInfo.operatorUnit || '-' }}</span>
           </div>
           <div class="info-item">
             <label>运营性质</label>
-            <el-select v-model="formData.operatingNature" placeholder="请选择运营性质">
+            <el-select v-if="isEditing" v-model="formData.operatorNature" placeholder="请选择运营性质">
               <el-option label="国有企业" value="国有企业" />
               <el-option label="民营企业" value="民营企业" />
-              <el-option label="外资企业" value="外资企业" />
+              <el-option label="事业单位" value="事业单位" />
               <el-option label="其他" value="其他" />
             </el-select>
+            <span v-else>{{ parkInfo.operatorNature || '-' }}</span>
           </div>
           <div class="info-item">
             <label class="required">负责人</label>
-            <el-input v-model="formData.responsiblePerson" placeholder="请输入负责人" />
+            <el-input v-if="isEditing" v-model="formData.personInCharge" placeholder="请输入负责人" />
+            <span v-else>{{ parkInfo.personInCharge || '-' }}</span>
           </div>
           <div class="info-item">
             <label>负责人电话</label>
-            <el-input v-model="formData.responsiblePhone" placeholder="请输入负责人电话" />
+            <el-input v-if="isEditing" v-model="formData.inChargePhone" placeholder="请输入负责人电话" />
+            <span v-else>{{ parkInfo.inChargePhone || '-' }}</span>
           </div>
           <div class="info-item">
             <label>联系人</label>
-            <el-input v-model="formData.contactPerson" placeholder="请输入联系人" />
+            <el-input v-if="isEditing" v-model="formData.contactPerson" placeholder="请输入联系人" />
+            <span v-else>{{ parkInfo.contactPerson || '-' }}</span>
           </div>
           <div class="info-item">
             <label>联系人电话</label>
-            <el-input v-model="formData.contactPhone" placeholder="请输入联系人电话" />
+            <el-input v-if="isEditing" v-model="formData.contactPhone" placeholder="请输入联系人电话" />
+            <span v-else>{{ parkInfo.contactPhone || '-' }}</span>
           </div>
         </div>
       </div>
@@ -107,121 +123,131 @@
         <div class="info-grid">
           <div class="info-item">
             <label>园区总面积（亩）</label>
-            <el-input v-model.number="formData.totalArea" placeholder="请输入园区总面积" />
+            <span>{{ parkInfo.landArea || '-' }}</span>
           </div>
           <div class="info-item">
             <label>实际用地面积（亩）</label>
-            <el-input v-model.number="formData.actualLandArea" placeholder="请输入实际用地面积" />
+            <span>{{ parkInfo.buildArea || '-' }}</span>
           </div>
           <div class="info-item">
             <label>已建建筑面积（平方米）</label>
-            <el-input v-model.number="formData.constructedArea" placeholder="请输入已建建筑面积" />
+            <span>{{ parkInfo.buildArea || '-' }}</span>
           </div>
           <div class="info-item">
-            <label>园区已租面积（平方米）</label>
-            <el-input v-model.number="formData.rentedArea" placeholder="请输入已租面积" />
+            <label class="required">园区已租面积（平方米）</label>
+            <el-input v-if="isEditing" v-model.number="formData.leasedArea" placeholder="请输入已租面积" />
+            <span v-else>{{ parkInfo.leasedArea || '-' }}</span>
           </div>
           <div class="info-item">
-            <label>园区剩余可租面积（平方米）</label>
-            <el-input v-model.number="formData.availableArea" placeholder="请输入剩余可租面积" />
+            <label class="required">园区剩余可租面积（平方米）</label>
+            <el-input v-if="isEditing" v-model.number="formData.remainingLeasableArea" placeholder="请输入剩余可租面积" />
+            <span v-else>{{ parkInfo.remainingLeasableArea || '-' }}</span>
+          </div>
+          <div class="info-item">
+            <label>园区剩余可售面积（平方米）</label>
+            <el-input v-if="isEditing" v-model.number="formData.remainingSellableArea" placeholder="请输入剩余可售面积" />
+            <span v-else>{{ parkInfo.remainingSellableArea || '-' }}</span>
           </div>
         </div>
       </div>
 
       <div class="info-section">
         <div class="section-title">入驻企业</div>
+        <div class="section-desc">* 数据由后台统计生成，不可修改</div>
         <div class="info-grid">
           <div class="info-item">
             <label>入驻企业总数（家）</label>
-            <span>{{ stats.enterpriseCount || 0 }}</span>
+            <span>{{ parkInfo.enterpriseCount || 0 }}</span>
           </div>
           <div class="info-item">
             <label>规模以上企业（家）</label>
-            <span>{{ stats.largeEnterpriseCount || 0 }}</span>
+            <span>{{ parkInfo.aboveScaleCount || 0 }}</span>
           </div>
           <div class="info-item">
             <label>高新技术企业（家）</label>
-            <span>{{ stats.highTechEnterpriseCount || 0 }}</span>
+            <span>{{ parkInfo.highTechCount || 0 }}</span>
           </div>
           <div class="info-item">
             <label>科技型中小企业（家）</label>
-            <span>{{ stats.smeCount || 0 }}</span>
+            <span>{{ parkInfo.techSmeCount || 0 }}</span>
           </div>
           <div class="info-item">
             <label>入驻企业总数（家）</label>
-            <span>{{ stats.enterpriseCount || 0 }}</span>
+            <span>{{ parkInfo.enterpriseCount || 0 }}</span>
           </div>
           <div class="info-item">
             <label>规模以上企业（家）</label>
-            <span>{{ stats.largeEnterpriseCount || 0 }}</span>
+            <span>{{ parkInfo.aboveScaleCount || 0 }}</span>
           </div>
           <div class="info-item">
             <label>创新型中小企业（家）</label>
-            <span>{{ stats.innovativeSmeCount || 0 }}</span>
+            <span>{{ parkInfo.innovativeSmeCount || 0 }}</span>
           </div>
           <div class="info-item">
             <label>国家专精特新中小企业（家）</label>
-            <span>{{ stats.specializedSmeCount || 0 }}</span>
+            <span>{{ parkInfo.hiddenChampionCount || 0 }}</span>
           </div>
         </div>
       </div>
 
       <div class="info-section">
         <div class="section-title">入驻员工</div>
+        <div class="section-desc">* 数据由后台统计生成，不可修改</div>
         <div class="info-grid">
           <div class="info-item">
             <label>入驻企业员工总数（人）</label>
-            <span>{{ stats.employeeCount || 0 }}</span>
+            <span>{{ parkInfo.employeeCount || 0 }}</span>
           </div>
           <div class="info-item">
             <label>"国千"人才人数（人）</label>
-            <span>{{ stats.nationalTalentCount || 0 }}</span>
+            <span>{{ parkInfo.nationalSrtiCount || 0 }}</span>
           </div>
           <div class="info-item">
             <label>"省千"人才人数（人）</label>
-            <span>{{ stats.provincialTalentCount || 0 }}</span>
+            <span>{{ parkInfo.provincialSrtiCount || 0 }}</span>
           </div>
           <div class="info-item">
             <label>正高级工程师人数（人）</label>
-            <span>{{ stats.seniorEngineerCount || 0 }}</span>
+            <span>{{ parkInfo.seniorEngineer || 0 }}</span>
           </div>
           <div class="info-item">
             <label>高级工程师人数（人）</label>
-            <span>{{ stats.engineerCount || 0 }}</span>
+            <span>{{ parkInfo.engineer || 0 }}</span>
           </div>
           <div class="info-item">
             <label>高级技师人数（人）</label>
-            <span>{{ stats.seniorTechnicianCount || 0 }}</span>
+            <span>{{ parkInfo.seniorTechnician || 0 }}</span>
           </div>
           <div class="info-item">
             <label>硕士及副高以上人数（人）</label>
-            <span>{{ stats.masterCount || 0 }}</span>
+            <span>{{ parkInfo.masterAbove || 0 }}</span>
           </div>
           <div class="info-item">
             <label>博士以上人数（人）</label>
-            <span>{{ stats.doctorCount || 0 }}</span>
+            <span>{{ parkInfo.masterDegree || 0 }}</span>
           </div>
         </div>
       </div>
 
       <div class="info-section">
         <div class="section-title">创新专利</div>
+        <div class="section-desc">* 数据由后台统计生成，不可修改</div>
         <div class="info-grid">
           <div class="info-item">
             <label>专利拥有量（件）</label>
-            <span>{{ stats.patentCount || 0 }}</span>
+            <span>{{ parkInfo.patentTotal || 0 }}</span>
           </div>
           <div class="info-item">
             <label>发明专利（件）</label>
-            <span>{{ stats.inventionPatentCount || 0 }}</span>
+            <span>{{ parkInfo.patentInvention || 0 }}</span>
           </div>
           <div class="info-item">
             <label>实用新型专利（件）</label>
-            <span>{{ stats.utilityModelCount || 0 }}</span>
+            <span>{{ parkInfo.patentUtility || 0 }}</span>
           </div>
           <div class="info-item">
             <label>外观设计专利（件）</label>
-            <span>{{ stats.designPatentCount || 0 }}</span>
+            <span>{{ parkInfo.patentDesign || 0 }}</span>
           </div>
         </div>
       </div>
@@ -229,10 +255,37 @@
 
     <div v-show="activeTab === 'intro'" class="tab-content">
       <div class="intro-section">
+        <div class="section-title">园区图片</div>
+        <div class="form-item">
+          <label>园区图片</label>
+          <div class="image-upload-container">
+            <div v-if="displayImages.length === 0 && !isEditing" class="image-empty">
+              <i class="el-icon-picture-outline"></i>
+              <p>暂无园区图片</p>
+            </div>
+            <div v-else class="image-list">
+              <div v-for="(image, index) in displayImages" :key="index" class="image-item">
+                <img :src="getImageUrl(image)" alt="园区图片" class="image-preview" @error="handleImageError(index)" />
+                <div v-if="isEditing" class="image-delete" @click="handleDeleteImage(index)">
+                  <i class="el-icon-close"></i>
+                </div>
+                <div v-if="index === 0" class="primary-tag">主图</div>
+              </div>
+              <div v-if="isEditing && formData.parkImages.length < 6" class="image-add" @click="handleImageUpload">
+                <i class="el-icon-plus"></i>
+              </div>
+            </div>
+            <div v-if="isEditing" class="image-tips">最多上传6张图片，支持jpg、jpeg、png格式，单张图片不超过10MB</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="intro-section">
         <div class="section-title">园区介绍</div>
         <div class="form-item">
           <label class="required">园区介绍</label>
           <el-input
+            v-if="isEditing"
             type="textarea"
             v-model="formData.introduction"
             :rows="6"
@@ -241,26 +294,7 @@
             show-word-limit
             class="intro-input"
           ></el-input>
-        </div>
-      </div>
-
-      <div class="intro-section">
-        <div class="section-title">园区图片</div>
-        <div class="form-item">
-          <label class="required">园区图片</label>
-          <div class="upload-area" @click="triggerUpload">
-            <div class="upload-icon">
-              <i class="el-icon-plus"></i>
-            </div>
-            <div class="upload-text">点击上传图片</div>
-            <input type="file" ref="uploadInput" class="upload-input" accept="image/*" @change="handleImageUpload" />
-          </div>
-          <div v-if="formData.parkImage" class="image-preview">
-            <img :src="formData.parkImage" alt="园区图片" />
-            <button class="remove-image" @click="removeImage">
-              <i class="el-icon-delete"></i>
-            </button>
-          </div>
+          <div v-else class="intro-text">{{ parkInfo.introduction || '-' }}</div>
         </div>
       </div>
 
@@ -269,6 +303,7 @@
         <div class="form-item">
           <label>公共配套设施</label>
           <el-input
+            v-if="isEditing"
             type="textarea"
             v-model="formData.publicFacilities"
             :rows="6"
@@ -277,6 +312,7 @@
             show-word-limit
             class="intro-input"
           ></el-input>
+          <div v-else class="intro-text">{{ parkInfo.publicFacilities || '-' }}</div>
         </div>
       </div>
 
@@ -285,6 +321,7 @@
         <div class="form-item">
           <label>公共配套服务</label>
           <el-input
+            v-if="isEditing"
             type="textarea"
             v-model="formData.publicServices"
             :rows="6"
@@ -293,38 +330,18 @@
             show-word-limit
             class="intro-input"
           ></el-input>
-        </div>
-      </div>
-    </div>
-
-    <div v-show="activeTab === 'stats'" class="tab-content">
-      <div class="stats-section">
-        <div class="section-title">运营数据统计</div>
-        <div class="stats-grid">
-          <div class="stat-card">
-            <div class="stat-value">{{ stats.enterpriseCount || 0 }}</div>
-            <div class="stat-label">入驻企业数</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-value">{{ stats.employeeCount || 0 }}</div>
-            <div class="stat-label">员工总数</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-value">{{ stats.patentCount || 0 }}</div>
-            <div class="stat-label">专利总数</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-value">{{ stats.highTechEnterpriseCount || 0 }}</div>
-            <div class="stat-label">高新技术企业</div>
-          </div>
+          <div v-else class="intro-text">{{ parkInfo.publicServices || '-' }}</div>
         </div>
       </div>
     </div>
   </div>
+
+    <input ref="parkImageInput" type="file" multiple accept="image/jpeg,image/png,image/jpg" style="display:none" @change="handleImageFileChange" />
+  </div>
 </template>
 
 <script>
-import { getParkDetail, getParkStats, updatePark } from '@/api/park'
+import { getParkDetail, updatePark } from '@/api/park'
 import { mapGetters } from 'vuex'
 
 export default {
@@ -333,33 +350,54 @@ export default {
     return {
       loading: false,
       activeTab: 'basic',
+      isEditing: false,
       parkInfo: {},
-      stats: {},
       formData: {
-        operatingCompany: '',
-        operatingNature: '',
-        responsiblePerson: '',
-        responsiblePhone: '',
+        parkName: '',
+        parkStatus: '',
+        parkType: '',
+        leadingIndustry: '',
+        operatorUnit: '',
+        operatorNature: '',
+        personInCharge: '',
+        inChargePhone: '',
         contactPerson: '',
         contactPhone: '',
-        totalArea: '',
-        actualLandArea: '',
-        constructedArea: '',
-        rentedArea: '',
-        availableArea: '',
+        landArea: '',
+        buildArea: '',
+        leasedArea: '',
+        remainingLeasableArea: '',
+        remainingSellableArea: '',
+        address: '',
+        isUpgradable: '',
+        upgradeContent: '',
+        devMode: '',
         introduction: '',
-        parkImage: '',
+        parkImages: [],
         publicFacilities: '',
         publicServices: ''
       }
     }
   },
   computed: {
-    ...mapGetters(['userInfo'])
+    ...mapGetters(['userInfo']),
+    displayImages() {
+      if (this.formData.parkImages && this.formData.parkImages.length > 0) {
+        return this.formData.parkImages
+      }
+      if (this.parkInfo.parkImages) {
+        try {
+          const parsed = JSON.parse(this.parkInfo.parkImages)
+          return Array.isArray(parsed) ? parsed : []
+        } catch (e) {
+          return []
+        }
+      }
+      return []
+    }
   },
   created() {
     this.getParkInfo()
-    this.getParkStatistics()
   },
   methods: {
     async getParkInfo() {
@@ -380,58 +418,76 @@ export default {
       }
     },
 
-    async getParkStatistics() {
-      const parkId = this.userInfo.parkId
-      if (!parkId) return
-      try {
-        const res = await getParkStats(parkId)
-        this.stats = res.data || {}
-      } catch (error) {
-        console.error('获取园区统计数据失败:', error)
+    getImageUrl(image) {
+      if (!image) return ''
+      let url = ''
+      if (typeof image === 'string') {
+        url = image
+      } else if (image.url) {
+        url = image.url
+      } else if (image.fileUrl) {
+        url = image.fileUrl
       }
+      if (!url) return ''
+      if (url.startsWith('http://') || url.startsWith('https://')) {
+        return url
+      }
+      if (url.startsWith('/api/')) {
+        return url
+      }
+      if (url.startsWith('/')) {
+        return url
+      }
+      return '/api/files/preview/' + url
+    },
+
+    handleImageError(index) {
+      console.warn('图片加载失败，索引:', index)
     },
 
     initFormData() {
+      let parkImages = []
+      if (this.parkInfo.parkImages) {
+        try {
+          parkImages = JSON.parse(this.parkInfo.parkImages)
+        } catch (e) {
+          parkImages = []
+        }
+      }
       this.formData = {
-        operatingCompany: this.parkInfo.operatingCompany || '',
-        operatingNature: this.parkInfo.operatingNature || '',
-        responsiblePerson: this.parkInfo.responsiblePerson || '',
-        responsiblePhone: this.parkInfo.responsiblePhone || '',
+        parkName: this.parkInfo.parkName || '',
+        parkStatus: this.parkInfo.parkStatus || '',
+        parkType: this.parkInfo.parkType || '',
+        leadingIndustry: this.parkInfo.leadingIndustry || '',
+        operatorUnit: this.parkInfo.operatorUnit || '',
+        operatorNature: this.parkInfo.operatorNature || '',
+        personInCharge: this.parkInfo.personInCharge || '',
+        inChargePhone: this.parkInfo.inChargePhone || '',
         contactPerson: this.parkInfo.contactPerson || '',
         contactPhone: this.parkInfo.contactPhone || '',
-        totalArea: this.parkInfo.totalArea || '',
-        actualLandArea: this.parkInfo.actualLandArea || '',
-        constructedArea: this.parkInfo.constructedArea || '',
-        rentedArea: this.parkInfo.rentedArea || '',
-        availableArea: this.parkInfo.availableArea || '',
+        landArea: this.parkInfo.landArea || '',
+        buildArea: this.parkInfo.buildArea || '',
+        leasedArea: this.parkInfo.leasedArea || '',
+        remainingLeasableArea: this.parkInfo.remainingLeasableArea || '',
+        remainingSellableArea: this.parkInfo.remainingSellableArea || '',
+        address: this.parkInfo.address || '',
+        isUpgradable: this.parkInfo.isUpgradable || '',
+        upgradeContent: this.parkInfo.upgradeContent || '',
+        devMode: this.parkInfo.devMode || '',
         introduction: this.parkInfo.introduction || '',
-        parkImage: this.parkInfo.parkImage || '',
+        parkImages: parkImages,
         publicFacilities: this.parkInfo.publicFacilities || '',
         publicServices: this.parkInfo.publicServices || ''
       }
     },
 
-    triggerUpload() {
-      this.$refs.uploadInput.click()
+    handleEdit() {
+      this.isEditing = true
     },
 
-    handleImageUpload(event) {
-      const file = event.target.files[0]
-      if (!file) return
-      if (!file.type.startsWith('image/')) {
-        this.$message.error('请选择图片文件')
-        return
-      }
-      const reader = new FileReader()
-      reader.onload = (e) => {
-        this.formData.parkImage = e.target.result
-      }
-      reader.readAsDataURL(file)
-    },
-
-    removeImage() {
-      this.formData.parkImage = ''
-      this.$refs.uploadInput.value = ''
+    handleCancel() {
+      this.isEditing = false
+      this.initFormData()
     },
 
     async handleSave() {
@@ -441,14 +497,30 @@ export default {
         return
       }
       try {
-        await updatePark({
+        const saveData = {
           id: parkId,
           ...this.formData
-        })
+        }
+        saveData.parkImages = JSON.stringify(this.formData.parkImages)
+        await updatePark(saveData)
         this.$message.success('保存成功')
+        this.isEditing = false
+        this.getParkInfo()
       } catch (error) {
         this.$message.error('保存失败')
       }
+    },
+
+    handleImageUpload() {
+      this.$message.info('图片上传功能开发中')
+    },
+
+    async handleImageFileChange(event) {
+      event.target.value = ''
+    },
+
+    async handleDeleteImage(index) {
+      this.$message.info('图片管理功能开发中')
     }
   }
 }
@@ -456,9 +528,12 @@ export default {
 
 <style scoped>
 .park-mine-container {
+  display: flex;
+  flex-direction: column;
   padding: 20px;
   background: #f5f7fa;
-  min-height: calc(100vh - 84px);
+  height: calc(100vh - 84px);
+  overflow: hidden;
 }
 
 .page-header {
@@ -470,6 +545,12 @@ export default {
   padding: 16px 20px;
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  flex-shrink: 0;
+}
+
+.tab-scroll-container {
+  flex: 1;
+  overflow-y: auto;
 }
 
 .tab-nav {
@@ -478,6 +559,15 @@ export default {
 
 .save-btn {
   margin-left: 20px;
+}
+
+.cancel-btn {
+  margin-left: 10px;
+}
+
+.edit-btn {
+  margin-left: 20px;
+  color: #409EFF;
 }
 
 .tab-content {
@@ -503,9 +593,15 @@ export default {
   font-size: 16px;
   font-weight: 600;
   color: #303133;
-  margin-bottom: 16px;
+  margin-bottom: 8px;
   padding-left: 8px;
   border-left: 4px solid #409eff;
+}
+
+.section-desc {
+  font-size: 12px;
+  color: #909399;
+  margin-bottom: 16px;
 }
 
 .info-grid {
@@ -581,148 +677,124 @@ export default {
   min-height: 120px !important;
 }
 
-.upload-area {
-  width: 100%;
-  height: 180px;
-  border: 2px dashed #d9d9d9;
+.intro-text {
+  padding: 12px 16px;
+  background: #f5f7fa;
   border-radius: 8px;
+  line-height: 1.8;
+  color: #303133;
+  white-space: pre-wrap;
+  word-break: break-all;
+  min-height: 120px;
+}
+
+.intro-text {
+  margin-top: 8px;
+}
+
+.image-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.image-empty {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  background: #fafafa;
-}
-
-.upload-area:hover {
-  border-color: #409eff;
-  background: #f0f5ff;
-}
-
-.upload-icon {
-  width: 48px;
-  height: 48px;
-  border-radius: 50%;
-  background: #e8f4ff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: 12px;
-}
-
-.upload-icon i {
-  font-size: 24px;
-  color: #409eff;
-}
-
-.upload-text {
-  font-size: 14px;
+  width: 140px;
+  height: 140px;
+  border: 1px dashed #dcdfe6;
+  border-radius: 8px;
   color: #909399;
 }
 
-.upload-input {
-  display: none;
+.image-empty i {
+  font-size: 40px;
+  margin-bottom: 8px;
+}
+
+.image-empty p {
+  font-size: 12px;
+  margin: 0;
+}
+
+.image-item {
+  position: relative;
+  width: 140px;
+  height: 140px;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid #e0e0e0;
 }
 
 .image-preview {
-  margin-top: 16px;
-  position: relative;
-  max-width: 400px;
-  border-radius: 8px;
-  overflow: hidden;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-}
-
-.image-preview img {
   width: 100%;
-  height: auto;
-  display: block;
+  height: 100%;
+  object-fit: cover;
 }
 
-.remove-image {
+.image-delete {
   position: absolute;
-  top: 8px;
-  right: 8px;
-  width: 32px;
-  height: 32px;
+  top: 6px;
+  right: 6px;
+  width: 24px;
+  height: 24px;
+  background: rgba(0, 0, 0, 0.5);
   border-radius: 50%;
-  background: rgba(0, 0, 0, 0.6);
-  border: none;
-  color: white;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: all 0.3s ease;
-}
-
-.remove-image:hover {
-  background: rgba(0, 0, 0, 0.8);
-}
-
-.remove-image i {
-  font-size: 16px;
-}
-
-.stats-section {
-  margin-bottom: 24px;
-}
-
-.stats-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 20px;
-}
-
-.stat-card {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  border-radius: 12px;
-  padding: 24px;
-  text-align: center;
   color: white;
-}
-
-.stat-card .stat-value {
-  font-size: 32px;
-  font-weight: 700;
-  margin-bottom: 8px;
-}
-
-.stat-card .stat-label {
   font-size: 14px;
-  opacity: 0.9;
+  transition: background 0.2s;
 }
 
-@media screen and (max-width: 1200px) {
-  .info-grid {
-    grid-template-columns: repeat(3, 1fr);
-  }
-  .stats-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
+.image-delete:hover {
+  background: rgba(245, 108, 108, 0.8);
 }
 
-@media screen and (max-width: 900px) {
-  .info-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
+.primary-tag {
+  position: absolute;
+  bottom: 6px;
+  left: 6px;
+  background: rgba(64, 158, 255, 0.8);
+  color: white;
+  font-size: 10px;
+  padding: 2px 8px;
+  border-radius: 4px;
 }
 
-@media screen and (max-width: 600px) {
-  .info-grid {
-    grid-template-columns: 1fr;
-  }
-  .stats-grid {
-    grid-template-columns: 1fr;
-  }
-  .page-header {
-    flex-direction: column;
-    gap: 16px;
-  }
-  .save-btn {
-    margin-left: 0;
-    width: 100%;
-  }
+.image-add {
+  width: 140px;
+  height: 140px;
+  border: 2px dashed #d9d9d9;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+
+.image-add:hover {
+  border-color: #409eff;
+}
+
+.image-add .el-icon-plus {
+  font-size: 28px;
+  color: #c0c4cc;
+}
+
+.image-add:hover .el-icon-plus {
+  color: #409eff;
+}
+
+.image-tips {
+  font-size: 12px;
+  color: #909399;
+  margin-top: 8px;
 }
 </style>

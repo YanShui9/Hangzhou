@@ -87,19 +87,11 @@
             </el-form-item>
           </el-col>
           <el-col :span="6">
-            <el-form-item label="所属产业" prop="industry">
-              <el-select
-                v-model="dataForm.industry"
-                placeholder="请选择所属产业"
-                style="width: 100%;"
-              >
-                <el-option
-                  v-for="item in industryOptions"
-                  :key="item.value"
-                  :label="item.label"
-                  :value="item.value"
-                />
-              </el-select>
+            <el-form-item label="所属产业" prop="industryName">
+              <el-input
+                v-model="dataForm.industryName"
+                placeholder="请输入所属产业"
+              />
             </el-form-item>
           </el-col>
           <el-col :span="6">
@@ -142,9 +134,9 @@
             </el-form-item>
           </el-col>
           <el-col :span="6">
-            <el-form-item label="联系人" prop="contactPerson">
+            <el-form-item label="联系人" prop="contactName">
               <el-input
-                v-model="dataForm.contactPerson"
+                v-model="dataForm.contactName"
                 placeholder="请输入联系人"
               />
             </el-form-item>
@@ -220,6 +212,7 @@ import {
   updateEnterpriseInfo,
   saveEnterpriseInfo
 } from '@/api/enterprise-info'
+import { getParkList } from '@/api/park'
 
 export default {
   name: 'EnterpriseInfoEdit',
@@ -237,15 +230,6 @@ export default {
         { id: 7, name: '西湖区' }
       ],
       parkOptions: [],
-      industryOptions: [
-        { value: 'chip', label: '芯片' },
-        { value: 'software', label: '软件' },
-        { value: 'internet', label: '互联网' },
-        { value: 'biomedical', label: '生物医药' },
-        { value: 'new_energy', label: '新能源' },
-        { value: 'new_material', label: '新材料' },
-        { value: 'advanced_manufacturing', label: '先进制造' }
-      ],
       statusOptions: [
         { value: '在营', label: '在营' },
         { value: '迁出', label: '迁出' },
@@ -257,14 +241,14 @@ export default {
         districtId: null,
         parkId: null,
         enterpriseAddress: '',
-        industry: null,
+        industryName: '',
         status: null,
         settledTime: '',
         legalPerson: '',
-        contactPerson: '',
+        contactName: '',
         contactPhone: '',
-        registeredCapital: '',
-        registerDate: '',
+        registeredCapital: null,
+        registerDate: null,
         businessScope: '',
         remark: ''
       },
@@ -274,11 +258,11 @@ export default {
         districtId: [{ required: true, message: '请选择所属区域', trigger: 'change' }],
         parkId: [{ required: true, message: '请选择所属园区', trigger: 'change' }],
         enterpriseAddress: [{ required: true, message: '请输入企业地址', trigger: 'blur' }],
-        industry: [{ required: true, message: '请选择所属产业', trigger: 'change' }],
+        industryName: [{ required: true, message: '请输入所属产业', trigger: 'blur' }],
         status: [{ required: true, message: '请选择企业状态', trigger: 'change' }],
         settledTime: [{ required: true, message: '请选择入驻时间', trigger: 'change' }],
         legalPerson: [{ required: true, message: '请输入法定代表人', trigger: 'blur' }],
-        contactPerson: [{ required: true, message: '请输入联系人', trigger: 'blur' }],
+        contactName: [{ required: true, message: '请输入联系人', trigger: 'blur' }],
         contactPhone: [{ required: true, message: '请输入联系人电话', trigger: 'blur' }],
         registeredCapital: [{ required: true, message: '请输入注册资本', trigger: 'blur' }],
         registerDate: [{ required: true, message: '请选择注册日期', trigger: 'change' }]
@@ -287,11 +271,20 @@ export default {
   },
   created() {
     this.enterpriseId = this.$route.query.id
+    this.loadParkOptions()
     if (this.enterpriseId) {
       this.getDetail()
     }
   },
   methods: {
+    async loadParkOptions() {
+      try {
+        const res = await getParkList({ pageNum: 1, pageSize: 1000 })
+        this.parkOptions = res.data.records || []
+      } catch (e) {
+        console.error('加载园区列表失败', e)
+      }
+    },
     async getDetail() {
       try {
         const res = await getEnterpriseInfoById(this.enterpriseId)
@@ -302,14 +295,14 @@ export default {
           districtId: data.districtId || null,
           parkId: data.parkId || null,
           enterpriseAddress: data.enterpriseAddress || '',
-          industry: data.industry || null,
+          industryName: data.industryName || '',
           status: data.status || null,
           settledTime: data.settledTime || '',
           legalPerson: data.legalPerson || '',
-          contactPerson: data.contactPerson || '',
+          contactName: data.contactName || '',
           contactPhone: data.contactPhone || '',
-          registeredCapital: data.registeredCapital || '',
-          registerDate: data.registerDate || '',
+          registeredCapital: data.registeredCapital || null,
+          registerDate: data.registerDate || null,
           businessScope: data.businessScope || '',
           remark: data.remark || ''
         }
@@ -324,11 +317,19 @@ export default {
 
         this.submitLoading = true
         try {
+          // 构建提交数据，空字符串转 null 避免后端反序列化失败
+          const submitData = { ...this.dataForm }
+          if (submitData.registeredCapital === '' || submitData.registeredCapital === null) {
+            submitData.registeredCapital = null
+          }
+          if (submitData.registerDate === '' || submitData.registerDate === null) {
+            submitData.registerDate = null
+          }
           if (this.enterpriseId) {
-            await updateEnterpriseInfo({ id: this.enterpriseId, ...this.dataForm })
+            await updateEnterpriseInfo({ id: this.enterpriseId, ...submitData })
             this.$message.success('修改成功')
           } else {
-            await saveEnterpriseInfo(this.dataForm)
+            await saveEnterpriseInfo(submitData)
             this.$message.success('新增成功')
           }
           this.$router.push({ path: '/system/enterprise-info' })

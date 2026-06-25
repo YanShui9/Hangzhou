@@ -64,6 +64,21 @@ public class EvaluationService {
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     /**
+     * 统计指定园区在指定年份已提交（非草稿）的评价记录数
+     *
+     * @param parkId 园区ID
+     * @param year   评价年份
+     * @return 已提交记录数
+     */
+    public long countSubmitted(Long parkId, Integer year) {
+        LambdaQueryWrapper<EvaluationRecord> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(EvaluationRecord::getParkId, parkId)
+               .eq(EvaluationRecord::getYear, year)
+               .ne(EvaluationRecord::getStatus, 0);
+        return evaluationMapper.selectCount(wrapper);
+    }
+
+    /**
      * 发起年度填报
      * 为所有园区创建该年度的评价记录（草稿状态）
      *

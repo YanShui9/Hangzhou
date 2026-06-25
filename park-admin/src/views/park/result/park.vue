@@ -1,9 +1,5 @@
 <template>
   <div class="park-evaluation-container">
-    <div class="page-header">
-      <h2 class="page-title">园区评价</h2>
-    </div>
-
     <!-- 搜索筛选区 -->
     <div class="filter-bar">
       <div class="filter-left">
@@ -158,8 +154,6 @@ export default {
 
 <style scoped>
 .park-evaluation-container { padding: 16px 20px 20px; background: #F5F7FA; min-height: calc(100vh - 56px); }
-.page-header { margin-bottom: 14px; }
-.page-title { font-size: 16px; font-weight: 600; color: #303133; margin: 0; }
 .filter-bar {
   background: #FFFFFF; padding: 14px 16px; border-radius: 4px; display: flex;
   justify-content: space-between; align-items: center; margin-bottom: 12px; gap: 12px; flex-wrap: wrap;

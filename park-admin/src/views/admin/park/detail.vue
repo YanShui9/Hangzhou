@@ -1,12 +1,7 @@
 <template>
   <div class="park-detail-container">
-    <!-- 面包屑 -->
+    <!-- 操作栏 -->
     <div class="breadcrumb-bar">
-      <div class="breadcrumb-left">
-        <span class="breadcrumb-link" @click="goBack">园区列表</span>
-        <i class="el-icon-arrow-right breadcrumb-sep"></i>
-        <span class="breadcrumb-current">{{ breadcrumbCurrent }}</span>
-      </div>
       <el-button
         v-if="activeTab !== 'operation'"
         type="primary"
@@ -360,8 +355,8 @@
           </div>
         </el-tab-pane>
 
-        <!-- Tab 3: 运营数据 -->
-        <el-tab-pane label="运营数据" name="operation">
+        <!-- Tab 3: 运营数据（暂隐藏，后续根据需求决定是否开发） -->
+        <el-tab-pane label="运营数据" name="operation" v-if="false">
           <div class="quarter-cards">
             <div v-for="(q, index) in quarterCards" :key="index"
                  :class="['quarter-card', q.status === '已填报' ? 'card-reported' : 'card-unreported']"
@@ -749,36 +744,9 @@ export default {
   margin-bottom: 12px;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   font-size: 13px;
   color: #6B7280;
-}
-
-.breadcrumb-left {
-  display: flex;
-  align-items: center;
-}
-
-.breadcrumb-link {
-  color: #1E40AF;
-  cursor: pointer;
-  transition: color 0.2s;
-}
-
-.breadcrumb-link:hover {
-  color: #1E3A8A;
-  text-decoration: underline;
-}
-
-.breadcrumb-sep {
-  margin: 0 8px;
-  color: #9CA3AF;
-  font-size: 12px;
-}
-
-.breadcrumb-current {
-  color: #111827;
-  font-weight: 500;
 }
 
 .loading-wrap {

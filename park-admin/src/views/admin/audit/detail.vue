@@ -1,11 +1,5 @@
 <template>
   <div class="audit-detail-container">
-    <div class="breadcrumb-bar">
-      <span class="breadcrumb-link" @click="goBackToList">评价审核</span>
-      <span class="breadcrumb-sep">/</span>
-      <span class="breadcrumb-current">审核详情</span>
-    </div>
-
     <div class="detail-layout">
       <div class="side-nav">
         <el-menu
@@ -1654,38 +1648,6 @@ export default {
   overflow: hidden;
   display: flex;
   flex-direction: column;
-}
-
-.breadcrumb-bar {
-  background: #FFFFFF;
-  padding: 12px 16px;
-  border-radius: 4px;
-  margin-bottom: 12px;
-  display: flex;
-  align-items: center;
-  font-size: 13px;
-  color: #6B7280;
-  flex-shrink: 0;
-}
-
-.breadcrumb-link {
-  cursor: pointer;
-  color: #409EFF;
-  font-size: 13px;
-}
-
-.breadcrumb-link:hover {
-  text-decoration: underline;
-}
-
-.breadcrumb-sep {
-  margin: 0 8px;
-  color: #909399;
-}
-
-.breadcrumb-current {
-  color: #111827;
-  font-weight: 500;
 }
 
 .detail-layout {

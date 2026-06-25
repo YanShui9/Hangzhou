@@ -103,12 +103,24 @@ const routes = [
         component: () => import('@/views/park/enterprise/list.vue'),
         meta: { title: '入驻企业', icon: 'el-icon-s-shop', roles: [3] }
       },
+      {
+        path: 'park/enterprise/detail/:id',
+        name: 'ParkEnterpriseDetail',
+        component: () => import('@/views/park/enterprise/detail.vue'),
+        meta: { title: '企业详情', icon: 'el-icon-s-shop', roles: [3] }
+      },
       // 评价模块
       {
         path: 'park/evaluation',
         name: 'ParkEvaluation',
         component: () => import('@/views/park/evaluation/list.vue'),
         meta: { title: '评价列表', icon: 'el-icon-edit-outline', roles: [3] }
+      },
+      {
+        path: 'park/evaluation/add',
+        name: 'ParkEvaluationAdd',
+        component: () => import('@/views/park/evaluation/add.vue'),
+        meta: { title: '评价填报', icon: 'el-icon-edit-outline', roles: [3] }
       },
       // 评价审核
       {

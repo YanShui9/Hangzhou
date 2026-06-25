@@ -43,6 +43,16 @@ public class EnterpriseInfo extends BaseEntity {
     @ApiModelProperty(value = "经营状态")
     private String status;
 
+    @ApiModelProperty(value = "企业地址")
+    private String enterpriseAddress;
+
+    @ApiModelProperty(value = "入驻时间")
+    @JsonFormat(pattern = "yyyy-MM-dd")
+    private LocalDate settledTime;
+
+    @ApiModelProperty(value = "经营范围")
+    private String businessScope;
+
     @ApiModelProperty(value = "注册日期")
     @JsonFormat(pattern = "yyyy-MM-dd")
     private LocalDate registerDate;

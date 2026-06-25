@@ -93,6 +93,43 @@ public class EnterpriseController {
     }
 
     /**
+     * 查询企业详情（园区端视图，字段名适配前端）
+     */
+    @GetMapping("/park/{id}")
+    @ApiOperation(value = "查询企业详情(园区端)", notes = "返回适配园区端前端字段名的企业详情")
+    public R<Map<String, Object>> getEnterpriseForPark(@PathVariable Long id) {
+        EnterpriseInfo e = enterpriseService.getEnterpriseById(id);
+        if (e == null) {
+            return R.ok(java.util.Collections.emptyMap());
+        }
+        Map<String, Object> vo = new java.util.LinkedHashMap<>();
+        vo.put("enterpriseName", e.getEnterpriseName());
+        vo.put("creditCode", e.getCreditCode());
+        // 适配本地实体：address -> enterpriseAddress
+        vo.put("address", e.getEnterpriseAddress());
+        vo.put("registeredAddress", e.getEnterpriseAddress());
+        vo.put("industry", e.getIndustryName());
+        vo.put("registerStatus", e.getStatus());
+        // 适配本地实体：entryDate -> settledTime
+        vo.put("entryStartTime", e.getSettledTime());
+        vo.put("legalPerson", e.getLegalPerson());
+        vo.put("contactName", e.getContactName());
+        vo.put("contactPhone", e.getContactPhone());
+        vo.put("registeredCapital", e.getRegisteredCapital());
+        vo.put("registerDate", e.getRegisterDate());
+        vo.put("employeeCount", e.getEmployeeCount());
+        vo.put("businessScope", e.getBusinessScope());
+        if (e.getParkId() != null) {
+            ParkInfo park = parkMapper.selectById(e.getParkId());
+            if (park != null) {
+                vo.put("parkName", park.getParkName());
+                vo.put("districtName", park.getDistrictName());
+            }
+        }
+        return R.ok(vo);
+    }
+
+    /**
      * 新增企业
      *
      * @param saveDTO 企业信息

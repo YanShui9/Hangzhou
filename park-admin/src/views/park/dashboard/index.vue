@@ -160,11 +160,17 @@ export default {
     renderMonthlyChart() {
       if (!this.$refs.monthlyChart) return
 
+      const dom = this.$refs.monthlyChart
+      if (dom.clientWidth === 0 || dom.clientHeight === 0) {
+        setTimeout(() => this.renderMonthlyChart(), 100)
+        return
+      }
+
       if (this.monthlyChart) {
         this.monthlyChart.dispose()
       }
 
-      this.monthlyChart = echarts.init(this.$refs.monthlyChart)
+      this.monthlyChart = echarts.init(dom)
 
       const months = this.monthlyData.map(item => {
         const parts = item.month.split('-')

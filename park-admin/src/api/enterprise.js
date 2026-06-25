@@ -59,6 +59,19 @@ export function getEnterpriseDetail(id) {
 }
 
 /**
+ * 获取企业详情（园区端视图，字段名与前端对齐）
+ * @method GET /api/enterprises/park/:id
+ * @param {Number} id 企业ID
+ * @returns {Promise} 返回园区端适配字段名的企业详情
+ */
+export function getEnterpriseDetailForPark(id) {
+  return request({
+    url: `/api/enterprises/park/${id}`,
+    method: 'get'
+  })
+}
+
+/**
  * 新增企业
  * @param {Object} data 企业信息
  * @returns {Promise}

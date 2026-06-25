@@ -320,6 +320,24 @@ public class EvaluationController {
     }
 
     /**
+     * 检查园区当年是否已提交评价
+     *
+     * @param parkId 园区ID
+     * @param year   评价年份
+     * @return { submitted: true/false }
+     */
+    @GetMapping("/check-submitted")
+    @ApiOperation(value = "检查园区当年是否已提交", notes = "检查指定园区在指定年份是否已有已提交的评价记录")
+    public R<Map<String, Object>> checkSubmittedEvaluation(
+            @RequestParam Long parkId,
+            @RequestParam Integer year) {
+        boolean submitted = evaluationService.countSubmitted(parkId, year) > 0;
+        Map<String, Object> result = new java.util.HashMap<>();
+        result.put("submitted", submitted);
+        return R.ok(result);
+    }
+
+    /**
      * 新增评价记录
      *
      * @param saveDTO 保存请求参数

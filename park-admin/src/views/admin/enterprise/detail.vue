@@ -1,12 +1,5 @@
 <template>
   <div class="enterprise-detail-container">
-    <!-- 面包屑 -->
-    <div class="breadcrumb-bar">
-      <span class="breadcrumb-link" @click="goBack">入驻企业</span>
-      <i class="el-icon-arrow-right breadcrumb-sep"></i>
-      <span class="breadcrumb-current">企业详情</span>
-    </div>
-
     <!-- 加载中 -->
     <div v-if="loading" class="loading-wrap">
       <el-icon class="el-icon-loading"></el-icon>
@@ -57,12 +50,6 @@
             </div>
           </div>
           <div class="info-item">
-            <span class="info-label required">企业地址</span>
-            <div class="info-value-wrap">
-              <span class="info-value">{{ info.address || '--' }}</span>
-            </div>
-          </div>
-          <div class="info-item">
             <span class="info-label required">所属产业</span>
             <div class="info-value-wrap">
               <span class="info-value">{{ info.industryName || '--' }}</span>
@@ -72,12 +59,6 @@
             <span class="info-label required">企业状态</span>
             <div class="info-value-wrap">
               <span class="info-value">{{ info.status || '--' }}</span>
-            </div>
-          </div>
-          <div class="info-item">
-            <span class="info-label required">入驻时间</span>
-            <div class="info-value-wrap">
-              <span class="info-value">{{ info.entryDate || '--' }}</span>
             </div>
           </div>
           <div class="info-item">
@@ -114,7 +95,7 @@
 
         <!-- 经营范围 -->
         <div class="info-section">
-          <span class="info-label required">经营范围</span>
+          <span class="info-label">经营范围</span>
           <div class="info-textarea">
             <span class="textarea-content">{{ info.businessScope || '--' }}</span>
           </div>
@@ -185,40 +166,6 @@ export default {
   padding: 16px 20px 20px;
   background: #F5F7FA;
   min-height: calc(100vh - 56px);
-}
-
-/* 面包屑 */
-.breadcrumb-bar {
-  background: #FFFFFF;
-  padding: 12px 16px;
-  border-radius: 4px;
-  margin-bottom: 12px;
-  display: flex;
-  align-items: center;
-  font-size: 13px;
-  color: #6B7280;
-}
-
-.breadcrumb-link {
-  color: #1E40AF;
-  cursor: pointer;
-  transition: color 0.2s;
-}
-
-.breadcrumb-link:hover {
-  color: #1E3A8A;
-  text-decoration: underline;
-}
-
-.breadcrumb-sep {
-  margin: 0 8px;
-  color: #9CA3AF;
-  font-size: 12px;
-}
-
-.breadcrumb-current {
-  color: #111827;
-  font-weight: 500;
 }
 
 /* 加载 */

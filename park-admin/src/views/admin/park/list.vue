@@ -1,10 +1,5 @@
 <template>
   <div class="park-list-container page-list-flex">
-    <!-- 页面标题 -->
-    <div class="page-header">
-      <h2 class="page-title">园区列表</h2>
-    </div>
-
     <!-- 搜索过滤区 -->
     <div class="filter-bar">
       <div class="filter-left">
@@ -758,18 +753,6 @@ export default {
   background: #F5F7FA;
   height: 100%;
   overflow: hidden;
-}
-
-/* 页面标题 */
-.page-header {
-  margin-bottom: 14px;
-}
-
-.page-title {
-  font-size: 16px;
-  font-weight: 600;
-  color: #303133;
-  margin: 0;
 }
 
 /* 搜索过滤区 - 紧凑横向布局 */

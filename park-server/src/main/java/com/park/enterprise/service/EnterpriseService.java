@@ -9,6 +9,8 @@ import com.park.enterprise.dto.EnterpriseQueryDTO;
 import com.park.enterprise.dto.EnterpriseSaveDTO;
 import com.park.enterprise.entity.EnterpriseInfo;
 import com.park.enterprise.mapper.EnterpriseMapper;
+import com.park.enterprise.entity.EnterpriseHonorRecord;
+import com.park.enterprise.mapper.EnterpriseHonorRecordMapper;
 import com.park.park.entity.ParkInfo;
 import com.park.park.mapper.ParkMapper;
 import lombok.extern.slf4j.Slf4j;
@@ -32,6 +34,9 @@ public class EnterpriseService {
 
     @Autowired
     private ParkMapper parkMapper;
+
+    @Autowired
+    private EnterpriseHonorRecordMapper enterpriseHonorRecordMapper;
 
     public EnterpriseMapper getEnterpriseMapper() {
         return enterpriseMapper;
@@ -105,6 +110,28 @@ public class EnterpriseService {
         EnterpriseInfo enterprise = enterpriseMapper.selectById(id);
         if (enterprise == null) {
             throw new BusinessException(ResultCode.DATA_NOT_FOUND, "企业不存在");
+        }
+        // 填充园区名称、区县名称
+        if (enterprise.getParkId() != null) {
+            ParkInfo park = parkMapper.selectById(enterprise.getParkId());
+            if (park != null) {
+                enterprise.setParkName(park.getParkName());
+                if (!StringUtils.hasText(enterprise.getDistrictName())) {
+                    enterprise.setDistrictName(park.getDistrictName());
+                }
+            }
+        }
+        // 填充企业荣誉（汇总该企业的荣誉类型）
+        LambdaQueryWrapper<EnterpriseHonorRecord> honorWrapper = new LambdaQueryWrapper<>();
+        honorWrapper.eq(EnterpriseHonorRecord::getCreditCode, enterprise.getCreditCode());
+        java.util.List<EnterpriseHonorRecord> honorRecords = enterpriseHonorRecordMapper.selectList(honorWrapper);
+        if (!honorRecords.isEmpty()) {
+            String honorText = honorRecords.stream()
+                    .map(EnterpriseHonorRecord::getHonorType)
+                    .filter(StringUtils::hasText)
+                    .distinct()
+                    .collect(java.util.stream.Collectors.joining("/"));
+            enterprise.setEnterpriseHonor(honorText);
         }
         return enterprise;
     }

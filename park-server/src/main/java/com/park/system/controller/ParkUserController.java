@@ -62,26 +62,47 @@ public class ParkUserController {
      * 分页查询园区账号列表
      */
     @GetMapping
-    @ApiOperation(value = "分页查询园区账号", notes = "支持按姓名、手机号、园区筛选")
+    @ApiOperation(value = "分页查询园区账号", notes = "支持按企业名称、信用代码、园区名称、区域筛选")
     public R<PageResult<ParkUserVO>> getParkUserPage(
-            @RequestParam(required = false) String name,
-            @RequestParam(required = false) String phone,
-            @RequestParam(required = false) Long parkId,
+            @RequestParam(required = false) String enterpriseName,
+            @RequestParam(required = false) String creditCode,
+            @RequestParam(required = false) String parkName,
+            @RequestParam(required = false) Long districtId,
             @RequestParam(defaultValue = "1") Integer pageNum,
             @RequestParam(defaultValue = "20") Integer pageSize) {
 
         Page<SysUser> page = new Page<>(pageNum, pageSize);
         LambdaQueryWrapper<SysUser> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(SysUser::getRoleType, 3);
-        if (StringUtils.hasText(name)) {
-            wrapper.like(SysUser::getRealName, name);
+
+        boolean needParkFilter = StringUtils.hasText(enterpriseName)
+                || StringUtils.hasText(creditCode)
+                || StringUtils.hasText(parkName)
+                || districtId != null;
+
+        if (needParkFilter) {
+            LambdaQueryWrapper<ParkInfo> parkWrapper = new LambdaQueryWrapper<>();
+            if (StringUtils.hasText(enterpriseName)) {
+                parkWrapper.like(ParkInfo::getOperatorUnit, enterpriseName);
+            }
+            if (StringUtils.hasText(creditCode)) {
+                parkWrapper.like(ParkInfo::getOperationOrgCode, creditCode);
+            }
+            if (StringUtils.hasText(parkName)) {
+                parkWrapper.like(ParkInfo::getParkName, parkName);
+            }
+            if (districtId != null) {
+                parkWrapper.eq(ParkInfo::getDistrictId, districtId);
+            }
+            List<Long> parkIds = parkMapper.selectList(parkWrapper).stream()
+                    .map(ParkInfo::getId)
+                    .collect(Collectors.toList());
+            if (parkIds.isEmpty()) {
+                return R.ok(PageResult.of(java.util.Collections.emptyList(), 0L, pageNum, pageSize));
+            }
+            wrapper.in(SysUser::getParkId, parkIds);
         }
-        if (StringUtils.hasText(phone)) {
-            wrapper.like(SysUser::getPhone, phone);
-        }
-        if (parkId != null) {
-            wrapper.eq(SysUser::getParkId, parkId);
-        }
+
         wrapper.orderByDesc(SysUser::getCreateTime);
 
         IPage<SysUser> result = userMapper.selectPage(page, wrapper);
