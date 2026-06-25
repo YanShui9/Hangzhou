@@ -7,6 +7,8 @@ import com.park.enterprise.entity.EnterpriseInfo;
 import com.park.enterprise.mapper.EnterpriseMapper;
 import com.park.evaluation.dto.IndustryDevelopmentExcelData;
 import com.park.evaluation.dto.IndustryDevelopmentParseResult;
+import com.park.evaluation.entity.EvaluationEnterprise;
+import com.park.evaluation.mapper.EvaluationEnterpriseMapper;
 import com.park.park.entity.ParkInfo;
 import com.park.park.mapper.ParkMapper;
 import lombok.extern.slf4j.Slf4j;
@@ -32,36 +34,39 @@ public class IndustryDevelopmentParseService {
     private EnterpriseMapper enterpriseMapper;
 
     @Autowired
+    private EvaluationEnterpriseMapper evaluationEnterpriseMapper;
+
+    @Autowired
     private ParkMapper parkMapper;
 
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
-    public IndustryDevelopmentParseResult parseAndSave(MultipartFile file) throws IOException {
+    public IndustryDevelopmentParseResult parseAndSave(MultipartFile file, Long evaluationId) throws IOException {
         IndustryDevelopmentParseResult result = new IndustryDevelopmentParseResult();
-        
+
         List<IndustryDevelopmentExcelData> dataList = new ArrayList<>();
         List<IndustryDevelopmentParseResult.ParseError> errorList = new ArrayList<>();
-        
+
         EasyExcel.read(file.getInputStream(), new IndustryDevelopmentDataListener(dataList, errorList))
                 .headRowNumber(0)
                 .sheet()
                 .doRead();
-        
+
         calculateSettledDate(dataList);
-        
+
         result.setDataList(dataList);
         result.setErrorList(errorList);
         result.setTotalCount(dataList.size() + errorList.size());
         result.setSuccessCount(dataList.size());
         result.setErrorCount(errorList.size());
-        
+
         if (!errorList.isEmpty()) {
             result.setSuccess(false);
             return result;
         }
-        
-        saveToDatabase(dataList);
-        
+
+        saveToDatabase(dataList, evaluationId);
+
         return result;
     }
 
@@ -82,17 +87,48 @@ public class IndustryDevelopmentParseService {
         }
     }
 
-    private void saveToDatabase(List<IndustryDevelopmentExcelData> dataList) {
+    private void saveToDatabase(List<IndustryDevelopmentExcelData> dataList, Long evaluationId) {
         Map<String, Long> parkNameToIdMap = buildParkNameToIdMap();
-        
+
+        // 1. 先删除该评价记录已有的导入数据，防止重复
+        if (evaluationId != null) {
+            evaluationEnterpriseMapper.delete(
+                    new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<EvaluationEnterprise>()
+                            .eq(EvaluationEnterprise::getEvaluationId, evaluationId)
+            );
+        }
+
         for (IndustryDevelopmentExcelData data : dataList) {
+            String parkName = data.getBelongParkName() != null ? data.getBelongParkName() : data.getParkName();
+            Long parkId = parkNameToIdMap.getOrDefault(parkName, null);
+
+            if (parkId == null) {
+                log.warn("跳过入库：园区[{}]在系统中不存在，企业={}", parkName, data.getEnterpriseName());
+                continue;
+            }
+
+            // 2. 写入 evaluation_enterprise 关联表（按评价记录隔离）
+            if (evaluationId != null) {
+                EvaluationEnterprise ee = new EvaluationEnterprise();
+                ee.setEvaluationId(evaluationId);
+                ee.setParkId(parkId);
+                ee.setParkName(parkName);
+                ee.setEnterpriseName(data.getEnterpriseName());
+                ee.setCreditCode(data.getUnifiedCreditCode());
+                ee.setSettledStartTime(data.getSettledStartTime());
+                ee.setSettledEndTime(data.getSettledEndTime());
+                ee.setSettledDate(data.getSettledDate());
+                ee.setRegisteredAddress(data.getRegisteredAddress());
+                evaluationEnterpriseMapper.insert(ee);
+            }
+
+            // 3. 同时同步到 enterprise_info 主表（保持原有逻辑）
             EnterpriseInfo enterprise = convertToEntity(data, parkNameToIdMap);
-            
             EnterpriseInfo existing = enterpriseMapper.selectOne(
                     new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<EnterpriseInfo>()
                             .eq(EnterpriseInfo::getCreditCode, data.getUnifiedCreditCode())
             );
-            
+
             if (existing != null) {
                 enterprise.setId(existing.getId());
                 enterprise.setCreateTime(existing.getCreateTime());
@@ -277,11 +313,6 @@ public class IndustryDevelopmentParseService {
             
             if (data.getUnifiedCreditCode() == null || data.getUnifiedCreditCode().isEmpty()) {
                 errors.add("统一社会信用代码为空");
-            } else {
-                String creditCode = data.getUnifiedCreditCode().replace("-", "").trim();
-                if (!isValidCreditCode(creditCode)) {
-                    errors.add("统一社会信用代码格式不正确");
-                }
             }
             
             return errors;

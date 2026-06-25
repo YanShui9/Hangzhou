@@ -23,11 +23,11 @@
         <i class="el-icon-data-line"></i>
         <span slot="title">数据驾驶舱</span>
       </el-menu-item>
-      <el-menu-item v-if="hasRole([2])" index="/district/dashboard" @click="navigateTo('/district/dashboard')">
+      <el-menu-item v-if="false" index="/district/dashboard" @click="navigateTo('/district/dashboard')">
         <i class="el-icon-data-line"></i>
         <span slot="title">数据看板</span>
       </el-menu-item>
-      <el-menu-item v-if="hasRole([3])" index="/park/dashboard" @click="navigateTo('/park/dashboard')">
+      <el-menu-item v-if="false" index="/park/dashboard" @click="navigateTo('/park/dashboard')">
         <i class="el-icon-data-line"></i>
         <span slot="title">数据看板</span>
       </el-menu-item>

@@ -140,3 +140,41 @@ export function exportParkEvaluationList(params) {
     responseType: 'blob'
   })
 }
+
+/**
+ * 查询园区评价汇总表（详版）分页列表
+ * @param {Object} params 查询参数
+ */
+export function getParkEvaluationDetail(params) {
+  return request({
+    url: '/api/evaluations/park/detail',
+    method: 'get',
+    params
+  })
+}
+
+/**
+ * 导出园区评价汇总表（详版）
+ * @param {Object} params 查询参数
+ * @returns {Promise<Blob>}
+ */
+export function exportParkEvaluationDetail(params) {
+  return request({
+    url: '/api/evaluations/park/detail/export',
+    method: 'get',
+    params,
+    responseType: 'blob'
+  })
+}
+
+/**
+ * 绩效评定（一键分档）
+ * @param {Number} year 年度
+ */
+export function performParkEvaluation(year) {
+  return request({
+    url: '/api/evaluations/park/grade',
+    method: 'post',
+    data: { year }
+  })
+}

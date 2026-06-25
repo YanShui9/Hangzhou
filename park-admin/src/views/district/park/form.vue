@@ -71,8 +71,8 @@
                 <div class="info-row">
                   <label class="info-label">园区类型</label>
                   <el-select v-model="formData.parkType" placeholder="请选择" class="info-select">
-                    <el-option label="制造类" value="制造类" />
-                    <el-option label="服务类" value="服务类" />
+                    <el-option label="生产性制造类" value="生产性制造类" />
+                    <el-option label="生产性服务类" value="生产性服务类" />
                   </el-select>
                 </div>
               </div>
@@ -228,19 +228,30 @@
           <div class="introduction-section">
             <h3 class="section-title">园区图片</h3>
             <div class="section-content">
-              <div class="image-upload-area">
-                <el-upload
-                  class="image-upload"
-                  action="/api/upload"
-                  list-type="picture-card"
-                  :file-list="formData.parkImages"
-                  :before-upload="beforeImageUpload"
-                  @success="handleImageUploadSuccess"
-                  @remove="handleRemoveImage"
-                >
-                  <i class="el-icon-plus"></i>
-                  <span class="upload-text">上传图片</span>
-                </el-upload>
+              <div class="image-upload-container">
+                <div v-if="displayImages.length === 0" class="image-empty">
+                  <i class="el-icon-picture-outline"></i>
+                  <p>暂无园区图片</p>
+                </div>
+                <div v-else class="image-list">
+                  <div v-for="(image, index) in displayImages" :key="index" class="image-item">
+                    <el-image
+                      :src="getImageUrl(image)"
+                      :preview-src-list="imageUrlList"
+                      :initial-index="index"
+                      fit="cover"
+                      class="image-preview"
+                      @error="handleImageError(index)"
+                    />
+                    <div class="image-delete" @click.stop="handleDeleteImage(index)">
+                      <i class="el-icon-close"></i>
+                    </div>
+                  </div>
+                  <div v-if="formData.parkImages.length < 6" class="image-add" @click="handleImageUpload">
+                    <i class="el-icon-plus"></i>
+                  </div>
+                </div>
+                <div class="image-tips">最多上传6张图片，支持jpg、jpeg、png格式，单张图片不超过10MB</div>
               </div>
             </div>
           </div>
@@ -385,11 +396,14 @@
         </div>
       </div>
     </el-card>
+
+    <input ref="parkImageInput" type="file" multiple accept="image/jpeg,image/png,image/jpg" style="display:none" @change="handleImageFileChange" />
   </div>
 </template>
 
 <script>
 import { savePark, updatePark, getParkDetail } from '@/api/park'
+import { uploadFile, deleteFile } from '@/api/tech-innovation'
 
 export default {
   name: 'ParkForm',
@@ -450,6 +464,17 @@ export default {
       }
     }
   },
+  computed: {
+    displayImages() {
+      if (this.formData.parkImages && this.formData.parkImages.length > 0) {
+        return this.formData.parkImages
+      }
+      return []
+    },
+    imageUrlList() {
+      return this.displayImages.map(img => this.getImageUrl(img))
+    }
+  },
   created() {
     const path = this.$route.path
     if (path.includes('/edit/')) {
@@ -462,9 +487,20 @@ export default {
     loadParkData() {
       getParkDetail(this.parkId).then(res => {
         const data = res.data
+        // parkImages 后端存 JSON 字符串，前端需解析为数组
+        let parkImages = []
+        if (data.parkImages) {
+          try {
+            const parsed = typeof data.parkImages === 'string' ? JSON.parse(data.parkImages) : data.parkImages
+            parkImages = Array.isArray(parsed) ? parsed : []
+          } catch (e) {
+            parkImages = []
+          }
+        }
         this.formData = {
           ...this.formData,
-          ...data
+          ...data,
+          parkImages
         }
       })
     },
@@ -503,26 +539,78 @@ export default {
         this.$message.error(this.isEdit ? '修改失败' : '新增失败')
       })
     },
-    beforeImageUpload(file) {
-      const isImage = file.type.startsWith('image/')
-      if (!isImage) {
-        this.$message.error('请上传图片格式文件')
-        return false
+    getImageUrl(image) {
+      if (!image) return ''
+      let url = ''
+      if (typeof image === 'string') {
+        url = image
+      } else if (image.url) {
+        url = image.url
+      } else if (image.fileUrl) {
+        url = image.fileUrl
       }
-      const isLt2M = file.size / 1024 / 1024 < 2
-      if (!isLt2M) {
-        this.$message.error('图片大小不能超过2MB')
-        return false
+      if (!url) return ''
+      if (url.startsWith('http://') || url.startsWith('https://')) {
+        return url
       }
-      return true
+      if (url.startsWith('/api/')) {
+        return url
+      }
+      if (url.startsWith('/')) {
+        return url
+      }
+      return '/api/files/preview/' + url
     },
-    handleImageUploadSuccess(response, file, fileList) {
-      this.formData.parkImages = fileList
-      this.$message.success('图片上传成功')
+    handleImageError(index) {
+      console.warn('图片加载失败，索引:', index)
     },
-    handleRemoveImage(file, fileList) {
-      this.formData.parkImages = fileList
-      this.$message.success('图片删除成功')
+    handleImageUpload() {
+      this.$refs.parkImageInput.click()
+    },
+    async handleImageFileChange(event) {
+      const files = Array.from(event.target.files || [])
+      if (files.length === 0) return
+      const remaining = 6 - this.formData.parkImages.length
+      if (remaining <= 0) {
+        this.$message.warning('最多上传6张图片')
+        event.target.value = ''
+        return
+      }
+      const toUpload = files.slice(0, remaining)
+      try {
+        for (const file of toUpload) {
+          const formData = new FormData()
+          formData.append('file', file)
+          formData.append('bizType', 'park_image')
+          const res = await uploadFile(formData)
+          if (res.data && res.data.url) {
+            this.formData.parkImages.push({
+              url: res.data.url,
+              name: res.data.name || file.name,
+              id: res.data.id
+            })
+          }
+        }
+        this.$message.success('图片上传成功')
+      } catch (e) {
+        console.error('图片上传失败', e)
+        this.$message.error('图片上传失败')
+      } finally {
+        event.target.value = ''
+      }
+    },
+    async handleDeleteImage(index) {
+      try {
+        const image = this.formData.parkImages[index]
+        if (image && image.id) {
+          await deleteFile(image.id)
+        }
+        this.formData.parkImages.splice(index, 1)
+        this.$message.success('删除成功')
+      } catch (e) {
+        console.error('删除图片失败', e)
+        this.$message.error('删除失败')
+      }
     }
   }
 }
@@ -750,61 +838,102 @@ export default {
 }
 
 /* 图片上传区域 */
-.image-upload-area {
+.image-upload-container {
   min-height: 180px;
-  border: 1px dashed #d9d9d9;
-  border-radius: 4px;
-  padding: 16px;
-  text-align: center;
 }
 
-.image-upload {
+.image-list {
   display: flex;
   flex-wrap: wrap;
   gap: 12px;
-  justify-content: flex-start;
 }
 
-.image-upload .el-upload--picture-card {
-  width: 120px;
-  height: 120px;
-  border-radius: 4px;
-  border: 1px dashed #d9d9d9;
+.image-empty {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  width: 140px;
+  height: 140px;
+  border: 1px dashed #dcdfe6;
+  border-radius: 8px;
+  color: #909399;
+}
+
+.image-empty i {
+  font-size: 40px;
+  margin-bottom: 8px;
+}
+
+.image-empty p {
+  font-size: 12px;
+  margin: 0;
+}
+
+.image-item {
+  position: relative;
+  width: 140px;
+  height: 140px;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid #e0e0e0;
+}
+
+.image-preview {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.image-delete {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 24px;
+  height: 24px;
+  background: rgba(0, 0, 0, 0.5);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   cursor: pointer;
-  transition: all 0.3s;
+  color: white;
+  font-size: 14px;
+  transition: background 0.2s;
 }
 
-.image-upload .el-upload--picture-card:hover {
-  border-color: #409EFF;
-  background: #ecf5ff;
+.image-delete:hover {
+  background: rgba(245, 108, 108, 0.8);
 }
 
-.image-upload .el-upload--picture-card i {
+.image-add {
+  width: 140px;
+  height: 140px;
+  border: 2px dashed #d9d9d9;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+
+.image-add:hover {
+  border-color: #409eff;
+}
+
+.image-add .el-icon-plus {
   font-size: 28px;
   color: #c0c4cc;
 }
 
-.image-upload .upload-text {
-  font-size: 14px;
+.image-add:hover .el-icon-plus {
+  color: #409eff;
+}
+
+.image-tips {
+  font-size: 12px;
   color: #909399;
   margin-top: 8px;
-}
-
-.image-upload .el-upload-list--picture-card {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  margin-right: 0;
-}
-
-.image-upload .el-upload-list--picture-card .el-upload-list__item {
-  width: 120px;
-  height: 120px;
-  border-radius: 4px;
-  overflow: hidden;
 }
 </style>

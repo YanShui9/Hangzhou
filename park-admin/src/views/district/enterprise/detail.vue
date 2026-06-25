@@ -111,20 +111,6 @@
       </div>
     </el-card>
 
-    <!-- 变更记录 -->
-    <el-card class="info-card" shadow="never">
-      <div slot="header" class="card-header">
-        <span class="card-title">变更记录</span>
-      </div>
-      <div class="table-container">
-        <el-table :data="changeRecords" border stripe style="width: 100%;" max-height="300">
-          <el-table-column prop="changeDate" label="变更日期" width="150" align="center" />
-          <el-table-column prop="changeType" label="变更类型" width="120" align="center" />
-          <el-table-column prop="changeBefore" label="变更前" min-width="200" />
-          <el-table-column prop="changeAfter" label="变更后" min-width="200" />
-        </el-table>
-      </div>
-    </el-card>
   </div>
 </template>
 
@@ -135,8 +121,7 @@ export default {
   name: 'DistrictEnterpriseDetail',
   data() {
     return {
-      enterpriseData: {},
-      changeRecords: []
+      enterpriseData: {}
     }
   },
   created() {
@@ -292,15 +277,6 @@ export default {
   line-height: 1.6;
   color: #606266;
   font-size: 14px;
-}
-
-.table-container {
-  overflow-x: auto;
-}
-
-.table-container .el-table {
-  --el-table-header-text-color: #606266;
-  --el-table-row-hover-bg-color: #f5f7fa;
 }
 
 @media screen and (max-width: 1200px) {

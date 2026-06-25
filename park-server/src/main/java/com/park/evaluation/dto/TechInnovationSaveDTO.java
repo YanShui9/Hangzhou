@@ -1,5 +1,6 @@
 package com.park.evaluation.dto;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import com.park.evaluation.entity.TechInnovation;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
@@ -41,6 +42,7 @@ public class TechInnovationSaveDTO {
     private String name;
 
     @ApiModelProperty(value = "评定日期")
+    @JsonFormat(pattern = "yyyy-MM-dd", timezone = "GMT+8")
     private Date date;
 
     @ApiModelProperty(value = "所属企业")

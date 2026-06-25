@@ -179,13 +179,13 @@ public class AuditController {
      */
     private void applyStatusFilter(LambdaQueryWrapper<EvaluationRecord> wrapper, String status, Integer auditLevel) {
         if (auditLevel == 2) {
-            // 区县审核
+            // 区县审核：1=待区县审, 2=待市局审, 3=通过, 4=驳回
             if ("pending".equals(status)) {
                 wrapper.eq(EvaluationRecord::getStatus, 1);
             } else if ("audited".equals(status)) {
-                wrapper.in(EvaluationRecord::getStatus, Arrays.asList(3, 4));
+                wrapper.in(EvaluationRecord::getStatus, Arrays.asList(2, 3, 4));
             } else {
-                wrapper.in(EvaluationRecord::getStatus, Arrays.asList(1, 3, 4));
+                wrapper.in(EvaluationRecord::getStatus, Arrays.asList(1, 2, 3, 4));
             }
         } else {
             // 市级审核
@@ -204,7 +204,8 @@ public class AuditController {
      */
     private void applyDefaultStatusFilter(LambdaQueryWrapper<EvaluationRecord> wrapper, Integer auditLevel) {
         if (auditLevel == 2) {
-            wrapper.in(EvaluationRecord::getStatus, Arrays.asList(1, 3, 4));
+            // 区县端显示：1=待区县审, 2=待市局审(区县已通过), 3=通过, 4=驳回
+            wrapper.in(EvaluationRecord::getStatus, Arrays.asList(1, 2, 3, 4));
         } else {
             wrapper.in(EvaluationRecord::getStatus, Arrays.asList(2, 3, 4));
         }

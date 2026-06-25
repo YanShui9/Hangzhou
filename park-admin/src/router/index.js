@@ -23,8 +23,8 @@ const routes = [
     redirect: to => {
       const userInfo = JSON.parse(localStorage.getItem('userInfo') || '{}')
       const roleType = userInfo.roleType
-      if (roleType === 2) return '/district/dashboard'
-      if (roleType === 3) return '/park/dashboard'
+      if (roleType === 2) return '/district/park'
+      if (roleType === 3) return '/park/mine'
       return '/admin/park'
     },
     children: [
@@ -116,6 +116,12 @@ const routes = [
         meta: { title: '入驻企业', icon: 'el-icon-s-shop', roles: [2] }
       },
       {
+        path: 'district/enterprise/detail/:id',
+        name: 'DistrictEnterpriseDetail',
+        component: () => import('@/views/district/enterprise/detail.vue'),
+        meta: { title: '企业详情', icon: 'el-icon-s-shop', roles: [2] }
+      },
+      {
         path: 'park/enterprise',
         name: 'ParkEnterprise',
         component: () => import('@/views/park/enterprise/list.vue'),
@@ -158,6 +164,12 @@ const routes = [
         name: 'DistrictAudit',
         component: () => import('@/views/district/audit/list.vue'),
         meta: { title: '评价审核', icon: 'el-icon-s-check', roles: [2] }
+      },
+      {
+        path: 'district/audit/detail/:id',
+        name: 'DistrictAuditDetail',
+        component: () => import('@/views/district/audit/detail.vue'),
+        meta: { title: '审核详情', roles: [2], hidden: true }
       },
       // 评价结果（下拉菜单：园区评价 / 企业指标）
       {

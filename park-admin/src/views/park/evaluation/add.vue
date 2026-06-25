@@ -87,9 +87,9 @@
               <el-table-column type="index" label="序  号" width="80" align="center" />
               <el-table-column prop="parkName" label="园区名称" min-width="180" align="center" />
               <el-table-column prop="enterpriseName" label="入驻企业名称" min-width="220" align="center" />
-              <el-table-column prop="unifiedCreditCode" label="统一社会信用代码" min-width="200" align="center" />
-              <el-table-column prop="settledDate" label="入驻起止时间" min-width="150" align="center" />
-              <el-table-column prop="registeredAddress" label="企业注册地" min-width="280" align="center" show-overflow-tooltip />
+              <el-table-column prop="creditCode" label="统一社会信用代码" min-width="200" align="center" />
+              <el-table-column prop="settledTime" label="入驻起止时间" min-width="150" align="center" />
+              <el-table-column prop="enterpriseAddress" label="企业注册地" min-width="280" align="center" show-overflow-tooltip />
             </el-table>
           </div>
           <div class="panel-footer">
@@ -411,6 +411,19 @@
               <div class="indicator-text">② 评价年度亩均产出达到全市生产性服务类园区平均水平：1.5-2倍得2分；2-2.5倍得4分；2.5-3倍得6分；3-3.5倍得8分；3.5倍及以上得10分。</div>
               <div class="indicator-text indicator-text-bold">③ 贯彻落实集约发展理念，通过改造提升实现工业上楼、效益提升的，得5分。</div>
             </div>
+            <div class="batch-upload-bar">
+              <el-tooltip content="支持格式:.docx, .xls, .xlsx, .pdf, .png, .jpg, .jpeg | 文件大小限制:50MB" placement="top">
+                <el-button type="primary" plain size="small" @click="handleBenefitUpload" :disabled="isViewMode">上传附件</el-button>
+              </el-tooltip>
+            </div>
+            <div v-if="benefitFiles.length > 0" class="service-file-list">
+              <div v-for="(file, index) in benefitFiles" :key="index" class="service-file-item">
+                <i class="el-icon-document"></i>
+                <span class="service-file-name">{{ file.fileName }}</span>
+                <span class="action-link preview-link" @click.stop="handlePreview(file)">预览</span>
+                <span v-if="!isViewMode" class="action-link delete-link" @click.stop="handleDeleteBenefitFile(index)">删除</span>
+              </div>
+            </div>
           </div>
           <div class="panel-footer">
             <el-button size="small" @click="handlePrev" :disabled="isViewMode">上一步</el-button>
@@ -489,6 +502,7 @@
     <input ref="serviceInclusiveInput" type="file" multiple style="display:none" @change="(e) => onServiceFileChange(e, 'inclusiveService')" />
     <input ref="servicePersonalizedInput" type="file" multiple style="display:none" @change="(e) => onServiceFileChange(e, 'personalizedService')" />
     <input ref="serviceCooperationInput" type="file" multiple style="display:none" @change="(e) => onServiceFileChange(e, 'cooperationProject')" />
+    <input ref="benefitFileInput" type="file" multiple style="display:none" @change="onBenefitFileChange" />
     <!-- 文件预览弹窗 -->
     <FilePreview
       :visible.sync="previewVisible"
@@ -650,8 +664,9 @@ export default {
             if (extra.basicAcknowledged) {
               this.form.basicAcknowledged = extra.basicAcknowledged
             }
-            if (Array.isArray(extra.serviceFiles)) {
-              this.serviceFiles = extra.serviceFiles
+            // serviceFiles 是对象（{ enterpriseService: [], ... }），不能用 Array.isArray 判断
+            if (extra.serviceFiles && typeof extra.serviceFiles === 'object') {
+              this.serviceFiles = Object.assign({}, this.serviceFiles, extra.serviceFiles)
             }
             if (Array.isArray(extra.benefitFiles)) {
               this.benefitFiles = extra.benefitFiles
@@ -672,6 +687,10 @@ export default {
         this.techInnovations = techRes.data || []
         this.projects = projectRes.data || []
         this.cultivationFiles = cultRes.data || []
+        // 回显产业发展企业列表（后端按 parkId 关联返回 enterprises）
+        if (Array.isArray(data.enterprises)) {
+          this.enterpriseList = data.enterprises
+        }
       } catch (e) {
         console.error('加载评价数据失败', e)
       }
@@ -794,9 +813,9 @@ export default {
     // 批量保存子表数据
     async saveSubTables(evaluationId) {
       await Promise.all([
-        batchSaveTechInnovation(evaluationId, this.techInnovations).catch(e => console.warn('保存科技创新失败', e)),
-        batchSaveTechProject(evaluationId, this.projects).catch(e => console.warn('保存院所合作失败', e)),
-        batchSaveCultivationRecord(evaluationId, this.cultivationFiles).catch(e => console.warn('保存企业培育失败', e))
+        batchSaveTechInnovation(evaluationId, this.techInnovations),
+        batchSaveTechProject(evaluationId, this.projects),
+        batchSaveCultivationRecord(evaluationId, this.cultivationFiles)
       ])
     },
     // 保存草稿
@@ -863,7 +882,12 @@ export default {
 
       this.importLoading = true
       try {
-        const response = await uploadIndustryDevelopmentData(file)
+        // 确保有 evaluationId（草稿先保存一次）
+        let evalId = this.evaluationId
+        if (!evalId) {
+          evalId = await this.saveEvaluationRecord()
+        }
+        const response = await uploadIndustryDevelopmentData(file, evalId)
         const result = response.data
 
         if (response.code === 200) {
@@ -890,7 +914,7 @@ export default {
     },
     // 下载模板
     handleDownloadTemplate() {
-      downloadTemplate('产业发展数据模板.xlsx').then(res => {
+      downloadTemplate('industry_development').then(res => {
         const blob = res.data || res
         const url = window.URL.createObjectURL(blob)
         const link = document.createElement('a')
@@ -1191,6 +1215,47 @@ export default {
           await deleteFile(file.fileId).catch(() => {})
         }
         this.serviceFiles[type].splice(index, 1)
+      } catch (err) {
+        if (err !== 'cancel' && err?.message) {
+          this.$message.error('删除失败：' + err.message)
+        }
+      }
+    },
+    // 效益产出 - 上传附件
+    handleBenefitUpload() {
+      this.$refs.benefitFileInput.click()
+    },
+    // 效益产出 - 文件选择回调
+    async onBenefitFileChange(event) {
+      const files = event.target.files
+      if (!files || files.length === 0) return
+      for (let i = 0; i < files.length; i++) {
+        try {
+          const formData = new FormData()
+          formData.append('file', files[i])
+          formData.append('bizType', 'benefit_output')
+          const res = await uploadFile(formData)
+          const data = res.data || res
+          this.benefitFiles.push({
+            fileId: data.id,
+            fileName: data.name,
+            fileUrl: data.url
+          })
+        } catch (err) {
+          this.$message.error('文件上传失败：' + files[i].name)
+        }
+      }
+      event.target.value = ''
+    },
+    // 效益产出 - 删除文件
+    async handleDeleteBenefitFile(index) {
+      try {
+        await this.$confirm('确定删除文件？', '提示', { type: 'warning' })
+        const file = this.benefitFiles[index]
+        if (file.fileId) {
+          await deleteFile(file.fileId).catch(() => {})
+        }
+        this.benefitFiles.splice(index, 1)
       } catch (err) {
         if (err !== 'cancel' && err?.message) {
           this.$message.error('删除失败：' + err.message)

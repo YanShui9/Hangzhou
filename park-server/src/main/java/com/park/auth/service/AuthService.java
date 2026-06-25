@@ -1,5 +1,8 @@
 package com.park.auth.service;
 
+import cn.hutool.captcha.LineCaptcha;
+import cn.hutool.core.util.IdUtil;
+import cn.hutool.core.img.ImgUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.park.auth.entity.LoginDTO;
 import com.park.auth.entity.LoginVO;
@@ -12,6 +15,12 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
+
+import java.util.Base64;
+import java.util.Date;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * 认证服务
@@ -30,6 +39,52 @@ public class AuthService {
 
     private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
+    /** 验证码缓存：key -> {code, expireTime} */
+    private static final ConcurrentHashMap<String, long[]> CAPTCHA_CACHE = new ConcurrentHashMap<>();
+    /** 验证码有效期：5分钟 */
+    private static final long CAPTCHA_EXPIRE_MS = 5 * 60 * 1000L;
+
+    /**
+     * 生成验证码
+     * @return {captchaKey, captchaImg(base64)}
+     */
+    public Map<String, String> generateCaptcha() {
+        LineCaptcha captcha = new LineCaptcha(130, 48, 4, 30);
+        String code = captcha.getCode();
+        String key = IdUtil.fastSimpleUUID();
+
+        long expireAt = System.currentTimeMillis() + CAPTCHA_EXPIRE_MS;
+        CAPTCHA_CACHE.put(key, new long[]{ code.hashCode(), expireAt });
+
+        // 定期清理过期项
+        if (CAPTCHA_CACHE.size() > 200) {
+            long now = System.currentTimeMillis();
+            CAPTCHA_CACHE.entrySet().removeIf(e -> e.getValue()[1] < now);
+        }
+
+        String base64 = ImgUtil.toBase64(captcha.getImage(), "png");
+        Map<String, String> result = new LinkedHashMap<>(4);
+        result.put("captchaKey", key);
+        result.put("captchaImg", "data:image/png;base64," + base64);
+        return result;
+    }
+
+    /**
+     * 校验验证码（校验后立即删除，一次性使用）
+     */
+    private void validateCaptcha(String captchaKey, String captchaCode) {
+        long[] entry = CAPTCHA_CACHE.remove(captchaKey);
+        if (entry == null) {
+            throw new BusinessException(ResultCode.CAPTCHA_ERROR);
+        }
+        if (System.currentTimeMillis() > entry[1]) {
+            throw new BusinessException(ResultCode.CAPTCHA_ERROR);
+        }
+        if (captchaCode == null || captchaCode.hashCode() != entry[0]) {
+            throw new BusinessException(ResultCode.CAPTCHA_ERROR);
+        }
+    }
+
     /**
      * 用户登录
      *
@@ -37,6 +92,9 @@ public class AuthService {
      * @return 登录响应结果
      */
     public LoginVO login(LoginDTO loginDTO) {
+        // 0. 校验验证码
+        validateCaptcha(loginDTO.getCaptchaKey(), loginDTO.getCaptchaCode());
+
         // 1. 根据用户名查询用户（包含password字段用于验证）
         LambdaQueryWrapper<SysUser> queryWrapper = new LambdaQueryWrapper<>();
         queryWrapper.eq(SysUser::getUsername, loginDTO.getUsername());

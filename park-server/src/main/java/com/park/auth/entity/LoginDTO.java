@@ -27,4 +27,12 @@ public class LoginDTO {
     @NotNull(message = "角色类型不能为空")
     @ApiModelProperty(value = "角色类型", required = true, example = "1", notes = "1=市级管理员, 2=区县管理员, 3=园区管理员")
     private Integer roleType;
+
+    @NotBlank(message = "验证码KEY不能为空")
+    @ApiModelProperty(value = "验证码KEY", required = true)
+    private String captchaKey;
+
+    @NotBlank(message = "验证码不能为空")
+    @ApiModelProperty(value = "验证码", required = true)
+    private String captchaCode;
 }

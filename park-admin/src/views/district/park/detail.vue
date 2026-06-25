@@ -167,8 +167,8 @@
                       :disabled="!isEditMode"
                       placeholder="请选择园区类型"
                     >
-                      <el-option label="制造类" value="制造类" />
-                      <el-option label="服务类" value="服务类" />
+                      <el-option label="生产性制造类" value="生产性制造类" />
+                      <el-option label="生产性服务类" value="生产性服务类" />
                     </el-select>
                   </el-form-item>
                 </el-col>
@@ -494,15 +494,22 @@
                 <el-upload
                   v-if="isEditMode"
                   class="image-uploader"
-                  action="/api/upload"
+                  action="/api/files/upload"
+                  :headers="uploadHeaders"
+                  :data="{ bizType: 'park_image' }"
                   :file-list="imageFileList"
                   list-type="picture-card"
+                  :limit="6"
+                  multiple
+                  accept=".jpg,.jpeg,.png"
+                  :on-exceed="handleImageExceed"
                   :on-success="handleImageUploadSuccess"
                   :on-remove="handleImageRemove"
                   :on-preview="handleImagePreview"
                   :before-upload="beforeImageUpload"
                 >
                   <i class="el-icon-plus"></i>
+                  <div slot="tip" class="upload-tip">最多上传6张图片，支持jpg、jpeg、png格式，单张不超过10MB</div>
                 </el-upload>
                 <div v-else-if="formData.images && formData.images.length > 0" class="image-grid">
                   <div v-for="(img, index) in formData.images" :key="index" class="image-item">
@@ -554,61 +561,6 @@
             </div>
           </div>
         </el-tab-pane>
-
-        <!-- 运营数据（不可编辑） -->
-        <el-tab-pane label="运营数据" name="operation">
-          <div class="operation-content">
-            <!-- 顶部工具栏 -->
-            <div class="operation-header">
-              <el-select v-model="selectedYear" class="year-select" placeholder="选择年度" :disabled="true">
-                <el-option label="2023年度" value="2023" />
-                <el-option label="2024年度" value="2024" />
-                <el-option label="2025年度" value="2025" />
-                <el-option label="2026年度" value="2026" />
-              </el-select>
-              <span class="tip-text">*运营数据由系统统计生成，不可编辑</span>
-            </div>
-
-            <!-- 季度标签 -->
-            <div class="quarter-tabs">
-              <div 
-                v-for="(quarter, index) in quarters" 
-                :key="index"
-                :class="['quarter-tab', { active: activeQuarter === index }]"
-                @click="activeQuarter = index"
-              >
-                {{ quarter.label }}
-                <el-tag :type="quarter.status === '已填报' ? 'success' : 'warning'" size="mini">
-                  {{ quarter.status }}
-                </el-tag>
-              </div>
-            </div>
-
-            <!-- 运营数据表格 -->
-            <div class="operation-table">
-              <h3 class="table-title">运营数据季度对比表</h3>
-              <el-table :data="operationData" border :show-header="true">
-                <el-table-column prop="type" label="指标类型" width="140" />
-                <el-table-column prop="name" label="指标名称（单位）" width="220" />
-                <el-table-column 
-                  v-for="(quarter, index) in quarters" 
-                  :key="index" 
-                  :label="quarter.label"
-                  width="180"
-                >
-                  <template slot-scope="scope">
-                    <div :class="['data-cell', { 'has-change': scope.row['change' + index] }]">
-                      <span class="value">{{ scope.row['q' + (index + 1)] }}</span>
-                      <span v-if="scope.row['change' + index]" :class="['change-icon', scope.row['change' + index]]">
-                        {{ scope.row['change' + index] === 'up' ? '▲' : '▼' }}
-                      </span>
-                    </div>
-                  </template>
-                </el-table-column>
-              </el-table>
-            </div>
-          </div>
-        </el-tab-pane>
       </el-tabs>
     </el-card>
 
@@ -634,29 +586,25 @@ export default {
       formData: {},
       activeTab: 'basic',
       isEditMode: false,
-      selectedYear: '2026',
-      activeQuarter: 0,
-      quarters: [
-        { label: '第一季度', status: '已填报' },
-        { label: '第二季度', status: '已填报' },
-        { label: '第三季度', status: '未填报' },
-        { label: '第四季度', status: '未填报' }
-      ],
-      operationData: [],
       imageFileList: [],
       dialogImageUrl: '',
       dialogVisible: false
     }
   },
+  computed: {
+    uploadHeaders() {
+      const token = this.$store.state.user.token
+      return token ? { Authorization: 'Bearer ' + token } : {}
+    }
+  },
   /**
-   * 页面挂载时获取园区详情和运营数据
+   * 页面挂载时获取园区详情
    */
   mounted() {
     const id = this.$route.params.id
     if (id) {
       this.fetchParkDetail(id)
     }
-    this.fetchOperationData()
     
     // 检查是否从编辑入口进入
     const editParam = this.$route.query.edit
@@ -715,18 +663,25 @@ export default {
      * @param {File} file - 上传的文件
      */
     beforeImageUpload(file) {
-      const isImage = file.type.startsWith('image/')
-      const isLt2M = file.size / 1024 / 1024 < 2
+      const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png']
+      const isAllowed = allowedTypes.includes(file.type)
+      const isLt10M = file.size / 1024 / 1024 <= 10
 
-      if (!isImage) {
-        this.$message.error('请上传图片文件')
+      if (!isAllowed) {
+        this.$message.error('只支持 jpg、jpeg、png 格式的图片')
         return false
       }
-      if (!isLt2M) {
-        this.$message.error('图片大小不能超过 2MB')
+      if (!isLt10M) {
+        this.$message.error('图片大小不能超过 10MB')
         return false
       }
       return true
+    },
+    /**
+     * 超出上传数量限制
+     */
+    handleImageExceed() {
+      this.$message.warning('最多只能上传6张图片')
     },
     /**
      * 图片上传成功处理
@@ -734,12 +689,15 @@ export default {
      * @param {Object} file - 上传的文件
      */
     handleImageUploadSuccess(response, file) {
-      const imageUrl = response.url || URL.createObjectURL(file.raw)
-      if (!this.formData.images) {
-        this.formData.images = []
+      if (response.code === 200 && response.data && response.data.url) {
+        const imageUrl = response.data.url
+        if (!this.formData.images) {
+          this.formData.images = []
+        }
+        this.formData.images.push(imageUrl)
+      } else {
+        this.$message.error(response.message || '图片上传失败')
       }
-      this.formData.images.push(imageUrl)
-      this.$message.success('图片上传成功')
     },
     /**
      * 图片删除处理
@@ -767,23 +725,6 @@ export default {
     closeDialog() {
       this.dialogVisible = false
       this.dialogImageUrl = ''
-    },
-    /**
-     * 获取运营数据
-     */
-    async fetchOperationData() {
-      try {
-        // 实际项目中应从后端获取运营数据
-        const response = await getParkOperationData(this.parkInfo.id)
-        if (response.code === 200 && response.data) {
-          this.operationData = response.data
-        } else {
-          this.operationData = []
-        }
-      } catch (error) {
-        console.error('获取运营数据失败', error)
-        this.operationData = []
-      }
     },
     /**
      * 格式化数字
@@ -1019,6 +960,13 @@ export default {
   line-height: 148px;
 }
 
+.upload-tip {
+  font-size: 12px;
+  color: #909399;
+  margin-top: 8px;
+  width: 100%;
+}
+
 .image-grid {
   display: flex;
   flex-wrap: wrap;
@@ -1090,115 +1038,5 @@ export default {
   .image-grid {
     grid-template-columns: 1fr;
   }
-}
-
-/* 运营数据样式 */
-.operation-content {
-  padding: 16px;
-}
-
-.operation-header {
-  display: flex;
-  justify-content: flex-end;
-  align-items: center;
-  margin-bottom: 20px;
-  gap: 16px;
-}
-
-.year-select {
-  width: 150px;
-}
-
-.quarter-tabs {
-  display: flex;
-  gap: 16px;
-  margin-bottom: 20px;
-  padding-bottom: 16px;
-  border-bottom: 1px solid #e4e7ed;
-}
-
-.quarter-tab {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 20px;
-  background: #fafafa;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: all 0.3s;
-  font-size: 14px;
-  color: #606266;
-}
-
-.quarter-tab:hover {
-  background: #e8f4fd;
-}
-
-.quarter-tab.active {
-  background: #409EFF;
-  color: #fff;
-}
-
-.quarter-tab.active .el-tag {
-  background: rgba(255, 255, 255, 0.2);
-  border-color: rgba(255, 255, 255, 0.3);
-  color: #fff;
-}
-
-.operation-table {
-  background: #fff;
-  border-radius: 8px;
-  padding: 16px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
-}
-
-.table-title {
-  font-size: 16px;
-  font-weight: 600;
-  color: #303133;
-  margin-bottom: 16px;
-}
-
-.data-cell {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.data-cell .value {
-  font-size: 14px;
-  color: #303133;
-}
-
-.change-icon {
-  font-size: 12px;
-  font-weight: bold;
-}
-
-.change-icon.up {
-  color: #67c23a;
-}
-
-.change-icon.down {
-  color: #f56c6c;
-}
-
-/* 运营数据表格样式 */
-.operation-table .el-table {
-  --el-table-header-text-color: #606266;
-  --el-table-row-hover-bg-color: #fafafa;
-}
-
-.operation-table .el-table th {
-  background: #fafafa;
-  font-weight: 600;
-}
-
-.operation-table .el-table td {
-  padding: 12px 8px;
-}
-
-.operation-table .el-table td:first-child {
-  font-weight: 500;
 }
 </style>

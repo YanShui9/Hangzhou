@@ -14,8 +14,18 @@ import com.park.evaluation.dto.EvaluationQueryDTO;
 import com.park.evaluation.dto.EvaluationSaveDTO;
 import com.park.evaluation.entity.EvaluationRecord;
 import com.park.evaluation.entity.ParkEvaluationScore;
+import com.park.evaluation.entity.EvaluationEnterprise;
+import com.park.evaluation.entity.TechInnovation;
+import com.park.evaluation.entity.TechProject;
+import com.park.evaluation.entity.CultivationRecord;
+import com.park.evaluation.mapper.EvaluationEnterpriseMapper;
 import com.park.evaluation.mapper.EvaluationMapper;
 import com.park.evaluation.mapper.ParkEvaluationScoreMapper;
+import com.park.evaluation.mapper.TechInnovationMapper;
+import com.park.evaluation.mapper.TechProjectMapper;
+import com.park.evaluation.mapper.CultivationRecordMapper;
+import com.park.enterprise.entity.EnterpriseInfo;
+import com.park.enterprise.mapper.EnterpriseMapper;
 import com.park.park.entity.ParkInfo;
 import com.park.park.mapper.ParkMapper;
 import lombok.extern.slf4j.Slf4j;
@@ -52,18 +62,38 @@ public class EvaluationService {
 
     private final AuditMapper auditMapper;
 
+    private final TechInnovationMapper techInnovationMapper;
+
+    private final TechProjectMapper techProjectMapper;
+
+    private final CultivationRecordMapper cultivationRecordMapper;
+
+    private final EnterpriseMapper enterpriseMapper;
+
+    private final EvaluationEnterpriseMapper evaluationEnterpriseMapper;
+
     public EvaluationService(EvaluationMapper evaluationMapper,
                              ParkEvaluationScoreMapper scoreMapper,
                              ParkMapper parkMapper,
                              AutoCalculationService autoCalculationService,
                              AuditService auditService,
-                             AuditMapper auditMapper) {
+                             AuditMapper auditMapper,
+                             TechInnovationMapper techInnovationMapper,
+                             TechProjectMapper techProjectMapper,
+                             CultivationRecordMapper cultivationRecordMapper,
+                             EnterpriseMapper enterpriseMapper,
+                             EvaluationEnterpriseMapper evaluationEnterpriseMapper) {
         this.evaluationMapper = evaluationMapper;
         this.scoreMapper = scoreMapper;
         this.parkMapper = parkMapper;
         this.autoCalculationService = autoCalculationService;
         this.auditService = auditService;
         this.auditMapper = auditMapper;
+        this.techInnovationMapper = techInnovationMapper;
+        this.techProjectMapper = techProjectMapper;
+        this.cultivationRecordMapper = cultivationRecordMapper;
+        this.enterpriseMapper = enterpriseMapper;
+        this.evaluationEnterpriseMapper = evaluationEnterpriseMapper;
     }
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
@@ -252,6 +282,41 @@ public class EvaluationService {
         result.put("rejectCategories", record.getRejectCategories());
         result.put("createTime", record.getCreateTime());
         result.put("updateTime", record.getUpdateTime());
+
+        // 返回 parkExtraData（园区端上传的文件和基础指标等）
+        result.put("parkExtraData", record.getParkExtraData());
+
+        // 解析 parkExtraData 为结构化字段，方便前端使用
+        if (record.getParkExtraData() != null && !record.getParkExtraData().isEmpty()) {
+            try {
+                Map<String, Object> extra = OBJECT_MAPPER.readValue(record.getParkExtraData(),
+                        new TypeReference<Map<String, Object>>() {});
+                result.put("extraData", extra);
+            } catch (Exception e) {
+                log.warn("解析parkExtraData失败", e);
+                result.put("extraData", new HashMap<>());
+            }
+        } else {
+            result.put("extraData", new HashMap<>());
+        }
+
+        // 返回子表数据：科技创新、院所合作、企业培育
+        LambdaQueryWrapper<TechInnovation> techInnoQuery = new LambdaQueryWrapper<>();
+        techInnoQuery.eq(TechInnovation::getEvaluationId, id);
+        result.put("techInnovations", techInnovationMapper.selectList(techInnoQuery));
+
+        LambdaQueryWrapper<TechProject> techProjQuery = new LambdaQueryWrapper<>();
+        techProjQuery.eq(TechProject::getEvaluationId, id);
+        result.put("techProjects", techProjectMapper.selectList(techProjQuery));
+
+        LambdaQueryWrapper<CultivationRecord> cultQuery = new LambdaQueryWrapper<>();
+        cultQuery.eq(CultivationRecord::getEvaluationId, id);
+        result.put("cultivationRecords", cultivationRecordMapper.selectList(cultQuery));
+
+        // 返回产业发展企业列表（从 evaluation_enterprise 关联表按 evaluationId 查询，只显示本次导入的数据）
+        LambdaQueryWrapper<EvaluationEnterprise> eeQuery = new LambdaQueryWrapper<>();
+        eeQuery.eq(EvaluationEnterprise::getEvaluationId, id);
+        result.put("enterprises", evaluationEnterpriseMapper.selectList(eeQuery));
 
         Map<String, Object> scoreDetailMap = new LinkedHashMap<>();
         if (record.getScoreDetail() != null && !record.getScoreDetail().isEmpty()) {

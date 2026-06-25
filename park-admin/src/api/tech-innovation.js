@@ -205,10 +205,12 @@ export function downloadTemplate(templateName) {
 /**
  * 上传并解析产业发展数据
  * @param {File} file Excel文件
+ * @param {Number} evaluationId 评价记录ID
  */
-export function uploadIndustryDevelopmentData(file) {
+export function uploadIndustryDevelopmentData(file, evaluationId) {
   const formData = new FormData()
   formData.append('file', file)
+  formData.append('evaluationId', evaluationId)
   return request({
     url: '/api/files/upload/industry-development',
     method: 'post',

@@ -393,23 +393,30 @@ public class EnterpriseController {
         if (roleType == 2) {
             // 区县管理员：只查看本区县的企业
             if (user.getDistrictId() != null) {
-                DistrictInfo district = districtMapper.selectById(user.getDistrictId());
-                if (district != null) {
-                    // 查询该区县下的所有园区ID
-                    LambdaQueryWrapper<ParkInfo> parkQuery = new LambdaQueryWrapper<>();
-                    parkQuery.eq(ParkInfo::getDistrictName, district.getDistrictName());
-                    parkQuery.select(ParkInfo::getId);
-                    List<ParkInfo> parks = parkMapper.selectList(parkQuery);
-                    List<Long> parkIds = parks.stream().map(ParkInfo::getId).collect(Collectors.toList());
+                LambdaQueryWrapper<ParkInfo> parkQuery = new LambdaQueryWrapper<>();
+                parkQuery.eq(ParkInfo::getDistrictId, user.getDistrictId());
+                parkQuery.select(ParkInfo::getId);
+                List<ParkInfo> parks = parkMapper.selectList(parkQuery);
+                List<Long> parkIds = parks.stream().map(ParkInfo::getId).collect(Collectors.toList());
 
-                    if (parkIds.isEmpty()) {
-                        // 该区县没有园区，设置一个不可能的ID
-                        queryDTO.setParkId(-1L);
-                    } else {
-                        // 使用parkIds进行IN查询，支持多园区
-                        queryDTO.setParkIds(parkIds);
+                if (parkIds.isEmpty()) {
+                    DistrictInfo district = districtMapper.selectById(user.getDistrictId());
+                    if (district != null && district.getDistrictName() != null) {
+                        LambdaQueryWrapper<ParkInfo> nameQuery = new LambdaQueryWrapper<>();
+                        nameQuery.eq(ParkInfo::getDistrictName, district.getDistrictName());
+                        nameQuery.select(ParkInfo::getId);
+                        parks = parkMapper.selectList(nameQuery);
+                        parkIds = parks.stream().map(ParkInfo::getId).collect(Collectors.toList());
+                        log.info("区县管理员查询企业：按 district_id 未找到园区，尝试按 district_name={} 查询，找到园区数={}", 
+                                district.getDistrictName(), parks.size());
                     }
                 }
+
+                log.info("区县管理员查询企业：userId={}, districtId={}, 查询到园区数={}, parkIds={}", 
+                        userId, user.getDistrictId(), parks.size(), parkIds);
+                queryDTO.setParkIds(parkIds);
+            } else {
+                log.warn("区县管理员查询企业：userId={}, districtId为空", userId);
             }
         } else if (roleType == 3) {
             // 园区管理员：只查看本园区的企业

@@ -471,8 +471,14 @@ public class EvaluationController {
     @PostMapping("/{id}/district-pass")
     @ApiOperation(value = "区县审核通过", notes = "区县管理员审核通过评价记录")
     public R<Void> districtPass(@PathVariable Long id, HttpServletRequest request) {
-        checkAuditPermission(request, 2); // 校验区县管理员权限
-        evaluationService.districtPass(id);
+        checkAuditPermission(request, 2);
+        checkEvaluationOwnership(request, id);
+        Long auditorId = extractUserId(request);
+        com.park.audit.dto.AuditDTO auditDTO = new com.park.audit.dto.AuditDTO();
+        auditDTO.setEvaluationId(id);
+        auditDTO.setAction(1);
+        auditDTO.setOpinion("区县审核通过");
+        auditService.audit(auditDTO, auditorId, 2);
         return R.ok();
     }
 
@@ -485,9 +491,16 @@ public class EvaluationController {
      */
     @PostMapping("/{id}/district-reject")
     @ApiOperation(value = "区县审核驳回", notes = "区县管理员审核驳回评价记录")
-    public R<Void> districtReject(@PathVariable Long id, HttpServletRequest request) {
-        checkAuditPermission(request, 2); // 校验区县管理员权限
-        evaluationService.districtReject(id);
+    public R<Void> districtReject(@PathVariable Long id, @RequestBody(required = false) Map<String, Object> body, HttpServletRequest request) {
+        checkAuditPermission(request, 2);
+        checkEvaluationOwnership(request, id);
+        Long auditorId = extractUserId(request);
+        String opinion = (body != null && body.get("opinion") != null) ? body.get("opinion").toString() : "区县审核驳回";
+        com.park.audit.dto.AuditDTO auditDTO = new com.park.audit.dto.AuditDTO();
+        auditDTO.setEvaluationId(id);
+        auditDTO.setAction(2);
+        auditDTO.setOpinion(opinion);
+        auditService.audit(auditDTO, auditorId, 2);
         return R.ok();
     }
 
@@ -726,6 +739,19 @@ public class EvaluationController {
             }
             queryDTO.setParkId(user.getParkId());
         }
+    }
+
+    /**
+     * 从请求中提取用户ID
+     */
+    private Long extractUserId(HttpServletRequest request) {
+        Object userIdObj = request.getAttribute("userId");
+        if (userIdObj instanceof Integer) {
+            return ((Integer) userIdObj).longValue();
+        } else if (userIdObj instanceof Long) {
+            return (Long) userIdObj;
+        }
+        throw new BusinessException(ResultCode.FORBIDDEN, "无法获取用户信息");
     }
 
     /**

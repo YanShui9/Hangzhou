@@ -48,7 +48,10 @@ public enum ResultCode {
     EVALUATION_STATUS_ERROR(2002, "评价记录状态不允许此操作"),
     EVALUATION_EXISTS(2003, "该园区该年度季度的评价记录已存在"),
     AUDIT_PERMISSION_DENIED(2004, "无审核权限"),
-    AUDIT_STATUS_ERROR(2005, "当前状态不允许审核");
+    AUDIT_STATUS_ERROR(2005, "当前状态不允许审核"),
+
+    // 验证码错误
+    CAPTCHA_ERROR(1015, "验证码错误或已失效");
 
     /**
      * 状态码

@@ -35,6 +35,15 @@ public class AuthController {
     private JwtUtil jwtUtil;
 
     /**
+     * 获取登录验证码
+     */
+    @GetMapping("/captcha")
+    @ApiOperation(value = "获取验证码", notes = "生成图形验证码，返回base64图片和唯一key")
+    public R<Map<String, String>> getCaptcha() {
+        return R.ok(authService.generateCaptcha());
+    }
+
+    /**
      * 用户登录
      *
      * @param loginDTO 登录请求参数

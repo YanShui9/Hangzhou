@@ -57,7 +57,7 @@ public class DocumentController {
     public R<ParkDocument> uploadParkFile(@PathVariable Long parkId,
                                           @RequestParam("file") MultipartFile file,
                                           HttpServletRequest request) {
-        checkParkOperator(request); // 仅园区端可上传文件，市级管理员无上传权限
+        checkParkOperatorOrDistrict(request); // 园区端或区县端可上传文件，市级管理员无上传权限
         if (file == null || file.isEmpty()) {
             throw new BusinessException(ResultCode.PARAM_ERROR, "文件不能为空");
         }
@@ -150,22 +150,24 @@ public class DocumentController {
 
     /**
      * 登录校验：任意已登录用户均可通过
+     * 检查 userId（JWT 过滤器验证 token 后一定会设置），而非 roleType（旧 token 可能无 role claim）
      */
     private void checkLogin(HttpServletRequest request) {
-        Object roleTypeObj = request.getAttribute("roleType");
-        if (!(roleTypeObj instanceof Integer)) {
+        Object userIdObj = request.getAttribute("userId");
+        if (userIdObj == null) {
             throw new BusinessException(ResultCode.FORBIDDEN, "无权限");
         }
     }
 
     /**
-     * 校验是否为园区端用户（roleType=3）
-     * 项目规范：上传文件是园区端的工作，市级管理员只能预览文件并打分，无文件上传权限
+     * 校验是否为园区端（roleType=3）或区县端（roleType=2）
+     * 项目规范：上传文件是园区端/区县端的工作，市级管理员只能预览文件并打分，无文件上传权限
      */
-    private void checkParkOperator(HttpServletRequest request) {
+    private void checkParkOperatorOrDistrict(HttpServletRequest request) {
         Object roleTypeObj = request.getAttribute("roleType");
         Integer roleType = (roleTypeObj instanceof Integer) ? (Integer) roleTypeObj : null;
-        if (roleType == null || roleType != 3) {
+        log.info("上传文件权限校验：roleType={}, userId={}", roleType, request.getAttribute("userId"));
+        if (roleType == null || (roleType != 2 && roleType != 3)) {
             throw new BusinessException(ResultCode.FORBIDDEN, "无权限");
         }
     }

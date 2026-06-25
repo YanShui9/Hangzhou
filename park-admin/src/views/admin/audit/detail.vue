@@ -148,14 +148,14 @@
                   <div class="upload-section-file">
                     <template v-if="enterpriseFileList && enterpriseFileList.length > 0">
                       <i class="el-icon-document" style="color:#409EFF;"></i>
-                      <span>{{ enterpriseFileList[enterpriseFileList.length - 1].name }}</span>
+                      <span>{{ enterpriseFileList[enterpriseFileList.length - 1].fileName }}</span>
                     </template>
                     <span v-else class="file-not-uploaded">园区端未上传文件</span>
                   </div>
                 </div>
                 <div class="upload-section-right">
                   <span
-                    v-if="enterpriseFileList && enterpriseFileList.length > 0 && enterpriseFileList[enterpriseFileList.length - 1].url"
+                    v-if="enterpriseFileList && enterpriseFileList.length > 0 && enterpriseFileList[enterpriseFileList.length - 1].fileUrl"
                     class="file-preview-link"
                     @click="handlePreview(enterpriseFileList[enterpriseFileList.length - 1])"
                   >预览</span>
@@ -261,9 +261,9 @@
               <div v-if="!techFileList || techFileList.length === 0" class="file-empty">暂无附件</div>
               <div v-for="(file, idx) in techFileList" :key="'t' + idx" class="file-item-row">
                 <span class="file-icon"><i class="el-icon-document"></i></span>
-                <span class="file-name" :title="file.name">{{ file.name }}</span>
+                <span class="file-name" :title="file.fileName">{{ file.fileName }}</span>
                 <span
-                  v-if="file.url"
+                  v-if="file.fileUrl"
                   class="file-preview-link"
                   @click="handlePreview(file)"
                 >预览</span>
@@ -311,9 +311,9 @@
                 <div class="section-subtitle">助企服务站建设材料</div>
                 <div class="file-item-row" v-if="serviceFileList1 && serviceFileList1.length > 0">
                   <span class="file-icon"><i class="el-icon-document"></i></span>
-                  <span class="file-name" :title="serviceFileList1[serviceFileList1.length - 1].name">{{ serviceFileList1[serviceFileList1.length - 1].name }}</span>
+                  <span class="file-name" :title="serviceFileList1[serviceFileList1.length - 1].fileName">{{ serviceFileList1[serviceFileList1.length - 1].fileName }}</span>
                   <span
-                    v-if="serviceFileList1[serviceFileList1.length - 1].url"
+                    v-if="serviceFileList1[serviceFileList1.length - 1].fileUrl"
                     class="file-preview-link"
                     @click="handlePreview(serviceFileList1[serviceFileList1.length - 1])"
                   >预览</span>
@@ -332,9 +332,9 @@
                 <div class="section-subtitle">一站式代办服务材料</div>
                 <div class="file-item-row" v-if="serviceFileList2 && serviceFileList2.length > 0">
                   <span class="file-icon"><i class="el-icon-document"></i></span>
-                  <span class="file-name" :title="serviceFileList2[serviceFileList2.length - 1].name">{{ serviceFileList2[serviceFileList2.length - 1].name }}</span>
+                  <span class="file-name" :title="serviceFileList2[serviceFileList2.length - 1].fileName">{{ serviceFileList2[serviceFileList2.length - 1].fileName }}</span>
                   <span
-                    v-if="serviceFileList2[serviceFileList2.length - 1].url"
+                    v-if="serviceFileList2[serviceFileList2.length - 1].fileUrl"
                     class="file-preview-link"
                     @click="handlePreview(serviceFileList2[serviceFileList2.length - 1])"
                   >预览</span>
@@ -356,9 +356,9 @@
               <div class="section-subtitle">党团工会活动材料</div>
               <div class="file-item-row" v-if="serviceFileList3 && serviceFileList3.length > 0">
                 <span class="file-icon"><i class="el-icon-document"></i></span>
-                <span class="file-name" :title="serviceFileList3[serviceFileList3.length - 1].name">{{ serviceFileList3[serviceFileList3.length - 1].name }}</span>
+                <span class="file-name" :title="serviceFileList3[serviceFileList3.length - 1].fileName">{{ serviceFileList3[serviceFileList3.length - 1].fileName }}</span>
                 <span
-                  v-if="serviceFileList3[serviceFileList3.length - 1].url"
+                  v-if="serviceFileList3[serviceFileList3.length - 1].fileUrl"
                   class="file-preview-link"
                   @click="handlePreview(serviceFileList3[serviceFileList3.length - 1])"
                 >预览</span>
@@ -400,9 +400,9 @@
               <div class="section-subtitle">园区大脑数字化相关资料</div>
               <div class="file-item-row" v-if="serviceFileList4 && serviceFileList4.length > 0">
                 <span class="file-icon"><i class="el-icon-document"></i></span>
-                <span class="file-name" :title="serviceFileList4[serviceFileList4.length - 1].name">{{ serviceFileList4[serviceFileList4.length - 1].name }}</span>
+                <span class="file-name" :title="serviceFileList4[serviceFileList4.length - 1].fileName">{{ serviceFileList4[serviceFileList4.length - 1].fileName }}</span>
                 <span
-                  v-if="serviceFileList4[serviceFileList4.length - 1].url"
+                  v-if="serviceFileList4[serviceFileList4.length - 1].fileUrl"
                   class="file-preview-link"
                   @click="handlePreview(serviceFileList4[serviceFileList4.length - 1])"
                 >预览</span>
@@ -445,9 +445,9 @@
                 <div class="section-subtitle">普惠性服务活动</div>
                 <div class="file-item-row" v-if="serviceFileList5 && serviceFileList5.length > 0">
                   <span class="file-icon"><i class="el-icon-document"></i></span>
-                  <span class="file-name" :title="serviceFileList5[serviceFileList5.length - 1].name">{{ serviceFileList5[serviceFileList5.length - 1].name }}</span>
+                  <span class="file-name" :title="serviceFileList5[serviceFileList5.length - 1].fileName">{{ serviceFileList5[serviceFileList5.length - 1].fileName }}</span>
                   <span
-                    v-if="serviceFileList5[serviceFileList5.length - 1].url"
+                    v-if="serviceFileList5[serviceFileList5.length - 1].fileUrl"
                     class="file-preview-link"
                     @click="handlePreview(serviceFileList5[serviceFileList5.length - 1])"
                   >预览</span>
@@ -466,9 +466,9 @@
                 <div class="section-subtitle">个性化服务活动</div>
                 <div class="file-item-row" v-if="serviceFileList6 && serviceFileList6.length > 0">
                   <span class="file-icon"><i class="el-icon-document"></i></span>
-                  <span class="file-name" :title="serviceFileList6[serviceFileList6.length - 1].name">{{ serviceFileList6[serviceFileList6.length - 1].name }}</span>
+                  <span class="file-name" :title="serviceFileList6[serviceFileList6.length - 1].fileName">{{ serviceFileList6[serviceFileList6.length - 1].fileName }}</span>
                   <span
-                    v-if="serviceFileList6[serviceFileList6.length - 1].url"
+                    v-if="serviceFileList6[serviceFileList6.length - 1].fileUrl"
                     class="file-preview-link"
                     @click="handlePreview(serviceFileList6[serviceFileList6.length - 1])"
                   >预览</span>
@@ -511,9 +511,9 @@
               <div class="section-subtitle">项目名称</div>
               <div class="file-item-row" v-if="serviceFileList7 && serviceFileList7.length > 0">
                 <span class="file-icon"><i class="el-icon-document"></i></span>
-                <span class="file-name" :title="serviceFileList7[serviceFileList7.length - 1].name">{{ serviceFileList7[serviceFileList7.length - 1].name }}</span>
+                <span class="file-name" :title="serviceFileList7[serviceFileList7.length - 1].fileName">{{ serviceFileList7[serviceFileList7.length - 1].fileName }}</span>
                 <span
-                  v-if="serviceFileList7[serviceFileList7.length - 1].url"
+                  v-if="serviceFileList7[serviceFileList7.length - 1].fileUrl"
                   class="file-preview-link"
                   @click="handlePreview(serviceFileList7[serviceFileList7.length - 1])"
                 >预览</span>
@@ -822,9 +822,9 @@
               <div v-if="otherFileList && otherFileList.length > 0">
                 <div v-for="(file, idx) in otherFileList" :key="'o' + idx" class="file-item-row">
                   <span class="file-icon"><i class="el-icon-document"></i></span>
-                  <span class="file-name" :title="file.name">{{ file.name }}</span>
+                  <span class="file-name" :title="file.fileName">{{ file.fileName }}</span>
                   <span
-                    v-if="file.url"
+                    v-if="file.fileUrl"
                     class="file-preview-link"
                     @click="handlePreview(file)"
                   >预览</span>
@@ -1029,6 +1029,8 @@ export default {
       // 表格数据（产业发展 / 科技创新）
       industryTableData: [],
       techTableData: [],
+      techProjectData: [],
+      cultivationData: [],
       auditHistory: [],
       // 区县端安全生产评分快照（区县审核时锁定，市级只读）
       districtSafetyScores: ['', '', '', '', ''],
@@ -1211,7 +1213,34 @@ export default {
           if (data.districtResult != null) {
             this.districtResult = data.districtResult
           }
-          this.industryTableData = data.industryTableData || []
+          this.industryTableData = data.enterprises || data.industryTableData || []
+
+          // 解析园区端提交的 parkExtraData - 字段名与园区端 add.vue 保持一致
+          const extra = data.extraData || {}
+          if (extra.serviceFiles) {
+            const sf = extra.serviceFiles
+            this.serviceFileList1 = sf.enterpriseService || []
+            this.serviceFileList2 = sf.oneStopService || []
+            this.serviceFileList3 = sf.unionActivity || []
+            this.serviceFileList4 = sf.parkBrain || []
+            this.serviceFileList5 = sf.inclusiveService || []
+            this.serviceFileList6 = sf.personalizedService || []
+            this.serviceFileList7 = sf.cooperationProject || []
+          }
+          if (extra.benefitFiles) {
+            this.benefitFileList = extra.benefitFiles || []
+          }
+          if (extra.fileSections) {
+            const fs = extra.fileSections
+            this.enterpriseFileList = fs.enterpriseFiles || []
+            this.otherFileList = fs.otherFiles || []
+          }
+
+          // 子表数据
+          this.techTableData = data.techInnovations || this.techTableData
+          this.techProjectData = data.techProjects || []
+          this.cultivationData = data.cultivationRecords || []
+
           this.formData.parkName = data.parkName || ''
           this.formData.year = data.year || ''
         } else {
@@ -1348,7 +1377,7 @@ export default {
       try {
         const res = await uploadAuditFile(file.raw, id, sectionKey)
         if (res && res.data) {
-          this[listKey] = [...this[listKey], { name: res.data.name, url: res.data.url }]
+          this[listKey] = [...this[listKey], { fileName: res.data.name, fileUrl: res.data.url }]
         }
       } catch (e) {
         console.error('文件上传失败', e)
@@ -1527,10 +1556,10 @@ export default {
     },
     // ==================== 文件预览 ====================
     async handlePreview(file) {
-      if (!file || !file.url) return
+      if (!file || !file.fileUrl) return
       this.previewVisible = true
       this.previewLoading = true
-      this.previewUrl = file.name
+      this.previewUrl = file.fileName
       // 清理旧的 LuckySheet 实例
       if (window.luckysheet) {
         window.luckysheet.destroy()
@@ -1541,13 +1570,13 @@ export default {
         docxContainer.innerHTML = ''
       }
       try {
-        const blob = await downloadAuditFile(file.url)
+        const blob = await downloadAuditFile(file.fileUrl)
         const arrayBuffer = await blob.arrayBuffer()
-        const ext = (file.name || '').toLowerCase()
+        const ext = (file.fileName || '').toLowerCase()
         if (ext.endsWith('.xlsx') || ext.endsWith('.xls')) {
           this.previewType = 'excel'
           this.$nextTick(() => {
-            this.renderExcelInDialog(arrayBuffer, file.name)
+            this.renderExcelInDialog(arrayBuffer, file.fileName)
           })
         } else if (ext.endsWith('.docx')) {
           this.previewType = 'docx'

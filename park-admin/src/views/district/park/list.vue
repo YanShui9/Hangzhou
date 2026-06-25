@@ -15,8 +15,8 @@
           </el-form-item>
           <el-form-item>
             <el-select v-model="queryParams.parkType" placeholder="园区类型" clearable style="width: 160px;">
-              <el-option label="制造类" value="制造类" />
-              <el-option label="服务类" value="服务类" />
+              <el-option label="生产性制造类" value="生产性制造类" />
+              <el-option label="生产性服务类" value="生产性服务类" />
             </el-select>
           </el-form-item>
           <el-form-item>
@@ -82,7 +82,7 @@
           </el-table-column>
           <el-table-column label="园区类型" width="100" align="center">
             <template slot-scope="{ row }">
-              <el-tag :type="row.parkType === '制造类' ? 'primary' : 'success'" size="small">
+              <el-tag :type="row.parkType === '生产性制造类' ? 'primary' : 'success'" size="small">
                 {{ row.parkType || '-' }}
               </el-tag>
             </template>

@@ -87,7 +87,8 @@ public class GlobalExceptionHandler {
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     public R<?> handleException(Exception e, HttpServletRequest request) {
         log.error("系统异常: {} - 请求路径: {}", e.getMessage(), request.getRequestURI(), e);
-        // 生产环境不暴露内部错误细节
-        return R.result(ResultCode.SERVER_ERROR.getCode(), "系统繁忙，请稍后再试", null);
+        // 开发环境暴露异常类名和消息，便于诊断
+        String detail = e.getClass().getSimpleName() + ": " + e.getMessage();
+        return R.result(ResultCode.SERVER_ERROR.getCode(), detail, null);
     }
 }

@@ -71,8 +71,8 @@ CREATE TABLE `district_info` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `district_code` varchar(20) NOT NULL,
   `district_name` varchar(100) NOT NULL,
-  `city` varchar(100) DEFAULT (_gbk'������'),
-  `province` varchar(100) DEFAULT (_gbk'�㽭ʡ'),
+  `city` varchar(100) DEFAULT (_gbk'������'),
+  `province` varchar(100) DEFAULT (_gbk'�㽭ʡ'),
   `sort_order` int DEFAULT '0',
   `create_time` datetime DEFAULT CURRENT_TIMESTAMP,
   `update_time` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -163,6 +163,7 @@ CREATE TABLE `evaluation_record` (
   `park_id` bigint NOT NULL COMMENT '园区ID',
   `year` int NOT NULL COMMENT '评价年度',
   `status` tinyint NOT NULL DEFAULT '0' COMMENT '状态：0=草稿, 1=待区县审, 2=待市局审, 3=通过, 4=驳回',
+  `evaluation_status` tinyint DEFAULT NULL COMMENT '参评状态：1=参评, 0=不参评',
   `total_score` decimal(5,2) DEFAULT NULL COMMENT '总分',
   `grade` varchar(10) DEFAULT NULL COMMENT '绩效分档：A/B/C/D',
   `reject_category` varchar(255) DEFAULT NULL COMMENT '驳回类别',
@@ -171,6 +172,7 @@ CREATE TABLE `evaluation_record` (
   `score_detail` json DEFAULT NULL COMMENT '审核打分详情JSON',
   `district_file` varchar(500) DEFAULT NULL COMMENT '区县行文文件路径',
   `reject_categories` varchar(500) DEFAULT NULL COMMENT '驳回指标类别列表(多选,逗号分隔)',
+  `park_extra_data` text DEFAULT NULL COMMENT '园区端附加数据JSON（含上传文件元数据）',
   PRIMARY KEY (`id`),
   KEY `idx_park_year` (`park_id`,`year`)
 ) ENGINE=InnoDB AUTO_INCREMENT=823 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='评价记录表';

@@ -92,7 +92,7 @@
             <span>评价年度内参评园区需符合《杭州市升级版小微企业园区建设和管理工作指引（试行）》明确的小微企业园认定条件，不具备的直接判D档。</span>
           </div>
           <div class="form-section checkbox-section">
-            <el-checkbox v-model="auditForm.basicConfirm">我已知晓</el-checkbox>
+            <el-checkbox v-model="auditForm.basicConfirm" disabled>我已知晓</el-checkbox>
           </div>
           <div class="bottom-actions">
             <el-button type="primary" @click="handleNextStep">下一步</el-button>
@@ -147,12 +147,20 @@
             <span>③园区建立专属产业基金，评价年度内园区内企业"投早投小投创新"案例，每新增1个得1分。</span>
           </div>
           <div class="file-section">
-            <div class="file-title">承诺书</div>
-            <div class="file-item">
+            <div class="file-title">产业发展数据模板</div>
+            <div v-if="!enterpriseFileList || enterpriseFileList.length === 0" class="empty-file-tip">园区端未上传文件</div>
+            <div v-else v-for="(file, idx) in enterpriseFileList" :key="'ent-'+idx" class="file-item">
               <i class="el-icon-file-text"></i>
-              <span>承诺书.docx</span>
-              <a href="javascript:void(0)" class="file-action" @click="openPreviewDialog('承诺书.docx')">预览</a>
+              <span>{{ file.fileName }}</span>
+              <a href="javascript:void(0)" class="file-action" @click="handleFilePreview(file)">预览</a>
             </div>
+          </div>
+          <div v-if="cultivationList && cultivationList.length > 0" class="table-wrapper" style="margin-top:12px;">
+            <el-table :data="cultivationList" border style="width: 100%;" max-height="300px">
+              <el-table-column prop="enterpriseName" label="企业名称" min-width="180" />
+              <el-table-column prop="honorType" label="培育类型" min-width="150" />
+              <el-table-column prop="occurTime" label="发生时间" min-width="120" />
+            </el-table>
           </div>
           <div class="bottom-actions">
             <el-button @click="handlePrevStep">上一步</el-button>
@@ -183,25 +191,20 @@
               <el-table-column prop="name" label="姓名" width="100" />
               <el-table-column prop="certDate" label="认定日期" width="120" />
               <el-table-column prop="company" label="推荐科技" />
-              <el-table-column prop="file" label="附件" width="200">
-                <template slot-scope="scope">
-                  <span class="file-text">企业指标.jpg</span>
-                  <a href="javascript:void(0)" class="file-action" @click="openPreviewDialog('企业指标.jpg')">预览</a>
-                </template>
-              </el-table-column>
               <el-table-column prop="score" label="得分" width="120" align="center" />
             </el-table>
           </div>
           <div class="tip-box info">
             <span>⑤园区与科研院所建立合作关系，在园区开展科研成果转化并在评价年度形成500万元以上产出的，每项得1分。</span>
           </div>
-          <div class="file-section">
-            <div class="file-title">产业发展数据模板</div>
-            <div class="file-item">
-              <i class="el-icon-file-text"></i>
-              <span>产业发展数据模板.xlsx</span>
-              <a href="javascript:void(0)" class="file-action" @click="openPreviewDialog('产业发展数据模板.xlsx')">预览</a>
-            </div>
+          <div v-if="techProjectList && techProjectList.length > 0" class="table-wrapper">
+            <div class="file-title" style="margin-bottom:8px;">院所合作项目</div>
+            <el-table :data="techProjectList" border style="width: 100%;" max-height="200px">
+              <el-table-column prop="projectName" label="合作项目" min-width="180" />
+              <el-table-column prop="institute" label="合作院所" min-width="150" />
+              <el-table-column prop="outputValue" label="产出(万元)" min-width="100" />
+              <el-table-column prop="cooperateDate" label="合作日期" min-width="120" />
+            </el-table>
           </div>
           <div class="bottom-actions">
             <el-button @click="handlePrevStep">上一步</el-button>
@@ -219,23 +222,29 @@
           </div>
           <div class="file-section">
             <div class="file-title">助企服务站建设材料</div>
-            <div class="file-item">
+            <div v-if="!serviceFiles.enterpriseService || serviceFiles.enterpriseService.length === 0" class="empty-file-tip">园区端未上传文件</div>
+            <div v-else v-for="(file, idx) in serviceFiles.enterpriseService" :key="'s1-'+idx" class="file-item">
               <i class="el-icon-file-text"></i>
-              <span>助企服务站建设材料</span>
+              <span>{{ file.fileName }}</span>
+              <a href="javascript:void(0)" class="file-action" @click="handleFilePreview(file)">预览</a>
             </div>
           </div>
           <div class="file-section">
             <div class="file-title">一站式代办服务材料</div>
-            <div class="file-item">
+            <div v-if="!serviceFiles.oneStopService || serviceFiles.oneStopService.length === 0" class="empty-file-tip">园区端未上传文件</div>
+            <div v-else v-for="(file, idx) in serviceFiles.oneStopService" :key="'s2-'+idx" class="file-item">
               <i class="el-icon-file-text"></i>
-              <span>一站式代办服务材料</span>
+              <span>{{ file.fileName }}</span>
+              <a href="javascript:void(0)" class="file-action" @click="handleFilePreview(file)">预览</a>
             </div>
           </div>
           <div class="file-section">
             <div class="file-title">党团工会活动材料</div>
-            <div class="file-item">
+            <div v-if="!serviceFiles.unionActivity || serviceFiles.unionActivity.length === 0" class="empty-file-tip">园区端未上传文件</div>
+            <div v-else v-for="(file, idx) in serviceFiles.unionActivity" :key="'s3-'+idx" class="file-item">
               <i class="el-icon-file-text"></i>
-              <span>党团工会活动材料</span>
+              <span>{{ file.fileName }}</span>
+              <a href="javascript:void(0)" class="file-action" @click="handleFilePreview(file)">预览</a>
             </div>
           </div>
           <div class="tip-box info">
@@ -243,9 +252,11 @@
           </div>
           <div class="file-section">
             <div class="file-title">园区大脑数字化相关资料</div>
-            <div class="file-item">
+            <div v-if="!serviceFiles.parkBrain || serviceFiles.parkBrain.length === 0" class="empty-file-tip">园区端未上传文件</div>
+            <div v-else v-for="(file, idx) in serviceFiles.parkBrain" :key="'s4-'+idx" class="file-item">
               <i class="el-icon-file-text"></i>
-              <span>园区大脑数字化相关资料</span>
+              <span>{{ file.fileName }}</span>
+              <a href="javascript:void(0)" class="file-action" @click="handleFilePreview(file)">预览</a>
             </div>
           </div>
           <div class="tip-box info">
@@ -253,16 +264,20 @@
           </div>
           <div class="file-section">
             <div class="file-title">普惠性服务活动 <span class="file-hint">请上传活动"通知+签到+照片"相关资料</span></div>
-            <div class="file-item">
+            <div v-if="!serviceFiles.inclusiveService || serviceFiles.inclusiveService.length === 0" class="empty-file-tip">园区端未上传文件</div>
+            <div v-else v-for="(file, idx) in serviceFiles.inclusiveService" :key="'s5-'+idx" class="file-item">
               <i class="el-icon-file-text"></i>
-              <span>普惠性服务活动</span>
+              <span>{{ file.fileName }}</span>
+              <a href="javascript:void(0)" class="file-action" @click="handleFilePreview(file)">预览</a>
             </div>
           </div>
           <div class="file-section">
             <div class="file-title">个性化服务活动 <span class="file-hint">请上传活动"照片+说明"相关资料</span></div>
-            <div class="file-item">
+            <div v-if="!serviceFiles.personalizedService || serviceFiles.personalizedService.length === 0" class="empty-file-tip">园区端未上传文件</div>
+            <div v-else v-for="(file, idx) in serviceFiles.personalizedService" :key="'s6-'+idx" class="file-item">
               <i class="el-icon-file-text"></i>
-              <span>个性化服务活动</span>
+              <span>{{ file.fileName }}</span>
+              <a href="javascript:void(0)" class="file-action" @click="handleFilePreview(file)">预览</a>
             </div>
           </div>
           <div class="tip-box info">
@@ -270,9 +285,11 @@
           </div>
           <div class="file-section">
             <div class="file-title">合作项目资料</div>
-            <div class="file-item">
+            <div v-if="!serviceFiles.cooperationProject || serviceFiles.cooperationProject.length === 0" class="empty-file-tip">园区端未上传文件</div>
+            <div v-else v-for="(file, idx) in serviceFiles.cooperationProject" :key="'s7-'+idx" class="file-item">
               <i class="el-icon-file-text"></i>
-              <span>合作项目资料</span>
+              <span>{{ file.fileName }}</span>
+              <a href="javascript:void(0)" class="file-action" @click="handleFilePreview(file)">预览</a>
             </div>
           </div>
           <div class="bottom-actions">
@@ -294,6 +311,15 @@
           </div>
           <div class="tip-box info">
             <span>③贯彻落实集约发展理念，通过改造提升实现工业上楼、效益提升的，得5分。</span>
+          </div>
+          <div class="file-section">
+            <div class="file-title">效益产出相关材料</div>
+            <div v-if="!benefitFileList || benefitFileList.length === 0" class="empty-file-tip">园区端未上传文件</div>
+            <div v-else v-for="(file, idx) in benefitFileList" :key="'bf-'+idx" class="file-item">
+              <i class="el-icon-file-text"></i>
+              <span>{{ file.fileName }}</span>
+              <a href="javascript:void(0)" class="file-action" @click="handleFilePreview(file)">预览</a>
+            </div>
           </div>
           <div class="bottom-actions">
             <el-button @click="handlePrevStep">上一步</el-button>
@@ -437,50 +463,17 @@
     <!-- 审核记录对话框 -->
     <el-dialog title="审核记录" :visible.sync="auditRecordsDialogVisible" width="600px" :close-on-click-modal="false" :show-close="true">
       <div class="timeline-container">
-        <div 
-          v-for="(record, index) in auditRecords" 
-          :key="index" 
+        <div v-if="auditRecords.length === 0" class="empty-tip">暂无审核记录</div>
+        <div
+          v-for="(record, index) in auditRecords"
+          :key="index"
           class="timeline-item"
-          :class="{ 'active': index === 0 }"
+          :class="{ 'active': record.active }"
         >
-          <!-- 时间线点 -->
-          <div class="timeline-dot" :class="record.statusClass"></div>
-          
-          <!-- 内容卡片 -->
+          <div class="timeline-dot" :class="record.active ? 'success' : 'default'"></div>
           <div class="timeline-card">
-            <!-- 时间 -->
             <div class="record-time">{{ record.auditTime }}</div>
-            
-            <!-- 标题区域 -->
-            <div class="record-header">
-              <span class="park-name">
-                <i class="el-icon-user"></i>
-                {{ record.parkName }}
-              </span>
-              <el-tag :type="record.tagType" class="status-tag">{{ record.statusText }}</el-tag>
-            </div>
-            
-            <!-- 状态变更 -->
-            <div class="status-change">
-              <span>{{ record.fromStatus }}</span>
-              <i class="el-icon-arrow-right"></i>
-              <span>{{ record.toStatus }}</span>
-            </div>
-            
-            <!-- 审核人 -->
-            <div class="auditor">
-              <i class="el-icon-user"></i>
-              <span>{{ record.auditorName }}</span>
-            </div>
-            
-            <!-- 审核意见 -->
-            <div v-if="record.auditOpinion" class="audit-opinion">
-              <div class="opinion-label">
-                <i class="el-icon-file-text"></i>
-                <span>审核意见</span>
-              </div>
-              <div class="opinion-content">{{ record.auditOpinion }}</div>
-            </div>
+            <div class="record-content">{{ record.content }}</div>
           </div>
         </div>
       </div>
@@ -488,15 +481,20 @@
         <el-button @click="auditRecordsDialogVisible = false">关闭</el-button>
       </div>
     </el-dialog>
+
+    <!-- 行文文件预览组件 -->
+    <FilePreview :visible.sync="filePreviewVisible" :file-url="previewUrl" :file-name="previewDialogTitle" />
   </div>
 </template>
 
 <script>
-import { getEvaluationDetail, submitAudit, getAuditHistory } from '@/api/audit'
+import { getEvaluationDetail, submitAudit, getAuditHistory, getParkFiles, uploadParkFile } from '@/api/audit'
 import { mapGetters } from 'vuex'
+import FilePreview from '@/components/FilePreview.vue'
 
 export default {
   name: 'AuditDetail',
+  components: { FilePreview },
   data() {
     return {
       activeIndex: '1',
@@ -506,53 +504,12 @@ export default {
       confirmDialogTitle: '',
       previewDialogVisible: false,
       previewDialogTitle: '',
+      previewUrl: '',
       auditRecordsDialogVisible: false,
-      auditRecords: [
-        {
-          auditTime: '2026-06-24 15:58:23',
-          parkName: '西湖区测试',
-          statusText: '区县审核驳回',
-          tagType: 'danger',
-          statusClass: 'warning',
-          fromStatus: '区县待审核',
-          toStatus: '区县审核驳回',
-          auditorName: '区县审核',
-          auditOpinion: 'A'
-        },
-        {
-          auditTime: '2026-06-24 15:47:02',
-          parkName: '西湖区测试',
-          statusText: '未提交',
-          tagType: 'info',
-          statusClass: 'default',
-          fromStatus: '已终止',
-          toStatus: '未提交',
-          auditorName: '区县审核',
-          auditOpinion: '修改参评状态为参评'
-        },
-        {
-          auditTime: '2026-06-24 15:45:38',
-          parkName: '西湖区测试',
-          statusText: '已终止',
-          tagType: 'warning',
-          statusClass: 'default',
-          fromStatus: '区县审核通过',
-          toStatus: '已终止',
-          auditorName: '区县审核',
-          auditOpinion: '修改参评状态为不参评'
-        },
-        {
-          auditTime: '2026-06-24 15:25:25',
-          parkName: '西湖区测试',
-          statusText: '区县审核通过',
-          tagType: 'success',
-          statusClass: 'success',
-          fromStatus: '区县待审核',
-          toStatus: '区县审核通过',
-          auditorName: '区县审核',
-          auditOpinion: ''
-        }
-      ],
+      auditRecords: [],
+      documentFile: null,
+      documentUploading: false,
+      filePreviewVisible: false,
       stepCompleted: {
         '1': false,
         '2': false,
@@ -607,32 +564,20 @@ export default {
         rejectReason: '',
         finalOpinion: ''
       },
-      enterpriseList: [
-        { rowIndex: 1, parkName: '万轮科技园', enterpriseName: '杭州怡明医疗器械股份有限公司', creditCode: '913301001695775M', registerDate: '2022-06-30至', address: '浙江省杭州市滨江区江南大道699号' },
-        { rowIndex: 2, parkName: '传化科创园', enterpriseName: '杭州艾名医学科技有限公司', creditCode: '91330108MA2JG5G55D', registerDate: '2022-06-30至', address: '浙江省杭州市滨江区西兴街道江陵路88号3幢' },
-        { rowIndex: 3, parkName: '和达药谷中心', enterpriseName: '杭州环特生物科技股份有限公司', creditCode: '9133010556612982F', registerDate: '2022-06-30至', address: '浙江省杭州市江干区江潮路88号杭州医药港9号楼' },
-        { rowIndex: 4, parkName: '颐高创业园', enterpriseName: '杭州禾睿康宇医药科技科技有限公司', creditCode: '91330108MA2JG5GL9G', registerDate: '2022-06-30至', address: '浙江省杭州市滨江区西兴街道江陵路88号' },
-        { rowIndex: 5, parkName: '天和国际产业园', enterpriseName: '杭州腾品科技有限公司', creditCode: '9133010856673312C', registerDate: '2022-06-30至', address: '浙江省杭州市滨江区江南大道88号万轮科技园' },
-        { rowIndex: 6, parkName: '乐富海邦园', enterpriseName: '杭州启明医疗器械股份有限公司', creditCode: '91330108MA2JG5G55D', registerDate: '2022-06-30至', address: '浙江省杭州市滨江区江南大道699号' },
-        { rowIndex: 7, parkName: '银海科创中心', enterpriseName: '杭州艾名医学科技有限公司', creditCode: '91330108MA2JG5G55D', registerDate: '2022-06-30至', address: '浙江省杭州市滨江区西兴街道江陵路88号3幢' },
-        { rowIndex: 8, parkName: '杭州湾信息港', enterpriseName: '杭州环特生物科技股份有限公司', creditCode: '9133010556612982F', registerDate: '2022-06-30至', address: '浙江省杭州市江干区江潮路88号杭州医药港9号楼' },
-        { rowIndex: 9, parkName: '钱塘湾孵化器（一期）', enterpriseName: '杭州禾睿康宇医药科技科技有限公司', creditCode: '91330108MA2JG5GL9G', registerDate: '2022-06-30至', address: '浙江省杭州市滨江区西兴街道江陵路88号' },
-        { rowIndex: 10, parkName: '钱塘湾孵化器（一期）', enterpriseName: '杭州腾品科技有限公司', creditCode: '9133010856673312C', registerDate: '2022-06-30至', address: '浙江省杭州市滨江区江南大道88号万轮科技园' },
-        { rowIndex: 11, parkName: '菜鸟智谷产业园', enterpriseName: '杭州启明医疗器械股份有限公司', creditCode: '9133010856673312C', registerDate: '2022-06-30至', address: '浙江省杭州市滨江区江南大道699号' },
-        { rowIndex: 12, parkName: '传化科创园', enterpriseName: '杭州艾名医学科技有限公司', creditCode: '91330108MA2JG5G55D', registerDate: '2022-06-30至', address: '浙江省杭州市滨江区西兴街道江陵路88号3幢' },
-        { rowIndex: 13, parkName: '和达药谷园区', enterpriseName: '杭州环特生物科技股份有限公司', creditCode: '9133010556612982F', registerDate: '2022-06-30至', address: '浙江省杭州市江干区江潮路88号杭州医药港9号楼' },
-        { rowIndex: 14, parkName: '颐高创业园', enterpriseName: '杭州禾睿康宇医药科技科技有限公司', creditCode: '91330108MA2JG5GL9G', registerDate: '2022-06-30至', address: '浙江省杭州市滨江区西兴街道江陵路88号' },
-        { rowIndex: 15, parkName: '天和国际产业园', enterpriseName: '杭州腾品科技有限公司', creditCode: '9133010856673312C', registerDate: '2022-06-30至', address: '浙江省杭州市滨江区江南大道88号万轮科技园' }
-      ],
-      talentList: [
-        { level: 'A类', name: '张明', company: '推荐科技', certDate: '2024-01-30', score: '', file: '' },
-        { level: 'B类', name: '李华', company: '推荐科技', certDate: '2024-01-30', score: '', file: '' },
-        { level: 'B类', name: '王芳', company: '推荐科技', certDate: '2024-01-30', score: '', file: '' }
-      ],
+      enterpriseList: [],
+      talentList: [],
       // 安全生产附件列表
-      safetyFiles: [
-        { name: '承诺书.docx', size: '13.71 KB' }
-      ]
+      safetyFiles: [],
+      // 园区端上传的文件（来自 parkExtraData）- 字段名与园区端 add.vue 保持一致
+      serviceFiles: {
+        enterpriseService: [], oneStopService: [], unionActivity: [],
+        parkBrain: [], inclusiveService: [], personalizedService: [], cooperationProject: []
+      },
+      benefitFileList: [],
+      enterpriseFileList: [],   // 企业培育-产业发展数据模板
+      otherFileList: [],        // 其他-承诺函等
+      techProjectList: [],      // 院所合作项目
+      cultivationList: []       // 企业培育记录
     }
   },
   computed: {
@@ -669,9 +614,101 @@ export default {
           const tech = scoreDetail.techInnovation
           if (tech.total != null) this.auditForm.techScore = String(tech.total)
         }
+
+        // 解析园区端提交的 parkExtraData（文件元数据）
+        const extra = this.evaluationInfo.extraData || {}
+        if (extra.serviceFiles) {
+          this.serviceFiles = Object.assign({}, this.serviceFiles, extra.serviceFiles)
+        }
+        if (extra.benefitFiles) {
+          this.benefitFileList = extra.benefitFiles || []
+        }
+        if (extra.fileSections) {
+          this.enterpriseFileList = extra.fileSections.enterpriseFiles || []
+          this.otherFileList = extra.fileSections.otherFiles || []
+        }
+
+        // 产业发展企业列表（按 parkId 关联）
+        this.enterpriseList = this.evaluationInfo.enterprises || []
+        // 科技创新人才
+        this.talentList = this.evaluationInfo.techInnovations || []
+        // 院所合作项目
+        this.techProjectList = this.evaluationInfo.techProjects || []
+        // 企业培育记录
+        this.cultivationList = this.evaluationInfo.cultivationRecords || []
+
+        // 加载行文文件（区县上传的盖章文件，本年度所有评价材料自动显示）
+        if (this.evaluationInfo.parkId) {
+          this.loadDocumentFile(this.evaluationInfo.parkId)
+        }
       } catch (e) {
         console.error('获取评价详情失败', e)
       }
+    },
+
+    // 加载行文文件（只展示最新一次上传的文件）
+    async loadDocumentFile(parkId) {
+      try {
+        const res = await getParkFiles(parkId)
+        if (res.code === 200 && res.data && res.data.length > 0) {
+          this.documentFile = res.data[0]
+        }
+      } catch (e) {
+        console.warn('加载行文文件失败', e)
+      }
+    },
+
+    // 上传行文文件
+    handleDocumentUpload(file) {
+      if (!this.evaluationInfo.parkId) {
+        this.$message.error('无法获取园区信息')
+        return false
+      }
+      const allowedTypes = ['.doc', '.docx', '.xls', '.xlsx', '.pdf', '.png', '.jpg', '.jpeg']
+      const ext = file.name.substring(file.name.lastIndexOf('.')).toLowerCase()
+      if (!allowedTypes.includes(ext)) {
+        this.$message.error('支持格式: .doc,.docx,.xls,.xlsx,.pdf,.png,.jpg,.jpeg')
+        return false
+      }
+      if (file.size > 50 * 1024 * 1024) {
+        this.$message.error('文件大小不能超过50MB')
+        return false
+      }
+      this.documentUploading = true
+      const formData = new FormData()
+      formData.append('file', file)
+      uploadParkFile(this.evaluationInfo.parkId, formData).then(res => {
+        if (res.code === 200 && res.data) {
+          this.documentFile = res.data
+          this.$message.success('行文文件上传成功，本年度所有评价材料将自动显示此文件')
+        }
+      }).catch(e => {
+        console.error('上传行文文件失败', e)
+        this.$message.error('上传失败')
+      }).finally(() => {
+        this.documentUploading = false
+      })
+      return false
+    },
+
+    // 预览行文文件
+    previewDocumentFile() {
+      if (this.documentFile && this.documentFile.id) {
+        this.previewUrl = `/api/documents/preview/${this.documentFile.id}`
+        this.previewDialogTitle = this.documentFile.fileName || '行文文件'
+        this.filePreviewVisible = true
+      }
+    },
+
+    // 预览园区端上传的文件
+    handleFilePreview(file) {
+      if (!file || !file.fileUrl) {
+        this.$message.warning('文件暂无可预览的地址')
+        return
+      }
+      this.previewUrl = file.fileUrl
+      this.previewDialogTitle = file.fileName || '文件预览'
+      this.filePreviewVisible = true
     },
 
     // 打开预览对话框
@@ -874,7 +911,7 @@ export default {
       try {
         const response = await submitAudit({
           evaluationId: this.evaluationInfo.id,
-          action: this.auditForm.finalResult,
+          action: parseInt(this.auditForm.finalResult),
           opinion: this.auditForm.finalOpinion
         })
         if (response.code === 200) {
@@ -894,50 +931,24 @@ export default {
 
     // 查看审核记录
     async viewAuditRecords() {
-      // 先显示对话框（保留默认数据）
       this.auditRecordsDialogVisible = true
-      
-      // 如果没有评价记录ID，保留默认数据，不做任何操作
       if (!this.evaluationInfo.id) {
         return
       }
-      
       try {
         const response = await getAuditHistory(this.evaluationInfo.id)
-        if (response.code === 200 && response.data && response.data.length > 0) {
-          this.auditRecords = response.data.map(record => {
-            const statusMap = {
-              '0': { text: '未提交', type: 'info', class: 'default' },
-              '1': { text: '区县待审核', type: 'warning', class: 'default' },
-              '2': { text: '已终止', type: 'warning', class: 'default' },
-              '3': { text: '区县审核通过', type: 'success', class: 'success' },
-              '4': { text: '区县审核驳回', type: 'danger', class: 'warning' },
-              '5': { text: '已上报', type: 'info', class: 'default' },
-              '6': { text: '市级审核通过', type: 'success', class: 'success' },
-              '7': { text: '市级审核驳回', type: 'danger', class: 'warning' },
-              '8': { text: '已发布', type: 'success', class: 'success' }
-            }
-            
-            const fromStatus = statusMap[record.fromStatus] || { text: '未知', type: 'info', class: 'default' }
-            const toStatus = statusMap[record.toStatus] || { text: '未知', type: 'info', class: 'default' }
-            
-            return {
-              auditTime: record.createTime || record.auditTime || record.createdAt || '',
-              parkName: this.evaluationInfo.parkName || '园区',
-              statusText: toStatus.text,
-              tagType: toStatus.type,
-              statusClass: toStatus.class,
-              fromStatus: fromStatus.text,
-              toStatus: toStatus.text,
-              auditorName: record.auditorName || record.createdBy || '未知',
-              auditOpinion: record.opinion || record.auditOpinion || ''
-            }
-          })
+        if (response.code === 200 && response.data) {
+          this.auditRecords = response.data.map(item => ({
+            content: item.content || '',
+            auditTime: item.time || '',
+            active: item.active === true
+          }))
+        } else {
+          this.auditRecords = []
         }
-        // 如果没有数据，保留默认数据，不做任何操作
       } catch (error) {
         console.error('获取审核记录失败', error)
-        // 保留默认数据，不做任何操作
+        this.auditRecords = []
       }
     },
 
@@ -1371,6 +1382,61 @@ export default {
   margin-top: 12px;
 }
 
+/* 行文文件上传区样式 */
+.document-section {
+  background: #f5f7fa;
+  border: 1px solid #e4e7ed;
+  border-radius: 8px;
+  padding: 16px;
+  margin: 16px 0;
+}
+
+.document-title {
+  font-size: 14px;
+  font-weight: 500;
+  color: #303133;
+  margin-bottom: 12px;
+}
+
+.document-hint {
+  font-weight: normal;
+  font-size: 12px;
+  color: #909399;
+  margin-left: 4px;
+}
+
+.document-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: #fff;
+  border-radius: 4px;
+  margin-bottom: 12px;
+  border: 1px solid #dcdfe6;
+}
+
+.document-item i {
+  color: #409eff;
+  font-size: 16px;
+}
+
+.document-name {
+  flex: 1;
+  font-size: 13px;
+  color: #303133;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.document-empty {
+  font-size: 13px;
+  color: #909399;
+  padding: 8px 12px;
+  margin-bottom: 12px;
+}
+
 .file-input {
   display: none;
 }
@@ -1629,6 +1695,19 @@ export default {
   font-size: 12px;
   color: #909399;
   margin-bottom: 8px;
+}
+
+.record-content {
+  font-size: 14px;
+  color: #303133;
+  line-height: 1.6;
+}
+
+.empty-tip {
+  text-align: center;
+  color: #909399;
+  padding: 40px 0;
+  font-size: 14px;
 }
 
 .record-header {

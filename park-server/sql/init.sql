@@ -85,18 +85,42 @@ CREATE TABLE enterprise_info (
 -- ============================================================
 DROP TABLE IF EXISTS evaluation_record;
 CREATE TABLE evaluation_record (
-    id              BIGINT        NOT NULL AUTO_INCREMENT COMMENT '评价记录ID',
-    park_id         BIGINT        NOT NULL                COMMENT '园区ID',
-    year            INT           NOT NULL                COMMENT '评价年度',
-    status          TINYINT       NOT NULL DEFAULT 0      COMMENT '状态：0=草稿, 1=待区县审, 2=待市局审, 3=通过, 4=驳回',
-    total_score     DECIMAL(5,2)  DEFAULT NULL            COMMENT '总分',
-    grade           VARCHAR(10)   DEFAULT NULL            COMMENT '绩效分档：A/B/C/D',
-    reject_category VARCHAR(255)  DEFAULT NULL            COMMENT '驳回类别',
-    create_time     DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-    update_time     DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    id                BIGINT        NOT NULL AUTO_INCREMENT COMMENT '评价记录ID',
+    park_id           BIGINT        NOT NULL                COMMENT '园区ID',
+    year              INT           NOT NULL                COMMENT '评价年度',
+    status            TINYINT       NOT NULL DEFAULT 0      COMMENT '状态：0=草稿, 1=待区县审, 2=待市局审, 3=通过, 4=驳回',
+    evaluation_status TINYINT       DEFAULT NULL            COMMENT '参评状态：1=参评, 0=不参评',
+    total_score       DECIMAL(5,2)  DEFAULT NULL            COMMENT '总分',
+    grade             VARCHAR(10)   DEFAULT NULL            COMMENT '绩效分档：A/B/C/D',
+    score_detail      TEXT          DEFAULT NULL            COMMENT '打分详情JSON',
+    reject_categories VARCHAR(255)  DEFAULT NULL            COMMENT '驳回类别',
+    park_extra_data   TEXT          DEFAULT NULL            COMMENT '园区端附加数据JSON（含上传文件元数据）',
+    create_time       DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    update_time       DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     PRIMARY KEY (id),
     KEY idx_park_year (park_id, year)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='评价记录表';
+
+-- ============================================================
+-- 4.5. evaluation_enterprise — 评价关联企业表（产业发展数据模板导入）
+-- ============================================================
+DROP TABLE IF EXISTS evaluation_enterprise;
+CREATE TABLE evaluation_enterprise (
+    id                BIGINT        NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+    evaluation_id     BIGINT        NOT NULL                COMMENT '评价记录ID',
+    park_id           BIGINT        DEFAULT NULL            COMMENT '园区ID',
+    park_name         VARCHAR(200)  DEFAULT NULL            COMMENT '园区名称',
+    enterprise_name   VARCHAR(200)  DEFAULT NULL            COMMENT '入驻企业名称',
+    credit_code       VARCHAR(50)   DEFAULT NULL            COMMENT '统一社会信用代码',
+    settled_start_time VARCHAR(50)  DEFAULT NULL            COMMENT '入驻开始时间',
+    settled_end_time  VARCHAR(50)   DEFAULT NULL            COMMENT '入驻截止时间',
+    settled_date      VARCHAR(100)  DEFAULT NULL            COMMENT '入驻起止时间（合并展示）',
+    registered_address VARCHAR(500) DEFAULT NULL            COMMENT '企业注册地址',
+    create_time       DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    update_time       DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    PRIMARY KEY (id),
+    KEY idx_evaluation_id (evaluation_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='评价关联企业表（产业发展数据按评价记录隔离）';
 
 -- ============================================================
 -- 5. audit_record — 审核记录表

@@ -85,8 +85,9 @@
           <el-option label="全部审核状态" value="" />
           <el-option label="未提交" value="0" />
           <el-option label="区县待审核" value="1" />
-          <el-option label="区县审核通过" value="3" />
-          <el-option label="区县审核驳回" value="4" />
+          <el-option label="待市局审核" value="2" />
+          <el-option label="审核通过" value="3" />
+          <el-option label="审核驳回" value="4" />
           <el-option label="已终止" value="6" />
         </el-select>
         <el-select 
@@ -152,21 +153,15 @@
           <template slot-scope="scope">
             <!-- 参评状态（evaluationStatus === 1） -->
             <template v-if="scope.row.evaluationStatus === 1">
-              <!-- 未提交(0)或已终止(2)：审核按钮灰色禁用，但仍允许不参评 -->
-              <template v-if="scope.row.auditStatus === 0 || scope.row.auditStatus === 2">
-                <el-button type="text" size="small" disabled style="color: #c0c4cc; cursor: not-allowed;">审核</el-button>
-                <el-button type="text" size="small" style="color: #E6A23C;" @click="handleNotParticipate(scope.row)">不参评</el-button>
-              </template>
-              <!-- 区县待审核(1)：审核按钮可点（蓝色），不参评按钮可点（橙色） -->
-              <template v-else-if="scope.row.auditStatus === 1">
+              <!-- 区县待审核(1)：审核按钮可点 -->
+              <template v-if="scope.row.auditStatus === 1">
                 <el-button type="text" size="small" style="color: #409EFF;" @click="handleAudit(scope.row)">审核</el-button>
-                <el-button type="text" size="small" style="color: #E6A23C;" @click="handleNotParticipate(scope.row)">不参评</el-button>
               </template>
-              <!-- 区县审核通过(3) / 区县审核驳回(4)：审核按钮灰色禁用，仍允许不参评 -->
+              <!-- 其他状态：查看详情 -->
               <template v-else>
-                <el-button type="text" size="small" disabled style="color: #c0c4cc; cursor: not-allowed;">审核</el-button>
-                <el-button type="text" size="small" style="color: #E6A23C;" @click="handleNotParticipate(scope.row)">不参评</el-button>
+                <el-button type="text" size="small" style="color: #409EFF;" @click="handleAudit(scope.row)">查看详情</el-button>
               </template>
+              <el-button type="text" size="small" style="color: #E6A23C;" @click="handleNotParticipate(scope.row)">不参评</el-button>
             </template>
             <!-- 不参评状态（evaluationStatus !== 1） -->
             <template v-else>
@@ -351,6 +346,7 @@ export default {
       previewDialogVisible: false,
       currentParkName: '',
       currentParkId: null,
+      currentEvaluationId: null,
       uploadedFiles: [],
       currentPreviewFile: null,
       previewDialogTitle: '',
@@ -441,8 +437,8 @@ export default {
         this.stats = {
           total: records.length,
           pending: mapped.filter(i => i.auditStatus === 1).length,
-          passed: mapped.filter(i => i.auditStatus === 2 || i.auditStatus === 3).length,
-          rejected: mapped.filter(i => i.auditStatus === 4 || i.auditStatus === 6).length
+          passed: mapped.filter(i => i.auditStatus === 2).length,
+          rejected: mapped.filter(i => i.auditStatus === 4).length
         }
       } catch (e) {
         console.warn('加载统计数字失败', e)
@@ -513,16 +509,18 @@ export default {
     // 点击不参评
     handleNotParticipate(row) {
       this.currentParkName = row.parkName
-      this.currentParkId = row.id
+      this.currentParkId = row.parkId
+      this.currentEvaluationId = row.id
       this.confirmNotParticipateVisible = true
     },
-    
+
     // 点击行文文件
     handleDocumentFile(row) {
       this.currentParkName = row.parkName
-      this.currentParkId = row.id
+      this.currentParkId = row.parkId
+      this.currentEvaluationId = row.id
       // 加载已上传的文件
-      this.loadUploadedFiles(row.id)
+      this.loadUploadedFiles(row.parkId)
       this.documentDialogVisible = true
     },
 
@@ -694,7 +692,7 @@ export default {
     // 保存行文文件
     async saveDocument() {
       try {
-        await updateEvaluationStatus(this.currentParkId, 0)
+        await updateEvaluationStatus(this.currentEvaluationId, 0)
         this.$message.success('保存成功')
         this.documentDialogVisible = false
         // 从后端刷新数据
@@ -780,9 +778,9 @@ export default {
       const map = {
         0: '未提交',
         1: '区县待审核',
-        2: '区县审核通过',
-        3: '区县审核通过',
-        4: '区县审核驳回',
+        2: '待市局审核',
+        3: '审核通过',
+        4: '审核驳回',
         5: '已上报',
         6: '已终止'
       }
@@ -798,6 +796,12 @@ export default {
     handleBatchUpload() {
       if (this.selectedRows.length === 0) {
         this.$message.warning('请先选择要上报的园区')
+        return
+      }
+      // 校验选中记录必须是区县待审核状态
+      const invalidRows = this.selectedRows.filter(row => row.auditStatus !== 1)
+      if (invalidRows.length > 0) {
+        this.$message.warning('只能上报区县待审核状态的记录')
         return
       }
 
