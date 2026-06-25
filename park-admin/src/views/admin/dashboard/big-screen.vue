@@ -71,6 +71,35 @@
               <div ref="mapChart" class="map-chart"></div>
             </div>
 
+            <div class="vertical-beams">
+              <template v-for="d in districtData">
+                <div
+                  :key="'beam-' + d.name"
+                  class="v-beam"
+                  :class="{ active: hoveredDistrict === d.name }"
+                  :style="{
+                    left: d._screenX + 'px',
+                    top: d._screenY + 'px',
+                    height: d._beamScreenLen + 'px',
+                    transform: 'translate(-50%, -100%) translateX(' + (d._labelOffsetX || 0) + 'px)'
+                  }"
+                ></div>
+                <div
+                  :key="'label-' + d.name"
+                  class="v-label"
+                  :class="{ active: hoveredDistrict === d.name }"
+                  :style="{
+                    left: d._screenX + 'px',
+                    top: (d._screenY - d._beamScreenLen) + 'px',
+                    transform: 'translate(-50%, -100%) translateX(' + (d._labelOffsetX || 0) + 'px)'
+                  }"
+                  @mouseenter="handleMarkerHover(d)"
+                  @mouseleave="handleMarkerLeave"
+                  @click="handleMarkerClick(d)"
+                >{{ d.name }}</div>
+              </template>
+            </div>
+
             <div
               v-if="hoveredDistrictData"
               class="district-tooltip"
@@ -503,17 +532,17 @@ export default {
 
       this.districtsConfig = [
         { name: '上城区', position: geoCoords['上城区'] || [120.17, 30.25], beamHeight: 70, labelOffset: [0, 0] },
-        { name: '拱墅区', position: geoCoords['拱墅区'] || [120.15, 30.31], beamHeight: 90, labelOffset: [-10, 0] },
-        { name: '西湖区', position: geoCoords['西湖区'] ? [geoCoords['西湖区'][0] - 0.05, geoCoords['西湖区'][1] - 0.04] : [120.10, 30.23], beamHeight: 55, labelOffset: [-40, 0] },
-        { name: '滨江区', position: geoCoords['滨江区'] || [120.21, 30.21], beamHeight: 80, labelOffset: [20, 0] },
-        { name: '萧山区', position: geoCoords['萧山区'] || [120.27, 30.16], beamHeight: 100, labelOffset: [30, 0] },
+        { name: '拱墅区', position: geoCoords['拱墅区'] || [120.15, 30.31], beamHeight: 90, labelOffset: [4, 0] },
+        { name: '西湖区', position: geoCoords['西湖区'] ? [geoCoords['西湖区'][0] - 0.05, geoCoords['西湖区'][1] - 0.04] : [120.10, 30.23], beamHeight: 55, labelOffset: [7, 0] },
+        { name: '滨江区', position: geoCoords['滨江区'] || [120.21, 30.21], beamHeight: 80, labelOffset: [17, 0] },
+        { name: '萧山区', position: geoCoords['萧山区'] || [120.27, 30.16], beamHeight: 100, labelOffset: [8, 0] },
         { name: '余杭区', position: geoCoords['余杭区'] || [119.98, 30.27], beamHeight: 65, labelOffset: [-10, 0] },
-        { name: '临平区', position: geoCoords['临平区'] || [120.30, 30.30], beamHeight: 110, labelOffset: [5, 0] },
-        { name: '钱塘区', position: geoCoords['钱塘区'] || [120.49, 30.31], beamHeight: 75, labelOffset: [15, 0] },
+        { name: '临平区', position: geoCoords['临平区'] || [120.30, 30.30], beamHeight: 110, labelOffset: [8, 0] },
+        { name: '钱塘区', position: geoCoords['钱塘区'] || [120.49, 30.31], beamHeight: 75, labelOffset: [10, 0] },
         { name: '富阳区', position: geoCoords['富阳区'] || [119.95, 30.05], beamHeight: 60, labelOffset: [0, 0] },
-        { name: '临安区', position: geoCoords['临安区'] || [119.72, 30.23], beamHeight: 50, labelOffset: [-10, 0] },
+        { name: '临安区', position: geoCoords['临安区'] || [119.72, 30.23], beamHeight: 50, labelOffset: [4, 0] },
         { name: '桐庐县', position: geoCoords['桐庐县'] || [119.64, 29.88], beamHeight: 65, labelOffset: [0, 0] },
-        { name: '淳安县', position: geoCoords['淳安县'] || [119.05, 29.61], beamHeight: 55, labelOffset: [-5, 0] },
+        { name: '淳安县', position: geoCoords['淳安县'] || [119.05, 29.61], beamHeight: 55, labelOffset: [-3, 0] },
         { name: '建德市', position: geoCoords['建德市'] || [119.28, 29.49], beamHeight: 70, labelOffset: [0, 0] }
       ].filter(d => true)
 
@@ -566,33 +595,6 @@ export default {
         },
         series: [
           {
-            // 光束线条
-            type: 'lines',
-            coordinateSystem: 'geo',
-            geoIndex: 0,
-            data: this.districtsConfig.map(d => {
-              const beamLen = (d.beamHeight || 60) / 200
-              return {
-                coords: [d.position, [d.position[0], d.position[1] + beamLen]]
-              }
-            }),
-            lineStyle: {
-              color: {
-                type: 'linear',
-                x: 0, y: 0, x2: 0, y2: 1,
-                colorStops: [
-                  { offset: 0, color: 'rgba(251, 191, 36, 0.95)' },
-                  { offset: 0.5, color: 'rgba(251, 191, 36, 0.6)' },
-                  { offset: 1, color: 'rgba(251, 191, 36, 0)' }
-                ]
-              },
-              width: 2,
-              opacity: 1
-            },
-            zlevel: 1,
-            silent: true
-          },
-          {
             // 黄色光点
             type: 'effectScatter',
             coordinateSystem: 'geo',
@@ -623,46 +625,6 @@ export default {
               }
             },
             zlevel: 2
-          },
-          {
-            // 地区名称标签（光束顶部）
-            type: 'scatter',
-            coordinateSystem: 'geo',
-            geoIndex: 0,
-            data: this.districtsConfig.map(d => {
-              const beamLen = (d.beamHeight || 60) / 200
-              const offsetX = (d.labelOffset && d.labelOffset[0]) || 0
-              return {
-                name: d.name,
-                value: [d.position[0] + offsetX / 500, d.position[1] + beamLen],
-                _offsetX: offsetX
-              }
-            }),
-            symbolSize: 0,
-            label: {
-              show: true,
-              position: 'top',
-              offset: [0, -4],
-              formatter: '{b}',
-              color: '#fbbf24',
-              fontSize: 12,
-              fontWeight: 'bold',
-              backgroundColor: 'rgba(5, 15, 30, 0.9)',
-              borderColor: 'rgba(251, 191, 36, 0.8)',
-              borderWidth: 1,
-              padding: [4, 10],
-              borderRadius: 3,
-              shadowBlur: 8,
-              shadowColor: 'rgba(251, 191, 36, 0.4)'
-            },
-            labelLayout: params => {
-              const data = params.data
-              if (data && data._offsetX) {
-                return { x: params.x + data._offsetX, y: params.y, verticalAlign: params.verticalAlign, align: params.align }
-              }
-              return params
-            },
-            zlevel: 3
           }
         ]
       }
@@ -1184,11 +1146,17 @@ export default {
       }
     },
     calculateMarkerPositions() {
-      if (!this.mapChart || !this.districtsConfig) return
+      if (!this.mapChart || !this.districtsConfig || !this.$refs.mapChart) return
       const chartDom = this.$refs.mapChart
-      const canvas = chartDom.querySelector('canvas')
-      const scaleX = canvas ? chartDom.offsetWidth / canvas.width : 1
-      const scaleY = canvas ? chartDom.offsetHeight / canvas.height : 1
+      const W = chartDom.offsetWidth
+      const H = chartDom.offsetHeight
+      // 3D 变换参数（与 CSS 保持一致）
+      const TILT_DEG = 35
+      const PERSPECTIVE = 2000
+      const SCALE = 1.05
+      const theta = TILT_DEG * Math.PI / 180
+      const sinT = Math.sin(theta)
+      const cosT = Math.cos(theta)
       const industryMap = {
         '上城区': '数字经济/金融服务',
         '拱墅区': '商贸服务/文化创意',
@@ -1207,10 +1175,10 @@ export default {
       this.districtData = this.districtsConfig.map(d => {
         const baseData = {
           ...d,
-          _px: 0,
-          _py: 0,
-          _labelX: 0,
-          _labelY: 0,
+          _screenX: 0,
+          _screenY: 0,
+          _beamScreenLen: 50,
+          _labelOffsetX: (d.labelOffset && d.labelOffset[0]) || 0,
           parkCount: Math.floor(Math.random() * 80) + 40,
           mainIndustry: industryMap[d.name] || '制造业',
           manufacturingCount: Math.floor(Math.random() * 100) + 20,
@@ -1224,15 +1192,31 @@ export default {
         }
         try {
           const px = this.mapChart.convertToPixel({ geoIndex: 0 }, d.position)
-          const scaledX = px && px[0] ? px[0] * scaleX : 0
-          const scaledY = px && px[1] ? px[1] * scaleY : 0
-          const labelOffset = d.labelOffset || [0, -35]
+          if (!px) return baseData
+          const cx = px[0]
+          const cy = px[1]
+          // 以画布中心为原点
+          const localX = cx - W / 2
+          const localY = cy - H / 2
+          // CSS 变换顺序: rotateX(35deg) scale(1.05)，原点为中心
+          // 1) scale(1.05): (localX, localY) -> (s*localX, s*localY)
+          // 2) rotateX(theta): y 方向产生深度 Z = s*localY*sin(theta)
+          const scaledY = SCALE * localY
+          const z = scaledY * sinT
+          // 透视投影
+          const factor = PERSPECTIVE / (PERSPECTIVE - z)
+          const projectedX = SCALE * localX * factor
+          const projectedY = scaledY * cosT * factor
+          // 还原成画布局部坐标（以中心为原点）
+          const screenX = projectedX + W / 2
+          const screenY = projectedY + H / 2
+          // 光束屏幕长度：基于 beamHeight
+          const beamLen = d.beamHeight || 60
           return {
             ...baseData,
-            _px: scaledX,
-            _py: scaledY,
-            _labelX: scaledX + labelOffset[0],
-            _labelY: scaledY + labelOffset[1]
+            _screenX: screenX,
+            _screenY: screenY,
+            _beamScreenLen: beamLen
           }
         } catch (e) {
           return baseData
@@ -1691,7 +1675,7 @@ export default {
   position: absolute;
   inset: 0;
   transform-style: preserve-3d;
-  transform: rotateX(55deg) scale(1.05);
+  transform: rotateX(35deg) scale(1.05);
   transform-origin: center center;
 }
 
@@ -1773,6 +1757,59 @@ export default {
   position: absolute;
   inset: 0;
   z-index: 5;
+}
+
+.vertical-beams {
+  position: absolute;
+  inset: 0;
+  z-index: 15;
+  pointer-events: none;
+}
+
+.v-beam {
+  position: absolute;
+  width: 2px;
+  background: linear-gradient(180deg,
+    rgba(251, 191, 36, 0.95) 0%,
+    rgba(251, 191, 36, 0.5) 60%,
+    rgba(251, 191, 36, 0) 100%);
+  box-shadow: 0 0 6px rgba(251, 191, 36, 0.6);
+  transform-origin: center bottom;
+  pointer-events: none;
+  border-radius: 1px;
+}
+
+.v-beam.active {
+  background: linear-gradient(180deg,
+    rgba(252, 211, 77, 1) 0%,
+    rgba(252, 211, 77, 0.7) 60%,
+    rgba(252, 211, 77, 0) 100%);
+  box-shadow: 0 0 10px rgba(251, 191, 36, 0.9);
+}
+
+.v-label {
+  position: absolute;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: bold;
+  color: #fbbf24;
+  background: rgba(5, 15, 30, 0.9);
+  border: 1px solid rgba(251, 191, 36, 0.8);
+  border-radius: 3px;
+  white-space: nowrap;
+  box-shadow: 0 0 8px rgba(251, 191, 36, 0.4);
+  pointer-events: auto;
+  cursor: pointer;
+  transition: all 0.2s;
+  letter-spacing: 1px;
+}
+
+.v-label:hover,
+.v-label.active {
+  background: rgba(251, 191, 36, 0.95);
+  color: #051325;
+  box-shadow: 0 0 16px rgba(251, 191, 36, 0.7);
+  border-color: #fbbf24;
 }
 
 .map-markers {

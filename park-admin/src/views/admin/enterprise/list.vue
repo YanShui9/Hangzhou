@@ -283,7 +283,6 @@ export default {
     /** 获取企业列表 */
     getList() {
       this.loading = true
-      // 将 enterpriseName 同时用于企业名称/统一信用代码模糊查询
       const params = {
         ...this.queryParams,
         enterpriseName: this.queryParams.enterpriseName || undefined,
@@ -295,7 +294,7 @@ export default {
       }
       getEnterpriseList(params)
         .then(res => {
-          this.enterpriseList = this.buildMockRows(res.data.records || [])
+          this.enterpriseList = res.data.records || []
           this.total = res.data.total || 0
         })
         .catch(() => {
@@ -305,66 +304,6 @@ export default {
         .finally(() => {
           this.loading = false
         })
-    },
-    /**
-     * 本地演示数据 - 用于无后端或数据为空时展示界面样式
-     * 真实项目中：后端返回的 records 直接使用即可，可删除此方法
-     */
-    buildMockRows(records) {
-      if (records && records.length) return records
-      const parks = [
-        { name: '万轮科技园', district: '滨江区' },
-        { name: '传化国际科创园', district: '萧山区' },
-        { name: '和达药谷中心', district: '钱塘区' },
-        { name: '颐高创业园', district: '西湖区' },
-        { name: '天明国际产业园', district: '萧山区' },
-        { name: '乐富海邦园', district: '余杭区' },
-        { name: '银海科创中心', district: '钱塘区' },
-        { name: '杭州湾信息港', district: '萧山区' },
-        { name: '钱湾生物港（一期）', district: '萧山区' }
-      ]
-      const honorPool = [
-        '国高/小巨人/省专/单项冠军',
-        '省专/单项冠军',
-        '小巨人/省专',
-        ''
-      ]
-      const statusPool = ['存续', '注销']
-      const namePool = [
-        '杭州启明医疗器械股份有限公司',
-        '杭州艾名医学科技有限公司',
-        '杭州环特生物科技股份有限公司',
-        '杭州禾泰健宇医药科技有限公司',
-        '杭州路弘科技有限公司'
-      ]
-      const legalPool = ['张华敏', '李沐晴', '寒木枝', '张立业', '李建华']
-      const phonePool = ['180****5525', '166****0888']
-      const rows = []
-      for (let i = 0; i < 20; i++) {
-        const park = parks[i % parks.length]
-        const honor = honorPool[i % honorPool.length]
-        const isParticipate = honor ? (i % 3 === 0 ? 0 : 1) : 1
-        rows.push({
-          id: i + 1,
-          enterpriseName: namePool[i % namePool.length],
-          creditCode: '9133010' + String(1000000 + i * 73 + 6955775).slice(0, 10) + 'M',
-          districtName: park.district,
-          parkName: park.name,
-          parkId: (i % parks.length) + 1,
-          enterpriseHonor: honor,
-          isParticipate,
-          status: statusPool[i % statusPool.length],
-          legalPerson: legalPool[i % legalPool.length],
-          contactName: legalPool[(i + 1) % legalPool.length],
-          contactPhone: phonePool[i % phonePool.length],
-          remark: isParticipate === 0 ? '评价年度内时长不...' : '',
-          participateReason: isParticipate === 0 ? '评价年度内时长不足' : '',
-          industryName: '生物医药',
-          registeredCapital: (1000 + i * 50) + '.00',
-          registerDate: '20' + (15 + (i % 10)) + '-03-' + String(10 + (i % 20)).padStart(2, '0')
-        })
-      }
-      return rows
     },
     /** 查询 */
     handleQuery() {

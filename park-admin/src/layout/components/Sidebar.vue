@@ -18,10 +18,10 @@
       :unique-opened="false"
       mode="vertical"
     >
-      <el-menu-item v-if="hasRole([1])" index="/dashboard" @click="$router.push('/dashboard')">
+      <div v-if="hasRole([1])" class="menu-item-like" @click="openBigScreen">
         <i class="el-icon-data-line"></i>
-        <span slot="title">数据驾驶舱</span>
-      </el-menu-item>
+        <span>数据驾驶舱</span>
+      </div>
       <el-menu-item v-if="hasRole([2])" index="/district/dashboard" @click="$router.push('/district/dashboard')">
         <i class="el-icon-data-line"></i>
         <span slot="title">数据看板</span>
@@ -146,16 +146,40 @@ import { mapGetters } from 'vuex'
 
 export default {
   name: 'Sidebar',
+  data() {
+    return {
+      previousMenu: ''
+    }
+  },
   computed: {
     ...mapGetters(['userInfo']),
     activeMenu() {
-      return this.$route.path
+      const currentPath = this.$route.path
+      if (currentPath === '/admin/big-screen') {
+        return this.previousMenu || '/admin/park'
+      }
+      return currentPath
     }
+  },
+  watch: {
+    '$route.path'(newPath) {
+      if (newPath !== '/admin/big-screen') {
+        this.previousMenu = newPath
+      }
+    }
+  },
+  mounted() {
+    this.previousMenu = this.$route.path
   },
   methods: {
     hasRole(roles) {
       if (!this.userInfo || !this.userInfo.roleType) return false
       return roles.includes(this.userInfo.roleType)
+    },
+    openBigScreen() {
+      const baseUrl = window.location.origin + window.location.pathname
+      const bigScreenUrl = baseUrl.replace(/\/$/, '') + '#/admin/big-screen'
+      window.open(bigScreenUrl, '_blank')
     }
   }
 }
@@ -228,6 +252,30 @@ export default {
   height: 20px;
   background: #1E40AF;
   border-radius: 0 2px 2px 0;
+}
+.sidebar .menu-item-like {
+  height: 40px;
+  line-height: 40px;
+  margin-bottom: 2px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #4B5563;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+  padding: 0 0 0 20px;
+  display: flex;
+  align-items: center;
+}
+.sidebar .menu-item-like:hover {
+  background: #F9FAFB;
+  color: #111827;
+}
+.sidebar .menu-item-like i {
+  font-size: 18px;
+  width: 20px;
+  text-align: center;
+  margin-right: 10px;
 }
 .sidebar .el-menu-item i,
 .sidebar .el-submenu__title i {

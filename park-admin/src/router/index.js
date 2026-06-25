@@ -11,6 +11,12 @@ const routes = [
     meta: { title: '登录' }
   },
   {
+    path: '/admin/big-screen',
+    name: 'BigScreen',
+    component: () => import('@/views/admin/dashboard/big-screen.vue'),
+    meta: { title: '杭州市小微园区数据大屏', roles: [1] }
+  },
+  {
     path: '/',
     component: () => import('@/layout/index.vue'),
     redirect: to => {

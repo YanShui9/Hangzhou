@@ -257,43 +257,6 @@ export function updatePark(data) {
 }
 
 /**
- * 保存园区运营数据（季度对比数据）
- * @method PUT /api/parks/:id/operation
- * @param {Object} data 运营数据信息
- * @param {Long} data.id                    园区ID（必填）
- * @param {Integer} data.year               年度（如 2026）
- * @param {Array}   data.quarterCards       季度卡片信息
- *   - [{ name: "第一季度", status: "已填报" }, ...]
- *   - name:    String  季度名称（"第一季度" ~ "第四季度"）
- *   - status:  String  填报状态（"已填报" / "未填报"）
- * @param {Array}   data.operationTableData 季度对比表数据
- *   - 每条记录包含以下字段:
- *   - type:    String  指标类型（"入驻企业" / "入驻员工" / "创新专利"）
- *   - name:    String  指标名称（如 "入驻企业总数（家）"）
- *   - q1:      Integer | '--' 第一季度数值
- *   - q2:      Integer | '--' 第二季度数值
- *   - q3:      Integer | '--' 第三季度数值
- *   - q4:      Integer | '--' 第四季度数值
- *   - q1Trend: String  第一季度趋势（'up'=上升, 'down'=下降, 可选）
- *   - q2Trend: String  第二季度趋势（'up'=上升, 'down'=下降, 可选）
- * @returns {Promise}
- *
- * 指标类型及名称参考（供后端数据库字段设计）:
- *  - 入驻企业: 入驻企业总数、规模以上企业、高新技术企业、科技型中小企业、
- *              隐形冠军及培育企业、专精特新小巨人企业、创新型中小企业、省专精特新中小企业
- *  - 入驻员工: 入驻企业员工总数、"国千"人才、"省千"人才、正高级工程师人数、
- *              高级工程师人数、高级技师人数、硕士及副高以上人数、硕士以上人数
- *  - 创新专利: 专利总数、发明专利、实用新型专利、外观设计专利
- */
-export function updateOperationData(data) {
-  return request({
-    url: `/api/parks/${data.id}/operation`,
-    method: 'put',
-    data
-  })
-}
-
-/**
  * 删除园区
  * @method DELETE /api/parks/:id
  * @param {Long} id 园区ID
@@ -385,21 +348,6 @@ export function getTopIndustries(id) {
   return request({
     url: `/api/parks/${id}/top-industries`,
     method: 'get'
-  })
-}
-
-/**
- * 获取园区季度填报状态
- * @method GET /api/parks/:id/quarter-status
- * @param {Long} id 园区ID
- * @param {Integer} [year] 年度（可选，默认当前年）
- * @returns {Promise} 返回季度状态列表 [{ quarter, quarterName, status, reportTime }]
- */
-export function getQuarterStatus(id, year) {
-  return request({
-    url: `/api/parks/${id}/quarter-status`,
-    method: 'get',
-    params: { year }
   })
 }
 

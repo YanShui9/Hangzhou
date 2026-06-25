@@ -189,29 +189,6 @@ public class ParkController {
     }
 
     /**
-     * 园区端编辑季度运营数据
-     */
-    @PutMapping("/{id}/operation")
-    @ApiOperation(value = "园区端编辑季度运营数据", notes = "园区管理员编辑季度运营数据，回写到 park_info")
-    public R<Void> updateOperation(@PathVariable Long id,
-                                    @RequestBody java.util.Map<String, Object> data,
-                                    HttpServletRequest request) {
-        checkParkAdmin(request, id);
-        parkService.updateOperation(id, data);
-        return R.ok();
-    }
-
-    /**
-     * 获取园区季度填报状态
-     */
-    @GetMapping("/{id}/quarter-status")
-    @ApiOperation(value = "获取园区季度填报状态", notes = "返回年度各季度填报状态")
-    public R<java.util.List<java.util.Map<String, Object>>> getQuarterStatus(@PathVariable Long id,
-                                                                               @RequestParam(required = false) Integer year) {
-        return R.ok(parkService.getQuarterStatus(id, year));
-    }
-
-    /**
      * 获取园区主要产业（企业数量前三）
      */
     @GetMapping("/{id}/top-industries")

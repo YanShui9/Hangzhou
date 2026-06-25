@@ -334,7 +334,7 @@ export default {
   data() {
     return {
       parkStatusOptions: ['规划中', '建设中', '已投运'],
-      landNatureOptions: ['工业用地(M1/M2/M3)', '商业用地(B1)', '商务用地(B2)', '其他'],
+      landNatureOptions: ['工业用地', '商业用地', '商务用地', '其他'],
       districtOptions: ['滨江区', '萧山区', '余杭区', '西湖区', '上城区', '拱墅区', '钱塘区', '富阳区', '临安区', '桐庐县', '淳安县', '建德市'],
       parkTypeOptions: ['生产性制造类', '生产性服务类'],
       leadingIndustryOptions: ['数字经济', '智能制造', '生物医药', '新材料', '新能源', '集成电路', '科技服务', '其他'],

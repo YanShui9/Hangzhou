@@ -8,8 +8,9 @@ router.beforeEach(async(to, from, next) => {
 
   if (token) {
     if (to.path === '/login') {
-      // 已登录，跳转首页
-      next({ path: '/' })
+      // 访问登录页：先清除可能过期的 token，再放行
+      await store.dispatch('user/logout')
+      next()
     } else {
       // 检查用户信息是否已加载
       if (Object.keys(store.state.user.userInfo).length === 0) {

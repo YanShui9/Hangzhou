@@ -12,9 +12,7 @@ import com.park.park.dto.ParkSaveDTO;
 import com.park.park.dto.ParkStatsDTO;
 import com.park.park.dto.TotalStatsDTO;
 import com.park.park.entity.ParkInfo;
-import com.park.park.entity.ParkQuarterStat;
 import com.park.park.mapper.ParkMapper;
-import com.park.park.mapper.ParkQuarterStatMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -33,9 +31,6 @@ public class ParkService {
 
     @Autowired
     private ParkMapper parkMapper;
-
-    @Autowired
-    private ParkQuarterStatMapper parkQuarterStatMapper;
 
     @Autowired
     private com.park.enterprise.mapper.EnterpriseMapper enterpriseMapper;
@@ -523,156 +518,6 @@ public class ParkService {
             log.error("导出园区列表失败", e);
             throw new BusinessException(ResultCode.SERVER_ERROR, "导出失败");
         }
-    }
-
-    /**
-     * 园区端编辑季度运营数据
-     * 需求8、10：入驻企业、入驻员工、创新专利数据由园区端每季度编辑的季度数据生成，不可手动修改
-     */
-    @Transactional(rollbackFor = Exception.class)
-    public void updateOperation(Long parkId, java.util.Map<String, Object> data) {
-        Integer year = (Integer) data.get("year");
-        Integer quarter = (Integer) data.get("quarter");
-
-        if (year == null || quarter == null) {
-            throw new BusinessException(ResultCode.PARAM_ERROR, "年度和季度不能为空");
-        }
-
-        // 更新或创建季度填报状态
-        ParkQuarterStat stat = new ParkQuarterStat();
-        stat.setParkId(parkId);
-        stat.setYear(year);
-        stat.setQuarter(quarter);
-        stat.setStatus(1); // 1=已填报
-        stat.setReportTime(new java.util.Date());
-
-        // 从数据中获取运营指标
-        Object enterpriseCountObj = data.get("enterpriseCount");
-        if (enterpriseCountObj != null) {
-            stat.setEnterpriseCount(enterpriseCountObj instanceof Number ? ((Number) enterpriseCountObj).intValue() : null);
-        }
-        Object employeeCountObj = data.get("employeeCount");
-        if (employeeCountObj != null) {
-            stat.setEmployeeCount(employeeCountObj instanceof Number ? ((Number) employeeCountObj).intValue() : null);
-        }
-        Object patentCountObj = data.get("patentCount");
-        if (patentCountObj != null) {
-            stat.setPatentCount(patentCountObj instanceof Number ? ((Number) patentCountObj).intValue() : null);
-        }
-
-        com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<ParkQuarterStat> wrapper =
-                new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<>();
-        wrapper.eq(ParkQuarterStat::getParkId, parkId)
-               .eq(ParkQuarterStat::getYear, year)
-               .eq(ParkQuarterStat::getQuarter, quarter);
-
-        ParkQuarterStat exist = parkQuarterStatMapper.selectOne(wrapper);
-        if (exist != null) {
-            stat.setId(exist.getId());
-            parkQuarterStatMapper.updateById(stat);
-        } else {
-            parkQuarterStatMapper.insert(stat);
-        }
-
-        // 回写 park_info 的运营数据字段（使用最新季度的数据）
-        refreshParkOperationData(parkId, year);
-
-        log.info("园区端编辑季度运营数据：园区ID={}, 年度={}, 季度={}", parkId, year, quarter);
-    }
-
-    /**
-     * 刷新园区运营数据（从季度数据汇总）
-     * 根据指定年度的所有季度数据，更新park_info中的统计字段
-     *
-     * @param parkId 园区ID
-     * @param year   年度
-     */
-    private void refreshParkOperationData(Long parkId, Integer year) {
-        // 查询该园区指定年度的所有季度数据
-        com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<ParkQuarterStat> wrapper =
-                new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<>();
-        wrapper.eq(ParkQuarterStat::getParkId, parkId)
-               .eq(ParkQuarterStat::getYear, year)
-               .orderByAsc(ParkQuarterStat::getQuarter);
-
-        java.util.List<ParkQuarterStat> quarterStats = parkQuarterStatMapper.selectList(wrapper);
-
-        if (quarterStats == null || quarterStats.isEmpty()) {
-            log.warn("未找到园区季度数据：园区ID={}, 年度={}", parkId, year);
-            return;
-        }
-
-        // 取最新季度的数据作为当前值（通常是第4季度，如果没有则取最后一个已填报的季度）
-        ParkQuarterStat latestStat = quarterStats.stream()
-                .filter(s -> s.getStatus() != null && s.getStatus() == 1) // 只取已填报的
-                .reduce((first, second) -> second) // 取最后一个
-                .orElse(null);
-
-        if (latestStat == null) {
-            log.warn("没有已填报的季度数据：园区ID={}, 年度={}", parkId, year);
-            return;
-        }
-
-        // 更新 park_info 的运营统计字段
-        ParkInfo parkInfo = parkMapper.selectById(parkId);
-        if (parkInfo != null) {
-            boolean needUpdate = false;
-
-            // 入驻企业数
-            if (latestStat.getEnterpriseCount() != null) {
-                parkInfo.setEnterpriseCount(latestStat.getEnterpriseCount());
-                needUpdate = true;
-            }
-
-            // 入驻员工数
-            if (latestStat.getEmployeeCount() != null) {
-                parkInfo.setEmployeeCount(latestStat.getEmployeeCount());
-                needUpdate = true;
-            }
-
-            // 创新专利数
-            if (latestStat.getPatentCount() != null) {
-                parkInfo.setPatentTotalCount(latestStat.getPatentCount());
-                needUpdate = true;
-            }
-
-            if (needUpdate) {
-                parkMapper.updateById(parkInfo);
-                log.info("刷新园区运营数据成功：园区ID={}, 年度={}, 企业数={}, 员工数={}, 专利数={}",
-                        parkId, year, parkInfo.getEnterpriseCount(), 
-                        parkInfo.getEmployeeCount(), parkInfo.getPatentTotalCount());
-            }
-        }
-    }
-
-    /**
-     * 获取园区季度填报状态
-     */
-    public java.util.List<java.util.Map<String, Object>> getQuarterStatus(Long parkId, Integer year) {
-        if (year == null) {
-            year = java.time.LocalDate.now().getYear();
-        }
-
-        java.util.List<java.util.Map<String, Object>> result = new java.util.ArrayList<>();
-
-        for (int q = 1; q <= 4; q++) {
-            com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<ParkQuarterStat> wrapper =
-                    new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<>();
-            wrapper.eq(ParkQuarterStat::getParkId, parkId)
-                   .eq(ParkQuarterStat::getYear, year)
-                   .eq(ParkQuarterStat::getQuarter, q);
-
-            ParkQuarterStat stat = parkQuarterStatMapper.selectOne(wrapper);
-
-            java.util.Map<String, Object> item = new java.util.HashMap<>();
-            item.put("quarter", q);
-            item.put("quarterName", "第" + q + "季度");
-            item.put("status", stat != null && stat.getStatus() == 1 ? "已填报" : "未填报");
-            item.put("reportTime", stat != null ? stat.getReportTime() : null);
-            result.add(item);
-        }
-
-        return result;
     }
 
     /**

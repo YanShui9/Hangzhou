@@ -8,7 +8,6 @@
         <span class="breadcrumb-current">{{ breadcrumbCurrent }}</span>
       </div>
       <el-button
-        v-if="activeTab !== 'operation'"
         type="primary"
         size="small"
         :loading="saveLoading"
@@ -360,63 +359,6 @@
           </div>
         </el-tab-pane>
 
-        <!-- Tab 3: 运营数据 -->
-        <el-tab-pane label="运营数据" name="operation">
-          <div class="quarter-cards">
-            <div v-for="(q, index) in quarterCards" :key="index"
-                 :class="['quarter-card', q.status === '已填报' ? 'card-reported' : 'card-unreported']"
-            >
-              <div class="quarter-name">{{ q.name }}</div>
-              <div :class="['quarter-status', q.status === '已填报' ? 'status-reported' : 'status-unreported']">{{ q.status }}</div>
-            </div>
-          </div>
-
-          <div class="operation-table-wrap">
-            <div class="table-header">
-              <div class="table-title">运营数据季度对比表</div>
-              <div class="table-actions">
-                <el-select v-model="selectedYear" size="small" style="width: 160px;">
-                  <el-option v-for="y in yearOptions" :key="y" :label="y + '年度'" :value="y" />
-                </el-select>
-                <el-button type="primary" size="small" :loading="saveLoading" @click="handleQueryOperation">查询</el-button>
-              </div>
-            </div>
-            <el-table :data="operationTableData" border stripe size="mini" class="operation-table" style="width: 100%" :span-method="objectSpanMethod">
-              <el-table-column prop="type" label="指标类型" width="160" align="center" />
-              <el-table-column prop="name" label="指标名称（单位）" width="210">
-                <template slot-scope="{ row }">
-                  <span class="cell-indicator">{{ row.name }}</span>
-                </template>
-              </el-table-column>
-              <el-table-column label="第一季度" align="center">
-                <template slot-scope="{ row }">
-                  <span class="cell-value">{{ formatOperationValue(row.q1) }}</span>
-                  <span v-if="row.q1Trend" :class="['trend-icon', row.q1Trend === 'up' ? 'trend-up' : 'trend-down']">
-                    <i :class="row.q1Trend === 'up' ? 'el-icon-top' : 'el-icon-bottom'"></i>
-                  </span>
-                </template>
-              </el-table-column>
-              <el-table-column label="第二季度" align="center">
-                <template slot-scope="{ row }">
-                  <span class="cell-value">{{ formatOperationValue(row.q2) }}</span>
-                  <span v-if="row.q2Trend" :class="['trend-icon', row.q2Trend === 'up' ? 'trend-up' : 'trend-down']">
-                    <i :class="row.q2Trend === 'up' ? 'el-icon-top' : 'el-icon-bottom'"></i>
-                  </span>
-                </template>
-              </el-table-column>
-              <el-table-column label="第三季度" align="center">
-                <template slot-scope="{ row }">
-                  <span class="cell-value">{{ formatOperationValue(row.q3) }}</span>
-                </template>
-              </el-table-column>
-              <el-table-column label="第四季度" align="center">
-                <template slot-scope="{ row }">
-                  <span class="cell-value">{{ formatOperationValue(row.q4) }}</span>
-                </template>
-              </el-table-column>
-            </el-table>
-          </div>
-        </el-tab-pane>
       </el-tabs>
     </div>
     </div>
@@ -424,7 +366,7 @@
 </template>
 
 <script>
-import { getParkDetail, updatePark, updateOperationData } from '@/api/park'
+import { getParkDetail, updatePark } from '@/api/park'
 
 export default {
   name: 'AdminParkDetail',
@@ -432,7 +374,7 @@ export default {
     return {
       // ============ 下拉常量（与 api/park.js 约定一致） ============
       parkStatusOptions: ['规划中', '建设中', '已投运'],
-      landNatureOptions: ['工业用地(M1/M2/M3)', '商业用地(B1)', '商务用地(B2)', '其他'],
+      landNatureOptions: ['工业用地', '商业用地', '商务用地', '其他'],
       districtOptions: ['滨江区', '萧山区', '余杭区', '西湖区', '上城区', '拱墅区', '钱塘区', '富阳区', '临安区', '桐庐县', '淳安县', '建德市'],
       parkTypeOptions: ['生产性制造类', '生产性服务类'],
       leadingIndustryOptions: ['数字经济', '智能制造', '生物医药', '新材料', '新能源', '集成电路', '科技服务', '其他'],
@@ -498,46 +440,14 @@ export default {
         inventionCount: null,
         utilityModelCount: null,
         appearanceCount: null
-      },
-      // 运营数据
-      selectedYear: 2026,
-      yearOptions: [2026, 2025, 2024, 2023],
-      quarterCards: [
-        { name: '第一季度', status: '已填报' },
-        { name: '第二季度', status: '已填报' },
-        { name: '第三季度', status: '未填报' },
-        { name: '第四季度', status: '未填报' }
-      ],
-      operationTableData: [
-        { type: '入驻企业', name: '入驻企业总数（家）', q1: 50, q2: 60, q2Trend: 'up', q3: '--', q4: '--' },
-        { type: '入驻企业', name: '规模以上企业（家）', q1: 50, q2: 30, q2Trend: 'down', q3: '--', q4: '--' },
-        { type: '入驻企业', name: '高新技术企业（家）', q1: 50, q2: 50, q3: '--', q4: '--' },
-        { type: '入驻企业', name: '科技型中小企业（家）', q1: 50, q2: 50, q3: '--', q4: '--' },
-        { type: '入驻企业', name: '隐形冠军及培育企业（家）', q1: 50, q2: 50, q3: '--', q4: '--' },
-        { type: '入驻企业', name: '专精特新小巨人企业（家）', q1: 50, q2: 50, q3: '--', q4: '--' },
-        { type: '入驻企业', name: '创新型中小企业（家）', q1: 50, q2: 50, q3: '--', q4: '--' },
-        { type: '入驻企业', name: '省专精特新中小企业（家）', q1: 50, q2: 50, q3: '--', q4: '--' },
-        { type: '入驻员工', name: '入驻企业员工总数（人）', q1: 50, q2: 60, q2Trend: 'up', q3: '--', q4: '--' },
-        { type: '入驻员工', name: '"国千"人才（人）', q1: 50, q2: 30, q2Trend: 'down', q3: '--', q4: '--' },
-        { type: '入驻员工', name: '"省千"人才（人）', q1: 50, q2: 50, q3: '--', q4: '--' },
-        { type: '入驻员工', name: '正高级工程师人数（人）', q1: 50, q2: 50, q3: '--', q4: '--' },
-        { type: '入驻员工', name: '高级工程师人数（人）', q1: 50, q2: 50, q3: '--', q4: '--' },
-        { type: '入驻员工', name: '高级技师人数（人）', q1: 50, q2: 50, q3: '--', q4: '--' },
-        { type: '入驻员工', name: '硕士及副高以上人数（人）', q1: 50, q2: 50, q3: '--', q4: '--' },
-        { type: '入驻员工', name: '硕士以上人数（人）', q1: 50, q2: 50, q3: '--', q4: '--' },
-        { type: '创新专利', name: '专利总数（件）', q1: 50, q2: 60, q3: '--', q4: '--' },
-        { type: '创新专利', name: '发明专利（件）', q1: 50, q2: 30, q3: '--', q4: '--' },
-        { type: '创新专利', name: '实用新型专利（件）', q1: 50, q2: 50, q3: '--', q4: '--' },
-        { type: '创新专利', name: '外观设计专利（件）', q1: 50, q2: 50, q3: '--', q4: '--' }
-      ]
+      }
     }
   },
   computed: {
     breadcrumbCurrent() {
       const map = {
         basic: '园区信息',
-        intro: '园区简介',
-        operation: '运营数据'
+        intro: '园区简介'
       }
       return map[this.activeTab] || '编辑园区'
     }
@@ -546,27 +456,6 @@ export default {
     this.loadDetail()
   },
   methods: {
-    /**
-     * 表格单元格合并方法
-     * 用于合并"指标类型"列中相同的指标
-     */
-    objectSpanMethod({ row, column, rowIndex, columnIndex }) {
-      // 只对第一列（指标类型）进行合并
-      if (columnIndex === 0) {
-        // 计算当前行的 type 在前面出现了多少次
-        const type = row.type
-        const prevRows = this.operationTableData.slice(0, rowIndex)
-        const sameTypeCount = prevRows.filter(r => r.type === type).length
-
-        // 如果是该 type 的第一行，计算需要合并的行数
-        if (sameTypeCount === 0) {
-          const totalSameType = this.operationTableData.filter(r => r.type === type).length
-          return [totalSameType, 1]
-        }
-        // 如果不是第一行，返回 [0, 0] 表示被合并
-        return [0, 0]
-      }
-    },
     loadDetail() {
       const id = this.$route.params.id
       if (!id) {
@@ -654,82 +543,6 @@ export default {
     },
     removeImage(index) {
       this.formData.parkImages.splice(index, 1)
-    },
-    // 运营数据 - 数值格式化
-    formatOperationValue(val) {
-      if (val === null || val === undefined || val === '' || val === '--') return '--'
-      const num = Number(val)
-      if (Number.isNaN(num)) return '--'
-      return num.toLocaleString('zh-CN')
-    },
-    async handleSaveOperation() {
-      const id = this.$route.params.id
-      if (!id) {
-        this.$message.warning('园区ID不存在')
-        return
-      }
-      this.saveLoading = true
-      try {
-        await updateOperationData({
-          id: id,
-          year: this.selectedYear,
-          quarterCards: this.quarterCards,
-          operationTableData: this.operationTableData
-        })
-        this.$message.success('保存成功')
-      } catch (error) {
-        this.$message.error('保存失败')
-      } finally {
-        this.saveLoading = false
-      }
-    },
-    /** 查询运营数据 */
-    async handleQueryOperation() {
-      const id = this.$route.params.id
-      if (!id) {
-        this.$message.warning('园区ID不存在')
-        return
-      }
-      this.saveLoading = true
-      try {
-        const res = await getParkDetail(id)
-        const data = res.data || {}
-        // 更新运营数据
-        this.quarterCards = [
-          { name: '第一季度', status: data.q1Status || '未填报' },
-          { name: '第二季度', status: data.q2Status || '未填报' },
-          { name: '第三季度', status: data.q3Status || '未填报' },
-          { name: '第四季度', status: data.q4Status || '未填报' }
-        ]
-        // 更新表格数据（模拟根据年度筛选）
-        this.operationTableData = [
-          { type: '入驻企业', name: '入驻企业总数（家）', q1: data.q1EnterpriseCount || '--', q2: data.q2EnterpriseCount || '--', q3: '--', q4: '--' },
-          { type: '入驻企业', name: '规模以上企业（家）', q1: data.q1AboveScaleCount || '--', q2: data.q2AboveScaleCount || '--', q3: '--', q4: '--' },
-          { type: '入驻企业', name: '高新技术企业（家）', q1: data.q1HighTechCount || '--', q2: data.q2HighTechCount || '--', q3: '--', q4: '--' },
-          { type: '入驻企业', name: '科技型中小企业（家）', q1: data.q1TechSmeCount || '--', q2: data.q2TechSmeCount || '--', q3: '--', q4: '--' },
-          { type: '入驻企业', name: '隐形冠军及培育企业（家）', q1: data.q1HiddenChampionCount || '--', q2: data.q2HiddenChampionCount || '--', q3: '--', q4: '--' },
-          { type: '入驻企业', name: '专精特新小巨人企业（家）', q1: data.q1NationalSpecializedCount || '--', q2: data.q2NationalSpecializedCount || '--', q3: '--', q4: '--' },
-          { type: '入驻企业', name: '创新型中小企业（家）', q1: data.q1InnovativeSmeCount || '--', q2: data.q2InnovativeSmeCount || '--', q3: '--', q4: '--' },
-          { type: '入驻企业', name: '省专精特新中小企业（家）', q1: data.q1ProvincialSpecializedCount || '--', q2: data.q2ProvincialSpecializedCount || '--', q3: '--', q4: '--' },
-          { type: '入驻员工', name: '入驻企业员工总数（人）', q1: data.q1EmployeeCount || '--', q2: data.q2EmployeeCount || '--', q3: '--', q4: '--' },
-          { type: '入驻员工', name: '"国千"人才（人）', q1: data.q1National1000TalentCount || '--', q2: data.q2National1000TalentCount || '--', q3: '--', q4: '--' },
-          { type: '入驻员工', name: '"省千"人才（人）', q1: data.q1Provincial1000TalentCount || '--', q2: data.q2Provincial1000TalentCount || '--', q3: '--', q4: '--' },
-          { type: '入驻员工', name: '正高级工程师人数（人）', q1: data.q1SeniorEngineerCount || '--', q2: data.q2SeniorEngineerCount || '--', q3: '--', q4: '--' },
-          { type: '入驻员工', name: '高级工程师人数（人）', q1: data.q1Senior2EngineerCount || '--', q2: data.q2Senior2EngineerCount || '--', q3: '--', q4: '--' },
-          { type: '入驻员工', name: '高级技师人数（人）', q1: data.q1SeniorTechnicianCount || '--', q2: data.q2SeniorTechnicianCount || '--', q3: '--', q4: '--' },
-          { type: '入驻员工', name: '硕士及副高以上人数（人）', q1: data.q1MasterAndAboveCount || '--', q2: data.q2MasterAndAboveCount || '--', q3: '--', q4: '--' },
-          { type: '入驻员工', name: '硕士以上人数（人）', q1: data.q1MasterCount || '--', q2: data.q2MasterCount || '--', q3: '--', q4: '--' },
-          { type: '创新专利', name: '专利总数（件）', q1: data.q1PatentTotalCount || '--', q2: data.q2PatentTotalCount || '--', q3: '--', q4: '--' },
-          { type: '创新专利', name: '发明专利（件）', q1: data.q1InventionCount || '--', q2: data.q2InventionCount || '--', q3: '--', q4: '--' },
-          { type: '创新专利', name: '实用新型专利（件）', q1: data.q1UtilityModelCount || '--', q2: data.q2UtilityModelCount || '--', q3: '--', q4: '--' },
-          { type: '创新专利', name: '外观设计专利（件）', q1: data.q1AppearanceCount || '--', q2: data.q2AppearanceCount || '--', q3: '--', q4: '--' }
-        ]
-        this.$message.success('查询成功')
-      } catch (error) {
-        this.$message.error('查询失败')
-      } finally {
-        this.saveLoading = false
-      }
     }
   }
 }
@@ -1047,133 +860,9 @@ export default {
   background: rgba(220, 38, 38, 0.8);
 }
 
-/* ============ 运营数据 Tab ============ */
-.table-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 12px;
-}
-
-.table-actions {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.quarter-cards {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 12px;
-  margin-bottom: 12px;
-}
-
-.quarter-card {
-  background: #FFFFFF;
-  border: 1px solid #E8EDF5;
-  border-radius: 4px;
-  padding: 14px 16px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  transition: all 0.2s;
-}
-
-.quarter-card:hover {
-  border-color: #1E40AF;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-}
-
-.quarter-name {
-  font-size: 13px;
-  color: #303133;
-  font-weight: 500;
-}
-
-.quarter-status {
-  font-size: 12px;
-  padding: 4px 8px;
-  border-radius: 4px;
-}
-
-.status-reported {
-  background: #ECFDF5;
-  color: #059669;
-  border: 1px solid #A7F3D0;
-}
-
-.status-unreported {
-  background: #FFFBEB;
-  color: #D97706;
-  border: 1px solid #FDE68A;
-}
-
-.operation-table-wrap {
-  background: #FFFFFF;
-  border: 1px solid #E8EDF5;
-  border-radius: 4px;
-  padding: 16px 16px 12px;
-}
-
-.table-title {
-  font-size: 13px;
-  font-weight: 600;
-  color: #303133;
-  margin-bottom: 12px;
-}
-
-.operation-table >>> .el-table__header th {
-  background: #FAFBFC;
-  color: #303133;
-  font-weight: 600;
-  font-size: 12px;
-  text-align: center;
-}
-
-.operation-table >>> .el-table__body td {
-  font-size: 12px;
-  color: #606266;
-  text-align: center;
-}
-
-.operation-table >>> .el-table__row--striped td {
-  background: #FAFCFF;
-}
-
-.operation-table >>> .el-table__row:hover > td {
-  background: #F0F4FF !important;
-}
-
-.cell-indicator {
-  text-align: left;
-  font-size: 12px;
-  color: #606266;
-}
-
-.cell-value {
-  font-size: 12px;
-  color: #303133;
-}
-
-.trend-icon {
-  font-size: 12px;
-  margin-left: 4px;
-}
-
-.trend-up {
-  color: #67C23A;
-}
-
-.trend-down {
-  color: #F56C6C;
-}
-
 /* ============ 响应式 ============ */
 @media (max-width: 1400px) {
   .form-grid {
-    grid-template-columns: repeat(3, 1fr);
-  }
-  .quarter-cards {
     grid-template-columns: repeat(3, 1fr);
   }
 }
@@ -1182,16 +871,10 @@ export default {
   .form-grid {
     grid-template-columns: repeat(2, 1fr);
   }
-  .quarter-cards {
-    grid-template-columns: repeat(2, 1fr);
-  }
 }
 
 @media (max-width: 640px) {
   .form-grid {
-    grid-template-columns: 1fr;
-  }
-  .quarter-cards {
     grid-template-columns: 1fr;
   }
 }
