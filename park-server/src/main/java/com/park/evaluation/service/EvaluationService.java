@@ -456,7 +456,7 @@ public class EvaluationService {
 
         // 基础信息
         if (park != null) {
-            score.setLeadingIndustry(park.getMainIndustry());
+            score.setLeadingIndustry(park.getLeadingIndustry());
             score.setEnterpriseTotal(park.getEnterpriseCount());
         }
 

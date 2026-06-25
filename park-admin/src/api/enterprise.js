@@ -188,20 +188,6 @@ export function getEnterpriseIndicatorList(params) {
 }
 
 /**
- * 导出企业荣誉数量统计汇总表（Excel）
- * @param {Object} params 查询参数（同 getEnterpriseHonorSummary）
- * @returns {Promise<Blob>}
- */
-export function exportEnterpriseHonorSummary(params) {
-  return request({
-    url: '/api/enterprises/honor/summary/export',
-    method: 'get',
-    params,
-    responseType: 'blob'
-  })
-}
-
-/**
  * 导出企业指标列表（Excel）
  * @param {Object} params 查询参数（同 getEnterpriseIndicatorList）
  * @returns {Promise<Blob>}

@@ -146,6 +146,67 @@ public class ParkController {
     }
 
     /**
+     * 批量删除园区
+     */
+    @DeleteMapping("/batch")
+    @ApiOperation(value = "批量删除园区", notes = "根据ID数组批量删除")
+    public R<Void> batchDeletePark(@RequestBody java.util.List<Long> ids) {
+        parkService.batchDeletePark(ids);
+        return R.ok();
+    }
+
+    /**
+     * 批量导入园区
+     */
+    @PostMapping("/import")
+    @ApiOperation(value = "批量导入园区", notes = "上传 Excel 批量创建")
+    public R<java.util.Map<String, Object>> importParks(@RequestParam("file") org.springframework.web.multipart.MultipartFile file,
+                                                         HttpServletRequest request) {
+        checkAdmin(request);
+        java.util.Map<String, Object> result = parkService.importParks(file);
+        return R.ok(result);
+    }
+
+    /**
+     * 下载园区导入模板
+     */
+    @GetMapping("/template")
+    @ApiOperation(value = "下载园区导入模板", notes = "返回 Excel 模板")
+    public void downloadTemplate(javax.servlet.http.HttpServletResponse response) {
+        parkService.downloadTemplate(response);
+    }
+
+    /**
+     * 导出园区列表
+     */
+    @GetMapping("/export")
+    @ApiOperation(value = "导出园区列表", notes = "按查询条件导出 Excel")
+    public void exportParks(ParkQueryDTO queryDTO,
+                            HttpServletRequest request,
+                            javax.servlet.http.HttpServletResponse response) {
+        applyDataPermission(queryDTO, request);
+        parkService.exportParks(queryDTO, response);
+    }
+
+    /**
+     * 获取园区主要产业（企业数量前三）
+     */
+    @GetMapping("/{id}/top-industries")
+    @ApiOperation(value = "获取园区主要产业", notes = "返回园区企业数量前三的产业，用于详情页展示")
+    public R<java.util.List<com.park.park.dto.ParkIndustryStatDTO>> getTopIndustries(@PathVariable Long id) {
+        return R.ok(parkService.getTopIndustries(id));
+    }
+
+    private void checkAdmin(HttpServletRequest request) {
+        Object roleTypeObj = request.getAttribute("roleType");
+        Integer roleType = (roleTypeObj instanceof Integer) ? (Integer) roleTypeObj : null;
+        if (roleType == null || roleType != 1) {
+            throw new com.park.common.exception.BusinessException(
+                    com.park.common.result.ResultCode.FORBIDDEN, "仅市级管理员可操作");
+        }
+    }
+
+    /**
      * 应用数据权限
      * - 市级管理员（roleType=1）：查看所有数据
      * - 区县管理员（roleType=2）：只查看本区县数据

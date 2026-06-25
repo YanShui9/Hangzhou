@@ -272,7 +272,7 @@ public class ParkUserController {
                 vo.setParkName(park.getParkName());
                 vo.setDistrictName(park.getDistrictName());
                 // 企业名称和信用代码从园区运营机构信息中获取
-                vo.setEnterpriseName(park.getOperationOrgName());
+                vo.setEnterpriseName(park.getOperatorUnit());
                 vo.setCreditCode(park.getOperationOrgCode());
             }
         }

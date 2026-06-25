@@ -38,10 +38,10 @@
           clearable
           size="small"
           class="filter-item"
-          style="width: 130px"
+          style="width: 140px"
         >
-          <el-option label="制造类" value="制造类" />
-          <el-option label="服务类" value="服务类" />
+          <el-option label="生产性制造类" value="生产性制造类" />
+          <el-option label="生产性服务类" value="生产性服务类" />
         </el-select>
         <el-select
           v-model="queryParams.starLevel"
@@ -51,6 +51,8 @@
           class="filter-item"
           style="width: 130px"
         >
+          <el-option label="一星级" :value="1" />
+          <el-option label="二星级" :value="2" />
           <el-option label="三星级" :value="3" />
           <el-option label="四星级" :value="4" />
           <el-option label="五星级" :value="5" />
@@ -71,9 +73,13 @@
           />
         </el-select>
         <el-button type="primary" size="small" icon="el-icon-search" @click="handleQuery">查询</el-button>
+        <el-button size="small" icon="el-icon-refresh" @click="handleReset">重置</el-button>
       </div>
       <div class="filter-right">
         <el-button type="primary" size="small" icon="el-icon-plus" @click="handleAdd">新增园区</el-button>
+        <el-button type="info" size="small" icon="el-icon-download" @click="downloadTemplate">下载模板</el-button>
+        <el-button type="success" size="small" icon="el-icon-upload2" @click="handleImport">批量导入</el-button>
+        <el-button type="warning" size="small" icon="el-icon-download" @click="handleExport">导出</el-button>
       </div>
     </div>
 
@@ -94,8 +100,14 @@
           <span class="park-name-link" @click="handleViewDetail(row)">{{ row.parkName }}</span>
         </template>
       </el-table-column>
+      <el-table-column prop="year" label="年度" width="80" align="center">
+        <template slot-scope="{ row }">{{ row.year || '--' }}</template>
+      </el-table-column>
       <el-table-column prop="parkCode" label="园区代码" width="100" align="center" />
       <el-table-column prop="districtName" label="所属区域" width="80" align="center" />
+      <el-table-column prop="leadingIndustry" label="主导产业" width="120" align="center" show-overflow-tooltip>
+        <template slot-scope="{ row }">{{ row.leadingIndustry || '--' }}</template>
+      </el-table-column>
       <el-table-column prop="recognition" label="园区认定" width="80" align="center">
         <template slot-scope="{ row }">
           <el-tag
@@ -147,7 +159,7 @@
       <el-table-column prop="landNature" label="土地性质" width="80" align="center">
         <template slot-scope="{ row }">{{ row.landNature || '--' }}</template>
       </el-table-column>
-      <el-table-column label="操作" width="80" align="center" fixed="right">
+      <el-table-column label="操作" width="100" align="center" fixed="right">
         <template slot-scope="{ row }">
           <el-button type="text" size="mini" class="delete-link" @click="handleDelete(row)">删除</el-button>
         </template>
@@ -204,8 +216,8 @@
             <el-col :span="12">
               <el-form-item label="园区类型" prop="parkType">
                 <el-select v-model="parkForm.parkType" placeholder="请选择园区类型" size="small" style="width: 100%">
-                  <el-option label="制造类" value="制造类" />
-                  <el-option label="服务类" value="服务类" />
+                  <el-option label="生产性制造类" value="生产性制造类" />
+                  <el-option label="生产性服务类" value="生产性服务类" />
                 </el-select>
               </el-form-item>
             </el-col>
@@ -238,6 +250,8 @@
             <el-col :span="12">
               <el-form-item label="星级评定">
                 <el-select v-model="parkForm.starLevel" placeholder="请选择" size="small" style="width: 100%">
+                  <el-option label="一星级" :value="1" />
+                  <el-option label="二星级" :value="2" />
                   <el-option label="三星级" :value="3" />
                   <el-option label="四星级" :value="4" />
                   <el-option label="五星级" :value="5" />
@@ -324,6 +338,51 @@
         </div>
 
         <div class="form-section">
+          <div class="section-title">联系方式</div>
+          <el-row :gutter="20">
+            <el-col :span="12">
+              <el-form-item label="运营单位">
+                <el-input v-model="parkForm.operatorUnit" placeholder="请输入运营单位" size="small" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="运营性质">
+                <el-select v-model="parkForm.operatorNature" placeholder="请选择" size="small" style="width: 100%">
+                  <el-option label="国有企业" value="国有企业" />
+                  <el-option label="民营企业" value="民营企业" />
+                  <el-option label="事业单位" value="事业单位" />
+                  <el-option label="其他" value="其他" />
+                </el-select>
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row :gutter="20">
+            <el-col :span="12">
+              <el-form-item label="负责人">
+                <el-input v-model="parkForm.personInCharge" placeholder="请输入负责人" size="small" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="负责人电话">
+                <el-input v-model="parkForm.inChargePhone" placeholder="请输入负责人电话" size="small" />
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row :gutter="20">
+            <el-col :span="12">
+              <el-form-item label="联系人">
+                <el-input v-model="parkForm.contactPerson" placeholder="请输入联系人" size="small" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="联系人电话">
+                <el-input v-model="parkForm.contactPhone" placeholder="请输入联系人电话" size="small" />
+              </el-form-item>
+            </el-col>
+          </el-row>
+        </div>
+
+        <div class="form-section">
           <div class="section-title">园区简介</div>
           <el-form-item label="简介">
             <el-input
@@ -353,8 +412,10 @@
       <div v-if="currentPark" class="park-detail">
         <el-descriptions :column="2" border size="small">
           <el-descriptions-item label="园区名称">{{ currentPark.parkName }}</el-descriptions-item>
+          <el-descriptions-item label="年度">{{ currentPark.year || '--' }}</el-descriptions-item>
           <el-descriptions-item label="园区代码">{{ currentPark.parkCode }}</el-descriptions-item>
           <el-descriptions-item label="所属区域">{{ currentPark.districtName }}</el-descriptions-item>
+          <el-descriptions-item label="主导产业" :span="2">{{ currentPark.leadingIndustry || '--' }}</el-descriptions-item>
           <el-descriptions-item label="园区类型">{{ currentPark.parkType || '--' }}</el-descriptions-item>
           <el-descriptions-item label="园区认定">{{ currentPark.recognition || '--' }}</el-descriptions-item>
           <el-descriptions-item label="星级评定">
@@ -374,6 +435,12 @@
             {{ currentPark.landArea ? currentPark.landArea.toFixed(2) : '--' }}
           </el-descriptions-item>
           <el-descriptions-item label="地址" :span="2">{{ currentPark.address || '--' }}</el-descriptions-item>
+          <el-descriptions-item label="运营单位">{{ currentPark.operatorUnit || '--' }}</el-descriptions-item>
+          <el-descriptions-item label="运营性质">{{ currentPark.operatorNature || '--' }}</el-descriptions-item>
+          <el-descriptions-item label="负责人">{{ currentPark.personInCharge || '--' }}</el-descriptions-item>
+          <el-descriptions-item label="负责人电话">{{ currentPark.inChargePhone || '--' }}</el-descriptions-item>
+          <el-descriptions-item label="联系人">{{ currentPark.contactPerson || '--' }}</el-descriptions-item>
+          <el-descriptions-item label="联系人电话">{{ currentPark.contactPhone || '--' }}</el-descriptions-item>
           <el-descriptions-item label="园区简介" :span="2">{{ currentPark.introduction || '--' }}</el-descriptions-item>
         </el-descriptions>
       </div>
@@ -381,11 +448,48 @@
         <el-button size="small" @click="detailVisible = false">关 闭</el-button>
       </div>
     </el-dialog>
+
+    <!-- 批量导入对话框 -->
+    <el-dialog
+      title="批量导入园区"
+      :visible.sync="importDialogVisible"
+      width="500px"
+      append-to-body
+      class="park-dialog"
+    >
+      <div class="import-tips">
+        <p><strong>导入说明：</strong></p>
+        <ul>
+          <li>请下载模板文件，按照模板格式填写数据</li>
+          <li>必填字段：园区名称、所属区域</li>
+          <li>支持 .xlsx 和 .xls 格式</li>
+        </ul>
+      </div>
+      <el-button type="primary" size="small" icon="el-icon-download" @click="downloadTemplate" style="margin-bottom: 16px">
+        下载模板
+      </el-button>
+      <el-upload
+        ref="upload"
+        action="#"
+        :auto-upload="false"
+        :on-change="handleFileChange"
+        :limit="1"
+        accept=".xlsx,.xls"
+        drag
+      >
+        <i class="el-icon-upload"></i>
+        <div class="el-upload__text">将文件拖到此处，或<em>点击上传</em></div>
+      </el-upload>
+      <div slot="footer" class="dialog-footer">
+        <el-button size="small" @click="importDialogVisible = false">取 消</el-button>
+        <el-button type="primary" size="small" :loading="importLoading" @click="submitImport">确 定</el-button>
+      </div>
+    </el-dialog>
   </div>
 </template>
 
 <script>
-import { getParkList, getParkDetail, savePark, updatePark, deletePark } from '@/api/park'
+import { getParkList, getParkDetail, savePark, updatePark, deletePark, importParks, downloadParkTemplate, exportParks } from '@/api/park'
 
 export default {
   name: 'AdminParkList',
@@ -407,8 +511,8 @@ export default {
         '余杭区', '富阳区', '临安区', '临平区', '钱塘区',
         '桐庐县', '淳安县', '建德市'
       ],
-      // 年度选项
-      yearOptions: [2025, 2024, 2023, 2022],
+      // 年度选项（包含当前年度）
+      yearOptions: [2026, 2025, 2024, 2023, 2022],
       // 表格数据
       parkList: [],
       total: 0,
@@ -420,6 +524,10 @@ export default {
       // 详情对话框
       detailVisible: false,
       currentPark: null,
+      // 导入对话框
+      importDialogVisible: false,
+      importLoading: false,
+      importFile: null,
       // 表单
       parkForm: {
         id: null,
@@ -437,7 +545,14 @@ export default {
         landNature: '',
         buildArea: null,
         landArea: null,
-        introduction: ''
+        introduction: '',
+        // 联系方式
+        operatorUnit: '',
+        operatorNature: '',
+        personInCharge: '',
+        inChargePhone: '',
+        contactPerson: '',
+        contactPhone: ''
       },
       // 表单校验规则
       parkRules: {
@@ -469,6 +584,19 @@ export default {
       this.queryParams.pageNum = 1
       this.getList()
     },
+    /** 重置筛选条件 */
+    handleReset() {
+      this.queryParams = {
+        parkName: '',
+        districtName: '',
+        parkType: '',
+        starLevel: null,
+        year: null,
+        pageNum: 1,
+        pageSize: 20
+      }
+      this.getList()
+    },
     /** 重置（同查询，因为查询按钮本身就是重新查询） */
     resetQuery() {
       this.queryParams = {
@@ -485,17 +613,6 @@ export default {
     /** 新增园区 - 跳转到新增园区页面 */
     handleAdd() {
       this.$router.push('/admin/park/add')
-    },
-    /** 编辑（从详情进入时，点击编辑可进入编辑模式） */
-    handleEdit(row) {
-      this.dialogTitle = '编辑园区'
-      this.dialogVisible = true
-      getParkDetail(row.id).then(res => {
-        this.parkForm = { ...res.data }
-      })
-      this.$nextTick(() => {
-        this.$refs.parkForm && this.$refs.parkForm.clearValidate()
-      })
     },
     /** 查看详情 - 跳转到园区详情页 */
     handleViewDetail(row) {
@@ -546,8 +663,8 @@ export default {
     },
     /** 获取星级文本 */
     getStarText(level) {
-      const starMap = { 3: '三星级', 4: '四星级', 5: '五星级' }
-      return starMap[level] || level + '星'
+      const starMap = { 1: '一星级', 2: '二星级', 3: '三星级', 4: '四星级', 5: '五星级' }
+      return starMap[level] || level + '星级'
     },
     /** 获取状态样式 key */
     getStatusKey(status) {
@@ -556,6 +673,80 @@ export default {
       if (status.includes('建设') || status.includes('施工')) return 'info'
       if (status.includes('规划')) return 'warning'
       return 'default'
+    },
+    /** 批量导入园区 */
+    handleImport() {
+      this.importDialogVisible = true
+      this.importFile = null
+    },
+    /** 下载导入模板 */
+    async downloadTemplate() {
+      try {
+        const res = await downloadParkTemplate()
+        const blob = new Blob([res], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
+        const url = window.URL.createObjectURL(blob)
+        const link = document.createElement('a')
+        link.href = url
+        link.download = '园区导入模板.xlsx'
+        link.click()
+        window.URL.revokeObjectURL(url)
+        this.$message.success('模板下载成功')
+      } catch (error) {
+        this.$message.error('模板下载失败')
+      }
+    },
+    /** 处理文件选择 */
+    handleFileChange(file) {
+      this.importFile = file.raw
+    },
+    /** 提交导入 */
+    async submitImport() {
+      if (!this.importFile) {
+        this.$message.warning('请选择要导入的文件')
+        return
+      }
+      this.importLoading = true
+      try {
+        const formData = new FormData()
+        formData.append('file', this.importFile)
+        const res = await importParks(formData)
+        if (res.data) {
+          const { success, fail, errors } = res.data
+          this.$message.success(`导入完成！成功${success}条，失败${fail}条`)
+          if (errors && errors.length > 0) {
+            console.error('导入错误：', errors)
+          }
+        }
+        this.importDialogVisible = false
+        this.getList()
+      } catch (error) {
+        this.$message.error('导入失败：' + (error.message || '未知错误'))
+      } finally {
+        this.importLoading = false
+      }
+    },
+    /** 导出园区列表 */
+    async handleExport() {
+      try {
+        const params = { ...this.queryParams }
+        if (params.parkName === '') delete params.parkName
+        if (params.districtName === '') delete params.districtName
+        if (params.parkType === '') delete params.parkType
+        if (params.starLevel === null) delete params.starLevel
+        if (params.year === null) delete params.year
+        
+        const res = await exportParks(params)
+        const blob = new Blob([res], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
+        const url = window.URL.createObjectURL(blob)
+        const link = document.createElement('a')
+        link.href = url
+        link.download = `园区列表_${new Date().getTime()}.xlsx`
+        link.click()
+        window.URL.revokeObjectURL(url)
+        this.$message.success('导出成功')
+      } catch (error) {
+        this.$message.error('导出失败')
+      }
     }
   }
 }
@@ -784,5 +975,30 @@ export default {
 .park-detail >>> .el-descriptions__content {
   color: #303133;
   font-size: 13px;
+}
+
+/* 导入提示 */
+.import-tips {
+  background: #F5F7FA;
+  padding: 12px 16px;
+  border-radius: 4px;
+  margin-bottom: 16px;
+}
+
+.import-tips p {
+  margin: 0 0 8px;
+  font-size: 13px;
+  color: #303133;
+}
+
+.import-tips ul {
+  margin: 0;
+  padding-left: 20px;
+  font-size: 12px;
+  color: #606266;
+}
+
+.import-tips li {
+  margin-bottom: 4px;
 }
 </style>

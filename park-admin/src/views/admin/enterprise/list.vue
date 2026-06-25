@@ -19,7 +19,7 @@
         />
         <el-select
           v-model="queryParams.districtName"
-          placeholder="全部区域"
+          placeholder="所属区域"
           clearable
           size="small"
           class="filter-item"
@@ -34,7 +34,7 @@
         </el-select>
         <el-select
           v-model="queryParams.parkId"
-          placeholder="全部园区"
+          placeholder="所属园区"
           clearable
           size="small"
           class="filter-item"
@@ -47,14 +47,45 @@
             :value="item.id"
           />
         </el-select>
+        <el-select
+          v-model="queryParams.enterpriseHonor"
+          placeholder="企业荣誉"
+          clearable
+          size="small"
+          class="filter-item"
+          style="width: 160px"
+        >
+          <el-option
+            v-for="item in honorOptions"
+            :key="item.value"
+            :label="item.label"
+            :value="item.value"
+          />
+        </el-select>
+        <el-select
+          v-model="queryParams.isParticipate"
+          placeholder="参评状态"
+          clearable
+          size="small"
+          class="filter-item"
+          style="width: 120px"
+        >
+          <el-option label="参评" :value="1" />
+          <el-option label="不参评" :value="0" />
+        </el-select>
         <el-button type="primary" size="small" icon="el-icon-search" @click="handleQuery">查询</el-button>
         <el-button size="small" icon="el-icon-refresh-left" @click="resetQuery">重置</el-button>
       </div>
       <div class="filter-right">
-        <el-button size="small" icon="el-icon-upload2" @click="handleExport">导出</el-button>
-        <el-button size="small" icon="el-icon-s-grid" @click="toggleColumns">
-          <i class="el-icon-arrow-down"></i>
-        </el-button>
+        <el-dropdown size="small" type="primary" @command="handleExport">
+          <el-button type="primary" size="small">
+            <i class="el-icon-upload2" style="margin-right:4px"></i>导出数据<i class="el-icon-arrow-down el-icon--right"></i>
+          </el-button>
+          <el-dropdown-menu slot="dropdown">
+            <el-dropdown-item command="participate">导出参评企业</el-dropdown-item>
+            <el-dropdown-item command="all">导出所有企业</el-dropdown-item>
+          </el-dropdown-menu>
+        </el-dropdown>
       </div>
     </div>
 
@@ -189,6 +220,8 @@ export default {
         creditCode: '',
         districtName: '',
         parkId: null,
+        enterpriseHonor: '',
+        isParticipate: null,
         pageNum: 1,
         pageSize: 20
       },
@@ -200,6 +233,16 @@ export default {
       ],
       // 园区选项（从接口获取）
       parkOptions: [],
+      // 企业荣誉选项
+      honorOptions: [
+        { label: '专精特新小巨人', value: '专精特新小巨人' },
+        { label: '省级隐形冠军', value: '省级隐形冠军' },
+        { label: '省专精特新中小企业', value: '省专精特新中小企业' },
+        { label: '单项冠军', value: '单项冠军' },
+        { label: '国高/国家高新技术企业', value: '国高/国家高新技术企业' },
+        { label: '创新型中小企业', value: '创新型中小企业' },
+        { label: '省科技型中小企业', value: '省科技型中小企业' }
+      ],
       // 表格数据
       enterpriseList: [],
       total: 0,
@@ -246,7 +289,9 @@ export default {
         enterpriseName: this.queryParams.enterpriseName || undefined,
         creditCode: this.queryParams.enterpriseName || undefined,
         districtName: this.queryParams.districtName || undefined,
-        parkId: this.queryParams.parkId || undefined
+        parkId: this.queryParams.parkId || undefined,
+        enterpriseHonor: this.queryParams.enterpriseHonor || undefined,
+        isParticipate: this.queryParams.isParticipate !== null && this.queryParams.isParticipate !== undefined ? this.queryParams.isParticipate : undefined
       }
       getEnterpriseList(params)
         .then(res => {
@@ -284,7 +329,7 @@ export default {
         '小巨人/省专',
         ''
       ]
-      const statusPool = ['存续/在业', '迁出', '注销', '吊销', '撤销', '停业', '歇业', '除名', '责令关闭']
+      const statusPool = ['存续', '注销']
       const namePool = [
         '杭州启明医疗器械股份有限公司',
         '杭州艾名医学科技有限公司',
@@ -333,30 +378,50 @@ export default {
         creditCode: '',
         districtName: '',
         parkId: null,
+        enterpriseHonor: '',
+        isParticipate: null,
         pageNum: 1,
         pageSize: 20
       }
       this.getList()
     },
-    /** 导出 */
-    handleExport() {
-      this.$confirm('确认导出当前查询条件下的企业列表吗？', '提示', {
+    /**
+     * 导出数据
+     * @param type 导出类型：participate=参评企业, all=所有企业
+     */
+    handleExport(type) {
+      let confirmText = ''
+      let filename = ''
+      let exportParams = { ...this.queryParams }
+
+      if (type === 'participate') {
+        confirmText = '确认导出当前查询条件下的参评企业吗？'
+        filename = '参评企业列表'
+        exportParams.isParticipate = 1
+      } else if (type === 'all') {
+        confirmText = '确认导出当前查询条件下的所有企业吗？'
+        filename = '入驻企业列表'
+      }
+
+      this.$confirm(confirmText, '提示', {
         confirmButtonText: '确定',
         cancelButtonText: '取消',
         type: 'info'
       }).then(() => {
         const params = {
-          ...this.queryParams,
-          enterpriseName: this.queryParams.enterpriseName || undefined,
-          creditCode: this.queryParams.enterpriseName || undefined,
-          districtName: this.queryParams.districtName || undefined,
-          parkId: this.queryParams.parkId || undefined
+          ...exportParams,
+          enterpriseName: exportParams.enterpriseName || undefined,
+          creditCode: exportParams.enterpriseName || undefined,
+          districtName: exportParams.districtName || undefined,
+          parkId: exportParams.parkId || undefined,
+          enterpriseHonor: exportParams.enterpriseHonor || undefined,
+          isParticipate: exportParams.isParticipate !== null && exportParams.isParticipate !== undefined ? exportParams.isParticipate : undefined
         }
         exportEnterpriseList(params).then(blob => {
           const url = window.URL.createObjectURL(new Blob([blob]))
           const link = document.createElement('a')
           link.href = url
-          link.setAttribute('download', `入驻企业列表_${this.formatDate(new Date())}.xlsx`)
+          link.setAttribute('download', `${filename}_${this.formatDate(new Date())}.xlsx`)
           document.body.appendChild(link)
           link.click()
           document.body.removeChild(link)
@@ -366,10 +431,6 @@ export default {
           this.$message.error('导出失败，请稍后重试')
         })
       }).catch(() => {})
-    },
-    /** 列设置（预留） */
-    toggleColumns() {
-      this.$message.info('列显示设置功能暂未启用')
     },
     /** 查看详情 - 跳转到企业详情页 */
     handleViewDetail(row) {

@@ -128,17 +128,6 @@
           </div>
         </div>
       </div>
-
-      <!-- 变更记录 -->
-      <div class="info-card">
-        <div class="card-title">变更记录</div>
-        <el-table :data="changeRecords" border stripe size="mini" class="change-table" style="width: 100%">
-          <el-table-column prop="changeDate" label="变更日期" width="140" align="center" />
-          <el-table-column prop="changeType" label="变更类型" width="140" align="center" />
-          <el-table-column prop="beforeChange" label="变更前" min-width="200" />
-          <el-table-column prop="afterChange" label="变更后" min-width="200" />
-        </el-table>
-      </div>
     </div>
   </div>
 </template>
@@ -151,8 +140,7 @@ export default {
   data() {
     return {
       loading: false,
-      info: {},
-      changeRecords: []
+      info: {}
     }
   },
   computed: {
@@ -177,11 +165,9 @@ export default {
       getEnterpriseDetail(id)
         .then(res => {
           this.info = res.data || {}
-          this.changeRecords = (res.data && res.data.changeRecords) || this.buildMockChangeRecords()
         })
         .catch(() => {
           this.$message.error('加载企业详情失败')
-          this.changeRecords = this.buildMockChangeRecords()
         })
         .finally(() => {
           this.loading = false
@@ -189,45 +175,6 @@ export default {
     },
     goBack() {
       this.$router.push('/admin/enterprise')
-    },
-    buildMockChangeRecords() {
-      return [
-        {
-          id: 1,
-          changeDate: '2025-11-08',
-          changeType: '经营范围',
-          beforeChange: '从事智能设备的研发和销售',
-          afterChange: '从事智能设备的研发、生产和销售'
-        },
-        {
-          id: 2,
-          changeDate: '2025-08-16',
-          changeType: '企业地址',
-          beforeChange: '浙江省杭州市滨江区西兴街道江陵路88号3幢',
-          afterChange: '浙江省杭州市滨江区西兴街道江陵路88号3幢'
-        },
-        {
-          id: 3,
-          changeDate: '2022-08-16',
-          changeType: '企业地址',
-          beforeChange: '浙江省杭州市滨江区西兴街道江陵路88号3幢',
-          afterChange: '浙江省杭州市滨江区西兴街道江陵路88号3幢'
-        },
-        {
-          id: 4,
-          changeDate: '2021-10-02',
-          changeType: '企业地址',
-          beforeChange: '浙江省杭州市滨江区西兴街道江陵路88号万轮科技园9号楼',
-          afterChange: '浙江省杭州市滨江区西兴街道江陵路88号万轮科技园9号楼'
-        },
-        {
-          id: 5,
-          changeDate: '2021-10-02',
-          changeType: '企业地址',
-          beforeChange: '浙江省杭州市滨江区西兴街道江陵路88号万轮科技园9号楼',
-          afterChange: '浙江省杭州市滨江区西兴街道江陵路88号万轮科技园9号楼'
-        }
-      ]
     }
   }
 }

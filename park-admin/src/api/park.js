@@ -286,11 +286,8 @@ export function updatePark(data) {
  *  - 创新专利: 专利总数、发明专利、实用新型专利、外观设计专利
  */
 export function updateOperationData(data) {
-  return request({
-    url: `/api/parks/${data.id}/operation`,
-    method: 'put',
-    data
-  })
+  // 季度统计功能已移除，保留函数签名避免前端报错
+  return Promise.resolve({ code: 200, message: '操作成功', data: null })
 }
 
 /**
@@ -351,32 +348,66 @@ export function batchDeleteParks(ids) {
 }
 
 /**
- * 获取园区统计数据（企业、员工、专利等汇总）
+ * 获取园区统计数据
  * @method GET /api/parks/:id/stats
  * @param {Long} id 园区ID
- * @returns {Promise} 返回园区统计数据
- *   - enterpriseCount          Integer  入驻企业总数
- *   - largeEnterpriseCount     Integer  规模以上企业数
- *   - highTechEnterpriseCount  Integer  高新技术企业数
- *   - smeCount                 Integer  科技型中小企业数
- *   - innovativeSmeCount       Integer  创新型中小企业数
- *   - specializedSmeCount      Integer  国家专精特新中小企业数
- *   - employeeCount            Integer  入驻企业员工总数
- *   - nationalTalentCount      Integer  "国千"人才人数
- *   - provincialTalentCount    Integer  "省千"人才人数
- *   - seniorEngineerCount      Integer  正高级工程师人数
- *   - engineerCount            Integer  高级工程师人数
- *   - seniorTechnicianCount    Integer  高级技师人数
- *   - masterCount              Integer  硕士及副高以上人数
- *   - doctorCount              Integer  博士以上人数
- *   - patentCount              Integer  专利拥有量
- *   - inventionPatentCount     Integer  发明专利数
- *   - utilityModelCount        Integer  实用新型专利数
- *   - designPatentCount        Integer  外观设计专利数
+ * @returns {Promise} 返回园区统计指标
  */
 export function getParkStats(id) {
   return request({
     url: `/api/parks/${id}/stats`,
     method: 'get'
+  })
+}
+
+/**
+ * 全市园区汇总统计
+ * @method GET /api/parks/stats
+ * @returns {Promise}
+ */
+export function getParkOverallStats() {
+  return request({
+    url: '/api/parks/stats',
+    method: 'get'
+  })
+}
+
+/**
+ * 获取园区主要产业（企业数量前三的产业）
+ * @method GET /api/parks/:id/top-industries
+ * @param {Long} id 园区ID
+ * @returns {Promise} 返回主要产业列表 [{ industryName, enterpriseCount, rank }]
+ */
+export function getTopIndustries(id) {
+  return request({
+    url: `/api/parks/${id}/top-industries`,
+    method: 'get'
+  })
+}
+
+/**
+ * 获取园区季度填报状态
+ * @method GET /api/parks/:id/quarter-status
+ * @param {Long} id 园区ID
+ * @param {Integer} [year] 年度（可选，默认当前年）
+ * @returns {Promise} 返回季度状态列表 [{ quarter, quarterName, status, reportTime }]
+ */
+export function getQuarterStatus(id, year) {
+  // 季度统计功能已移除，保留函数签名避免前端报错
+  return Promise.resolve({ code: 200, message: '操作成功', data: [] })
+}
+
+/**
+ * 导出园区列表
+ * @method GET /api/parks/export
+ * @param {Object} params 查询参数（与分页查询相同）
+ * @returns {Promise} 返回 Excel 文件流
+ */
+export function exportParks(params) {
+  return request({
+    url: '/api/parks/export',
+    method: 'get',
+    params,
+    responseType: 'blob'
   })
 }

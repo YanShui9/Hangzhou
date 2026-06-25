@@ -41,4 +41,7 @@ public class EnterpriseQueryDTO extends PageQuery {
 
     @ApiModelProperty(value = "是否参评：0=不参评, 1=参评")
     private Integer isParticipate;
+
+    @ApiModelProperty(value = "企业荣誉")
+    private String enterpriseHonor;
 }
