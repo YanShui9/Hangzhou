@@ -471,6 +471,29 @@ public class EvaluationService {
                     .eq(ParkEvaluationScore::getYear, record.getYear());
         scoreMapper.delete(scoreWrapper);
 
+        // 删除评价关联的企业：先查出 creditCode，再删除 enterprise_info 中不被其他评价引用的企业
+        LambdaQueryWrapper<EvaluationEnterprise> eeQueryWrapper = new LambdaQueryWrapper<>();
+        eeQueryWrapper.eq(EvaluationEnterprise::getEvaluationId, id);
+        List<EvaluationEnterprise> eeList = evaluationEnterpriseMapper.selectList(eeQueryWrapper);
+
+        for (EvaluationEnterprise ee : eeList) {
+            if (ee.getCreditCode() == null || ee.getCreditCode().isEmpty()) {
+                continue;
+            }
+            // 检查是否被其他评价引用
+            Long otherCount = evaluationEnterpriseMapper.selectCount(
+                    new LambdaQueryWrapper<EvaluationEnterprise>()
+                            .eq(EvaluationEnterprise::getCreditCode, ee.getCreditCode())
+                            .ne(EvaluationEnterprise::getEvaluationId, id)
+            );
+            if (otherCount == 0) {
+                enterpriseMapper.delete(
+                        new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<EnterpriseInfo>()
+                                .eq(EnterpriseInfo::getCreditCode, ee.getCreditCode())
+                );
+            }
+        }
+
         LambdaQueryWrapper<EvaluationEnterprise> eeWrapper = new LambdaQueryWrapper<>();
         eeWrapper.eq(EvaluationEnterprise::getEvaluationId, id);
         evaluationEnterpriseMapper.delete(eeWrapper);

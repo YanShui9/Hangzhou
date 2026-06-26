@@ -683,7 +683,28 @@ export default {
         }
 
         // 产业发展企业列表（按 parkId 关联）
-        this.enterpriseList = this.evaluationInfo.enterprises || []
+        const rawEnterprises = this.evaluationInfo.enterprises || []
+        this.enterpriseList = rawEnterprises.map(item => {
+          let settled = item.settledDate
+          if (!settled) {
+            const start = item.settledStartTime || ''
+            const end = item.settledEndTime || ''
+            if (start && end) {
+              settled = start + ' - ' + end
+            } else if (start) {
+              settled = start
+            } else if (end) {
+              settled = end
+            } else {
+              settled = '-'
+            }
+          }
+          return {
+            ...item,
+            settledDate: settled,
+            registeredAddress: item.registeredAddress || item.enterpriseAddress || item.address || ''
+          }
+        })
         // 科技创新人才（字段映射：category→level，date→certDate，company→company）
         const rawTalents = this.evaluationInfo.techInnovations || []
         this.talentList = rawTalents.map(item => ({

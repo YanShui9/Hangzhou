@@ -18,9 +18,16 @@ import io.swagger.annotations.ApiOperation;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.validation.Valid;
+import java.io.File;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
 
 /**
  * 园区控制器
@@ -339,5 +346,57 @@ public class ParkController {
                 queryDTO.setId(user.getParkId());
             }
         }
+    }
+
+    /**
+     * 上传园区图片
+     */
+    @PostMapping("/upload-image")
+    @ApiOperation(value = "上传园区图片", notes = "上传园区封面图片，返回图片访问URL")
+    public R<Map<String, String>> uploadImage(
+            @RequestParam("file") MultipartFile file,
+            HttpServletRequest request) {
+        Object userIdObj = request.getAttribute("userId");
+        if (userIdObj == null) {
+            throw new com.park.common.exception.BusinessException(
+                    com.park.common.result.ResultCode.FORBIDDEN, "请先登录");
+        }
+        if (file == null || file.isEmpty()) {
+            throw new com.park.common.exception.BusinessException(
+                    com.park.common.result.ResultCode.PARAM_ERROR, "文件不能为空");
+        }
+        String originalFilename = file.getOriginalFilename();
+        if (originalFilename != null) {
+            String lower = originalFilename.toLowerCase();
+            if (!lower.endsWith(".jpg") && !lower.endsWith(".jpeg") && !lower.endsWith(".png")) {
+                throw new com.park.common.exception.BusinessException(
+                        com.park.common.result.ResultCode.PARAM_ERROR, "仅支持 jpg、jpeg、png 格式");
+            }
+        }
+        String suffix = "";
+        if (originalFilename != null && originalFilename.contains(".")) {
+            suffix = originalFilename.substring(originalFilename.lastIndexOf("."));
+        }
+        String newFilename = UUID.randomUUID().toString().replace("-", "") + suffix;
+        // 上传到项目根目录的 uploads/park-images/ 下
+        String dirPath = "uploads/park-images";
+        File dir = new File(dirPath);
+        if (!dir.exists()) {
+            dir.mkdirs();
+        }
+        File dest = new File(dirPath + "/" + newFilename);
+        try {
+            Files.copy(file.getInputStream(), dest.toPath(),
+                    java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+        } catch (Exception e) {
+            throw new com.park.common.exception.BusinessException(
+                    com.park.common.result.ResultCode.FAILURE, "文件上传失败：" + e.getMessage());
+        }
+        String url = "/uploads/park-images/" + newFilename;
+        Map<String, String> result = new HashMap<>();
+        result.put("url", url);
+        result.put("name", originalFilename);
+        log.info("园区图片上传成功：originalFilename={}, saved={}", originalFilename, url);
+        return R.ok(result);
     }
 }

@@ -17,8 +17,20 @@
       <span class="loading-text">加载中...</span>
     </div>
 
+    <!-- 图片预览弹窗 -->
+    <el-dialog
+      title="图片预览"
+      :visible.sync="previewVisible"
+      width="600px"
+      append-to-body
+    >
+      <div v-if="previewUrl" style="text-align: center;">
+        <img :src="previewUrl" style="max-width: 100%; max-height: 70vh;" />
+      </div>
+    </el-dialog>
+
     <!-- 主体内容 -->
-    <div v-else class="detail-main">
+    <div v-if="!loading" class="detail-main">
       <!-- Tab 切换 + 年度选择器 -->
       <div class="tabs-wrapper">
         <el-tabs v-model="activeTab" class="detail-tabs">
@@ -316,16 +328,32 @@
             </div>
             <div class="form-item">
               <label class="form-label required">园区图片</label>
-              <div class="upload-area">
-                <div class="upload-btn" @click="handleUploadImage">
-                  <i class="el-icon-plus upload-icon"></i>
+              <div class="image-upload-container">
+                <div v-if="displayImages.length === 0" class="image-empty">
+                  <i class="el-icon-picture-outline"></i>
+                  <p>暂无园区图片</p>
                 </div>
-                <div v-if="formData.parkImages && formData.parkImages.length > 0" class="image-preview-list">
-                  <div v-for="(img, index) in formData.parkImages" :key="index" class="image-preview">
-                    <img :src="img" :alt="`园区图片${index + 1}`" />
-                    <i class="el-icon-delete image-delete" @click="removeImage(index)"></i>
+                <div v-else class="image-list">
+                  <div v-for="(image, index) in displayImages" :key="index" class="image-item">
+                    <el-image
+                      :src="getImageUrl(image)"
+                      :preview-src-list="imageUrlList"
+                      :initial-index="index"
+                      fit="cover"
+                      class="image-preview"
+                      @error="handleImageError(index)"
+                    />
+                    <div v-if="index === 0" class="primary-tag">主图</div>
+                    <div class="image-delete" @click="handleDeleteImage(index)">
+                      <i class="el-icon-close"></i>
+                    </div>
+                  </div>
+                  <div v-if="formData.parkImages.length < 6" class="image-add" @click="handleImageUpload">
+                    <i class="el-icon-plus"></i>
                   </div>
                 </div>
+                <div class="image-tips">最多上传6张，支持jpg、jpeg、png格式，单张不超过10MB</div>
+                <input ref="parkImageInput" type="file" multiple accept="image/jpeg,image/png,image/jpg" style="display:none" @change="handleImageFileChange" />
               </div>
             </div>
             <div class="form-item">
@@ -420,6 +448,7 @@
 
 <script>
 import { getParkDetail, updatePark, updateOperationData } from '@/api/park'
+import { uploadFile, deleteFile } from '@/api/tech-innovation'
 
 export default {
   name: 'AdminParkDetail',
@@ -471,6 +500,10 @@ export default {
         publicFacilities: '',
         publicServices: ''
       },
+      imageFileList: [],
+      // 图片预览（保留兼容，实际使用 el-image 内置预览）
+      previewVisible: false,
+      previewUrl: '',
       // 只读统计数据（入驻企业/员工/创新专利）
       readonlyData: {
         enterpriseCount: null,
@@ -528,6 +561,15 @@ export default {
     }
   },
   computed: {
+    displayImages() {
+      if (this.formData.parkImages && this.formData.parkImages.length > 0) {
+        return this.formData.parkImages
+      }
+      return []
+    },
+    imageUrlList() {
+      return this.displayImages.map(img => this.getImageUrl(img))
+    },
     breadcrumbCurrent() {
       const map = {
         basic: '园区信息',
@@ -644,11 +686,86 @@ export default {
         this.saveLoading = false
       }
     },
-    handleUploadImage() {
-      this.$message.info('图片上传功能开发中')
+    getImageUrl(image) {
+      if (!image) return ''
+      let url = ''
+      if (typeof image === 'string') {
+        url = image
+      } else if (image.url) {
+        url = image.url
+      } else if (image.fileUrl) {
+        url = image.fileUrl
+      }
+      if (!url) return ''
+      if (url.startsWith('http://') || url.startsWith('https://')) {
+        return url
+      }
+      if (url.startsWith('/api/')) {
+        return url
+      }
+      if (url.startsWith('/')) {
+        return url
+      }
+      return '/api/files/preview/' + url
     },
-    removeImage(index) {
-      this.formData.parkImages.splice(index, 1)
+    handleImageError(index) {
+      console.warn('图片加载失败，索引:', index)
+    },
+    handleImageUpload() {
+      this.$refs.parkImageInput.click()
+    },
+    async handleImageFileChange(event) {
+      const files = Array.from(event.target.files || [])
+      if (files.length === 0) return
+      const remaining = 6 - this.formData.parkImages.length
+      if (remaining <= 0) {
+        this.$message.warning('最多上传6张图片')
+        event.target.value = ''
+        return
+      }
+      const toUpload = files.slice(0, remaining)
+      for (let i = 0; i < toUpload.length; i++) {
+        const file = toUpload[i]
+        const isImage = file.type === 'image/jpeg' || file.type === 'image/png' || file.type === 'image/jpg'
+        if (!isImage) {
+          this.$message.error('仅支持 jpg、jpeg、png 格式')
+          continue
+        }
+        const isLt10M = file.size / 1024 / 1024 < 10
+        if (!isLt10M) {
+          this.$message.error('单张图片大小不能超过 10MB')
+          continue
+        }
+        try {
+          const formData = new FormData()
+          formData.append('file', file)
+          formData.append('bizType', 'park_image')
+          const res = await uploadFile(formData)
+          const data = res.data || res
+          this.formData.parkImages.push({
+            id: data.id,
+            url: data.url || ('/api/files/preview/' + data.id),
+            name: data.name || file.name
+          })
+        } catch (err) {
+          this.$message.error('图片上传失败：' + file.name)
+        }
+      }
+      event.target.value = ''
+    },
+    async handleDeleteImage(index) {
+      try {
+        await this.$confirm('确定删除该图片？', '提示', { type: 'warning' })
+        const image = this.formData.parkImages[index]
+        if (image && image.id) {
+          await deleteFile(image.id).catch(() => {})
+        }
+        this.formData.parkImages.splice(index, 1)
+      } catch (err) {
+        if (err !== 'cancel' && err?.message) {
+          this.$message.error('删除失败：' + err.message)
+        }
+      }
     },
     // 运营数据 - 数值格式化
     formatOperationValue(val) {
@@ -935,84 +1052,115 @@ export default {
   font-size: 12px;
 }
 
-/* 图片上传区域 */
-.upload-area {
+/* 园区图片上传展示 */
+.image-upload-container {
+  width: 100%;
+}
+
+.image-list {
   display: flex;
   flex-wrap: wrap;
   gap: 12px;
 }
 
-.upload-btn {
-  width: 108px;
-  height: 108px;
-  border: 2px dashed #D1D5DB;
-  border-radius: 8px;
+.image-empty {
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  cursor: pointer;
-  transition: all 0.2s;
-  background: #F9FAFB;
+  width: 140px;
+  height: 140px;
+  border: 1px dashed #dcdfe6;
+  border-radius: 8px;
+  color: #909399;
 }
 
-.upload-btn:hover {
-  border-color: #1E40AF;
-  background: #F0F4FF;
+.image-empty i {
+  font-size: 40px;
+  margin-bottom: 8px;
 }
 
-.upload-icon {
-  font-size: 24px;
-  color: #9CA3AF;
+.image-empty p {
+  font-size: 12px;
+  margin: 0;
 }
 
-.upload-btn:hover .upload-icon {
-  color: #1E40AF;
-}
-
-.image-preview-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-}
-
-.image-preview {
+.image-item {
   position: relative;
-  width: 108px;
-  height: 108px;
+  width: 140px;
+  height: 140px;
   border-radius: 8px;
   overflow: hidden;
+  border: 1px solid #e0e0e0;
 }
 
-.image-preview img {
+.image-item .image-preview {
   width: 100%;
   height: 100%;
   object-fit: cover;
 }
 
-.image-delete {
+.image-item .image-delete {
   position: absolute;
-  top: 4px;
-  right: 4px;
-  width: 22px;
-  height: 22px;
-  background: rgba(0, 0, 0, 0.6);
+  top: 6px;
+  right: 6px;
+  width: 24px;
+  height: 24px;
+  background: rgba(0, 0, 0, 0.5);
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: white;
-  font-size: 12px;
   cursor: pointer;
-  opacity: 0;
-  transition: opacity 0.2s;
+  color: white;
+  font-size: 14px;
+  transition: background 0.2s;
 }
 
-.image-preview:hover .image-delete {
-  opacity: 1;
+.image-item .image-delete:hover {
+  background: rgba(245, 108, 108, 0.8);
 }
 
-.image-delete:hover {
-  background: rgba(220, 38, 38, 0.8);
+.primary-tag {
+  position: absolute;
+  bottom: 6px;
+  left: 6px;
+  background: rgba(64, 158, 255, 0.8);
+  color: white;
+  font-size: 10px;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.image-add {
+  width: 140px;
+  height: 140px;
+  border: 2px dashed #d9d9d9;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+
+.image-add:hover {
+  border-color: #409eff;
+}
+
+.image-add .el-icon-plus {
+  font-size: 28px;
+  color: #c0c4cc;
+}
+
+.image-add:hover .el-icon-plus {
+  color: #409eff;
+}
+
+.image-tips {
+  font-size: 12px;
+  color: #909399;
+  margin-top: 8px;
 }
 
 /* ============ 运营数据 Tab ============ */

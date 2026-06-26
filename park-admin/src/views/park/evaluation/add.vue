@@ -88,8 +88,8 @@
               <el-table-column prop="parkName" label="园区名称" min-width="180" align="center" />
               <el-table-column prop="enterpriseName" label="入驻企业名称" min-width="220" align="center" />
               <el-table-column prop="creditCode" label="统一社会信用代码" min-width="200" align="center" />
-              <el-table-column prop="settledTime" label="入驻起止时间" min-width="150" align="center" />
-              <el-table-column prop="enterpriseAddress" label="企业注册地" min-width="280" align="center" show-overflow-tooltip />
+              <el-table-column prop="settledDate" label="入驻起止时间" min-width="150" align="center" />
+              <el-table-column prop="registeredAddress" label="企业注册地" min-width="280" align="center" show-overflow-tooltip />
             </el-table>
           </div>
           <div class="panel-footer">
@@ -668,8 +668,8 @@ export default {
       try {
         const res = await getEvaluationById(this.evaluationId)
         const data = res.data
-        if (this.isEditMode && data && data.status !== 0) {
-          this.$message.warning('只能修改未提交的评价记录')
+        if (this.isEditMode && data && data.status !== 0 && data.status !== 4) {
+          this.$message.warning('只能修改草稿或驳回状态的评价记录')
           this.$router.push('/park/evaluation')
           return
         }
@@ -708,7 +708,30 @@ export default {
         this.cultivationFiles = cultRes.data || []
         // 回显产业发展企业列表（后端按 parkId 关联返回 enterprises）
         if (Array.isArray(data.enterprises)) {
-          this.enterpriseList = data.enterprises
+          this.enterpriseList = data.enterprises.map(item => {
+            let settled = item.settledDate
+            if (!settled) {
+              const start = item.settledStartTime || ''
+              const end = item.settledEndTime || ''
+              if (start && end) {
+                settled = start + ' - ' + end
+              } else if (start) {
+                settled = start
+              } else if (end) {
+                settled = end
+              } else {
+                settled = '-'
+              }
+            }
+            const address = item.registeredAddress || item.enterpriseAddress || item.address || ''
+            return {
+              parkName: item.parkName || item.belongParkName || '',
+              enterpriseName: item.enterpriseName || '',
+              creditCode: item.creditCode || item.unifiedCreditCode || '',
+              settledDate: settled,
+              registeredAddress: address
+            }
+          })
         }
       } catch (e) {
         console.error('加载评价数据失败', e)
@@ -912,13 +935,30 @@ export default {
 
         if (response.code === 200) {
           const rawList = result.dataList || []
-          this.enterpriseList = rawList.map(item => ({
-            parkName: item.parkName || item.belongParkName || '',
-            enterpriseName: item.enterpriseName || '',
-            creditCode: item.unifiedCreditCode || '',
-            settledTime: item.settledDate || '',
-            enterpriseAddress: item.registeredAddress || ''
-          }))
+          this.enterpriseList = rawList.map(item => {
+            let settled = item.settledDate
+            if (!settled) {
+              const start = item.settledStartTime || item.entryStartTime || ''
+              const end = item.settledEndTime || item.entryEndTime || ''
+              if (start && end) {
+                settled = start + ' - ' + end
+              } else if (start) {
+                settled = start
+              } else if (end) {
+                settled = end
+              } else {
+                settled = '-'
+              }
+            }
+            const address = item.registeredAddress || item.enterpriseAddress || item.address || ''
+            return {
+              parkName: item.parkName || item.belongParkName || '',
+              enterpriseName: item.enterpriseName || '',
+              creditCode: item.unifiedCreditCode || item.creditCode || '',
+              settledDate: settled,
+              registeredAddress: address
+            }
+          })
           if (result.errorList && result.errorList.length > 0) {
             this.importErrors = result.errorList
             this.importErrorsVisible = true

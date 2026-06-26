@@ -235,9 +235,9 @@ public class IndustryDevelopmentParseService {
             data.setParkName(getValueByHeader(rowData, "园区名称"));
             data.setEnterpriseName(getValueByHeader(rowData, "入园企业名称", "入驻企业名称"));
             data.setUnifiedCreditCode(getValueByHeader(rowData, "统一社会信用代码"));
-            data.setSettledStartTime(getValueByHeader(rowData, "入驻开始时间"));
-            data.setSettledEndTime(getValueByHeader(rowData, "入驻截止时间"));
-            data.setRegisteredAddress(getValueByHeader(rowData, "企业注册地址"));
+            data.setSettledStartTime(getValueByHeader(rowData, "入驻开始时间", "入驻起始时间", "入驻时间", "入园时间"));
+            data.setSettledEndTime(getValueByHeader(rowData, "入驻截止时间", "入驻结束时间", "退园时间", "迁出时间"));
+            data.setRegisteredAddress(getValueByHeader(rowData, "企业注册地址", "企业注册地", "注册地址", "企业地址"));
             data.setHonor(getValueByHeader(rowData, "企业荣誉"));
             data.setDistrictName(getValueByHeader(rowData, "所属区域"));
             data.setBelongParkName(getValueByHeader(rowData, "所属园区"));
@@ -296,6 +296,24 @@ public class IndustryDevelopmentParseService {
         private String getStringValue(Object value) {
             if (value == null) {
                 return null;
+            }
+            if (value instanceof Number) {
+                double num = ((Number) value).doubleValue();
+                if (num == Math.floor(num)) {
+                    return String.valueOf((long) num);
+                }
+                return String.valueOf(num);
+            }
+            if (value instanceof java.util.Date) {
+                java.time.LocalDate date = ((java.util.Date) value).toInstant()
+                        .atZone(java.time.ZoneId.systemDefault()).toLocalDate();
+                return date.format(DATE_FORMATTER);
+            }
+            if (value instanceof java.time.LocalDate) {
+                return ((java.time.LocalDate) value).format(DATE_FORMATTER);
+            }
+            if (value instanceof java.time.LocalDateTime) {
+                return ((java.time.LocalDateTime) value).toLocalDate().format(DATE_FORMATTER);
             }
             return value.toString().trim();
         }

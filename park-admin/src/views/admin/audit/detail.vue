@@ -1190,7 +1190,28 @@ export default {
           if (data.districtResult != null) {
             this.districtResult = data.districtResult
           }
-          this.industryTableData = data.enterprises || data.industryTableData || []
+          const rawEnterprises = data.enterprises || data.industryTableData || []
+          this.industryTableData = rawEnterprises.map(item => {
+            let settled = item.settledDate
+            if (!settled) {
+              const start = item.settledStartTime || ''
+              const end = item.settledEndTime || ''
+              if (start && end) {
+                settled = start + ' - ' + end
+              } else if (start) {
+                settled = start
+              } else if (end) {
+                settled = end
+              } else {
+                settled = '-'
+              }
+            }
+            return {
+              ...item,
+              settledDate: settled,
+              registeredAddress: item.registeredAddress || item.enterpriseAddress || item.address || ''
+            }
+          })
 
           // 解析园区端提交的 parkExtraData - 字段名与园区端 add.vue 保持一致
           const extra = data.extraData || {}
@@ -1211,9 +1232,9 @@ export default {
           if (extra.benefitFiles) {
             this.benefitFileList = extra.benefitFiles || []
           }
-          // fileSections 是数组（基础指标文件），不是对象
-          if (extra.fileSections && Array.isArray(extra.fileSections)) {
-            this.otherFileList = extra.fileSections
+          // fileSections 是对象，包含 enterpriseFiles 和 otherFiles
+          if (extra.fileSections && extra.fileSections.otherFiles) {
+            this.otherFileList = extra.fileSections.otherFiles
           } else if (extra.otherFiles) {
             this.otherFileList = extra.otherFiles
           }

@@ -490,39 +490,32 @@
             <!-- 园区图片 -->
             <div class="intro-section">
               <h3 class="section-title">园区图片</h3>
-              <div class="image-container">
-                <el-upload
-                  v-if="isEditMode"
-                  class="image-uploader"
-                  action="/api/files/upload"
-                  :headers="uploadHeaders"
-                  :data="{ bizType: 'park_image' }"
-                  :file-list="imageFileList"
-                  list-type="picture-card"
-                  :limit="6"
-                  multiple
-                  accept=".jpg,.jpeg,.png"
-                  :on-exceed="handleImageExceed"
-                  :on-success="handleImageUploadSuccess"
-                  :on-remove="handleImageRemove"
-                  :on-preview="handleImagePreview"
-                  :before-upload="beforeImageUpload"
-                >
-                  <i class="el-icon-plus"></i>
-                  <div slot="tip" class="upload-tip">最多上传6张图片，支持jpg、jpeg、png格式，单张不超过10MB</div>
-                </el-upload>
-                <div v-else-if="formData.images && formData.images.length > 0" class="image-grid">
-                  <div v-for="(img, index) in formData.images" :key="index" class="image-item">
-                    <img :src="img" :alt="'园区图片' + (index + 1)" />
-                    <div class="image-mask" @click="handleImagePreview(img)">
-                      <i class="el-icon-zoom-in"></i>
+              <div class="image-upload-container">
+                <div v-if="displayImages.length === 0" class="image-empty">
+                  <i class="el-icon-picture-outline"></i>
+                  <p>暂无图片</p>
+                </div>
+                <div v-else class="image-list">
+                  <div v-for="(image, index) in displayImages" :key="index" class="image-item">
+                    <el-image
+                      :src="getImageUrl(image)"
+                      :preview-src-list="imageUrlList"
+                      :initial-index="index"
+                      fit="cover"
+                      class="image-preview"
+                      @error="handleImageError(index)"
+                    />
+                    <div class="primary-tag">主图</div>
+                    <div v-if="isEditMode" class="image-delete" @click.stop="handleDeleteImage(index)">
+                      <i class="el-icon-close"></i>
                     </div>
                   </div>
+                  <div v-if="isEditMode && formData.parkImages.length < 6" class="image-add" @click="handleImageUpload">
+                    <i class="el-icon-plus"></i>
+                  </div>
                 </div>
-                <div v-else class="empty-state">
-                  <i class="el-icon-picture"></i>
-                  <span>暂无图片</span>
-                </div>
+                <div v-if="isEditMode" class="image-tips">最多上传6张，支持jpg、jpeg、png格式，单张不超过10MB</div>
+                <input ref="parkImageInput" type="file" multiple accept="image/jpeg,image/png,image/jpg" style="display:none" @change="handleImageFileChange" />
               </div>
             </div>
 
@@ -564,15 +557,13 @@
       </el-tabs>
     </el-card>
 
-    <!-- 图片预览弹窗 -->
-    <el-dialog :visible.sync="dialogVisible" title="图片预览" width="800px" append-to-body>
-      <img :src="dialogImageUrl" style="width: 100%;" />
-    </el-dialog>
+    <!-- 图片预览使用 el-image 内置预览，无需单独弹窗 -->
   </div>
 </template>
 
 <script>
 import { getParkDetail, updatePark } from '@/api/park'
+import { uploadFile, deleteFile } from '@/api/tech-innovation'
 
 /**
  * 园区详情页面（支持编辑模式）
@@ -585,16 +576,18 @@ export default {
       parkInfo: {},
       formData: {},
       activeTab: 'basic',
-      isEditMode: false,
-      imageFileList: [],
-      dialogImageUrl: '',
-      dialogVisible: false
+      isEditMode: false
     }
   },
   computed: {
-    uploadHeaders() {
-      const token = this.$store.state.user.token
-      return token ? { Authorization: 'Bearer ' + token } : {}
+    displayImages() {
+      if (this.formData.parkImages && this.formData.parkImages.length > 0) {
+        return this.formData.parkImages
+      }
+      return []
+    },
+    imageUrlList() {
+      return this.displayImages.map(img => this.getImageUrl(img))
     }
   },
   /**
@@ -621,7 +614,16 @@ export default {
       try {
         const res = await getParkDetail(id)
         const data = res.data || {}
-        // 后端字段 → 前端字段映射
+        // parkImages 后端存 JSON 字符串，前端需解析为数组
+        let parkImages = []
+        if (data.parkImages) {
+          try {
+            const parsed = typeof data.parkImages === 'string' ? JSON.parse(data.parkImages) : data.parkImages
+            parkImages = Array.isArray(parsed) ? parsed : []
+          } catch (e) {
+            parkImages = []
+          }
+        }
         this.parkInfo = {
           ...data,
           mainIndustry: data.leadingIndustry || data.mainIndustry,
@@ -635,96 +637,104 @@ export default {
           rentedArea: data.leasedArea || data.rentedArea,
           rentRemainArea: data.remainingLeasableArea || data.rentRemainArea,
           saleRemainArea: data.remainingSellableArea || data.saleRemainArea,
-          images: data.parkImages ? (typeof data.parkImages === 'string' ? JSON.parse(data.parkImages) : data.parkImages) : []
+          parkImages
         }
         this.formData = { ...this.parkInfo }
-        this.initImageFileList()
+        this.formData.parkImages = parkImages
       } catch (e) {
         console.error('获取园区详情失败:', e)
         this.$message.error('获取园区详情失败')
       }
     },
     /**
-     * 初始化图片文件列表
+     * 获取图片完整 URL
      */
-    initImageFileList() {
-      if (this.formData.images && this.formData.images.length > 0) {
-        this.imageFileList = this.formData.images.map((url, index) => ({
-          name: `园区图片${index + 1}`,
-          url: url,
-          status: 'success'
-        }))
-      } else {
-        this.imageFileList = []
+    getImageUrl(image) {
+      if (!image) return ''
+      let url = ''
+      if (typeof image === 'string') {
+        url = image
+      } else if (image.url) {
+        url = image.url
+      } else if (image.fileUrl) {
+        url = image.fileUrl
       }
+      if (!url) return ''
+      if (url.startsWith('http://') || url.startsWith('https://')) return url
+      if (url.startsWith('/api/')) return url
+      if (url.startsWith('/')) return url
+      return '/api/files/preview/' + url
     },
     /**
-     * 图片上传前校验
-     * @param {File} file - 上传的文件
+     * 图片加载失败处理
      */
-    beforeImageUpload(file) {
-      const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png']
-      const isAllowed = allowedTypes.includes(file.type)
-      const isLt10M = file.size / 1024 / 1024 <= 10
-
-      if (!isAllowed) {
-        this.$message.error('只支持 jpg、jpeg、png 格式的图片')
-        return false
-      }
-      if (!isLt10M) {
-        this.$message.error('图片大小不能超过 10MB')
-        return false
-      }
-      return true
+    handleImageError(index) {
+      console.warn('图片加载失败，索引:', index)
     },
     /**
-     * 超出上传数量限制
+     * 触发图片上传
      */
-    handleImageExceed() {
-      this.$message.warning('最多只能上传6张图片')
+    handleImageUpload() {
+      this.$refs.parkImageInput.click()
     },
     /**
-     * 图片上传成功处理
-     * @param {Object} response - 上传响应
-     * @param {Object} file - 上传的文件
+     * 处理图片文件选择
      */
-    handleImageUploadSuccess(response, file) {
-      if (response.code === 200 && response.data && response.data.url) {
-        const imageUrl = response.data.url
-        if (!this.formData.images) {
-          this.formData.images = []
+    async handleImageFileChange(event) {
+      const files = Array.from(event.target.files || [])
+      if (files.length === 0) return
+      const remaining = 6 - this.formData.parkImages.length
+      if (remaining <= 0) {
+        this.$message.warning('最多上传6张图片')
+        event.target.value = ''
+        return
+      }
+      const toUpload = files.slice(0, remaining)
+      for (let i = 0; i < toUpload.length; i++) {
+        const file = toUpload[i]
+        const isImage = file.type === 'image/jpeg' || file.type === 'image/png' || file.type === 'image/jpg'
+        if (!isImage) {
+          this.$message.error('仅支持 jpg、jpeg、png 格式')
+          continue
         }
-        this.formData.images.push(imageUrl)
-      } else {
-        this.$message.error(response.message || '图片上传失败')
-      }
-    },
-    /**
-     * 图片删除处理
-     * @param {Object} file - 要删除的文件
-     */
-    handleImageRemove(file) {
-      if (this.formData.images) {
-        const index = this.formData.images.indexOf(file.url)
-        if (index > -1) {
-          this.formData.images.splice(index, 1)
+        const isLt10M = file.size / 1024 / 1024 < 10
+        if (!isLt10M) {
+          this.$message.error('单张图片大小不能超过 10MB')
+          continue
+        }
+        try {
+          const formData = new FormData()
+          formData.append('file', file)
+          formData.append('bizType', 'park_image')
+          const res = await uploadFile(formData)
+          const resData = res.data || res
+          this.formData.parkImages.push({
+            id: resData.id,
+            url: resData.url || ('/api/files/preview/' + resData.id),
+            name: resData.name || file.name
+          })
+        } catch (err) {
+          this.$message.error('图片上传失败：' + file.name)
         }
       }
+      event.target.value = ''
     },
     /**
-     * 图片预览
-     * @param {String} url - 图片URL
+     * 删除图片
      */
-    handleImagePreview(url) {
-      this.dialogImageUrl = url
-      this.dialogVisible = true
-    },
-    /**
-     * 关闭图片预览弹窗
-     */
-    closeDialog() {
-      this.dialogVisible = false
-      this.dialogImageUrl = ''
+    async handleDeleteImage(index) {
+      try {
+        await this.$confirm('确定删除该图片？', '提示', { type: 'warning' })
+        const image = this.formData.parkImages[index]
+        if (image && image.id) {
+          await deleteFile(image.id).catch(() => {})
+        }
+        this.formData.parkImages.splice(index, 1)
+      } catch (err) {
+        if (err !== 'cancel' && err?.message) {
+          this.$message.error('删除失败：' + err.message)
+        }
+      }
     },
     /**
      * 格式化数字
@@ -752,6 +762,7 @@ export default {
     cancelEdit() {
       this.isEditMode = false
       this.formData = { ...this.parkInfo }
+      this.formData.parkImages = this.parkInfo.parkImages ? [...this.parkInfo.parkImages] : []
       this.$message.info('已取消编辑')
     },
     /**
@@ -777,7 +788,7 @@ export default {
         leasedArea: this.formData.rentedArea,
         remainingLeasableArea: this.formData.rentRemainArea,
         remainingSellableArea: this.formData.saleRemainArea,
-        parkImages: this.formData.images ? JSON.stringify(this.formData.images) : null
+        parkImages: this.formData.parkImages ? JSON.stringify(this.formData.parkImages) : null
       }
 
       updatePark(submitData).then(() => {
@@ -967,50 +978,115 @@ export default {
   width: 100%;
 }
 
-.image-grid {
+/* 图片上传展示（新） */
+.image-upload-container {
+  width: 100%;
+}
+
+.image-list {
   display: flex;
   flex-wrap: wrap;
   gap: 12px;
 }
 
-.image-item {
-  position: relative;
-  width: 148px;
-  height: 148px;
-  overflow: hidden;
-  border-radius: 6px;
-  background: #fff;
-  border: 1px solid #eee;
-  cursor: pointer;
+.image-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 140px;
+  height: 140px;
+  border: 1px dashed #dcdfe6;
+  border-radius: 8px;
+  color: #909399;
 }
 
-.image-item img {
+.image-empty i {
+  font-size: 40px;
+  margin-bottom: 8px;
+}
+
+.image-empty p {
+  font-size: 12px;
+  margin: 0;
+}
+
+.image-item {
+  position: relative;
+  width: 140px;
+  height: 140px;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid #e0e0e0;
+}
+
+.image-item .image-preview {
   width: 100%;
   height: 100%;
   object-fit: cover;
 }
 
-.image-item .image-mask {
+.image-item .image-delete {
   position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  top: 6px;
+  right: 6px;
+  width: 24px;
+  height: 24px;
   background: rgba(0, 0, 0, 0.5);
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  opacity: 0;
-  transition: opacity 0.3s;
+  cursor: pointer;
+  color: white;
+  font-size: 14px;
+  transition: background 0.2s;
 }
 
-.image-item:hover .image-mask {
-  opacity: 1;
+.image-item .image-delete:hover {
+  background: rgba(245, 108, 108, 0.8);
 }
 
-.image-item .image-mask i {
-  color: #fff;
-  font-size: 24px;
+.primary-tag {
+  position: absolute;
+  bottom: 6px;
+  left: 6px;
+  background: rgba(64, 158, 255, 0.8);
+  color: white;
+  font-size: 10px;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.image-add {
+  width: 140px;
+  height: 140px;
+  border: 2px dashed #d9d9d9;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+
+.image-add:hover {
+  border-color: #409eff;
+}
+
+.image-add .el-icon-plus {
+  font-size: 28px;
+  color: #c0c4cc;
+}
+
+.image-add:hover .el-icon-plus {
+  color: #409eff;
+}
+
+.image-tips {
+  font-size: 12px;
+  color: #909399;
+  margin-top: 8px;
 }
 
 .empty-state {
