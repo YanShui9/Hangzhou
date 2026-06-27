@@ -40,6 +40,59 @@ public class EnterpriseService {
             "new_provincial_tech_small"
     );
 
+    /** 荣誉类型编码 → 中文名称 映射 */
+    private static final java.util.Map<String, String> HONOR_TYPE_NAME_MAP = new java.util.HashMap<>();
+
+    static {
+        HONOR_TYPE_NAME_MAP.put("existing_above_scale", "规上工业企业(存量)");
+        HONOR_TYPE_NAME_MAP.put("new_above_scale", "新增规上工业企业");
+        HONOR_TYPE_NAME_MAP.put("retired_above_scale", "退规下工业企业");
+        HONOR_TYPE_NAME_MAP.put("new_single_champion", "单项冠军");
+        HONOR_TYPE_NAME_MAP.put("new_ipo", "上市企业");
+        HONOR_TYPE_NAME_MAP.put("new_specialty_giant", "专精特新小巨人");
+        HONOR_TYPE_NAME_MAP.put("new_provincial_hidden_champion", "省级隐形冠军");
+        HONOR_TYPE_NAME_MAP.put("new_specialty_sme", "省专精特新中小企业");
+        HONOR_TYPE_NAME_MAP.put("new_national_high_tech", "国家高新技术企业");
+        HONOR_TYPE_NAME_MAP.put("innovative_sme", "创新型中小企业");
+        HONOR_TYPE_NAME_MAP.put("new_provincial_tech_small", "省科技型中小企业");
+        HONOR_TYPE_NAME_MAP.put("new_first_equipment", "首台(套)装备");
+        HONOR_TYPE_NAME_MAP.put("first_version", "首批次");
+        HONOR_TYPE_NAME_MAP.put("first_batch", "首台批次");
+        HONOR_TYPE_NAME_MAP.put("provincial_excellent_industrial", "省级优秀工业新产品");
+        HONOR_TYPE_NAME_MAP.put("zhejiang_made_quality", "浙江制造精品");
+        HONOR_TYPE_NAME_MAP.put("new_national_rd_agency", "国家级研发机构");
+        HONOR_TYPE_NAME_MAP.put("new_provincial_rd_agency", "省级研发机构");
+        HONOR_TYPE_NAME_MAP.put("new_municipal_rd_agency", "市级研发机构");
+        HONOR_TYPE_NAME_MAP.put("public_service_platform", "公共服务平台");
+    }
+
+    /** 中文名称 → 荣誉类型编码 映射（反向查找，用于筛选） */
+    private static final java.util.Map<String, String> HONOR_NAME_TYPE_MAP = new java.util.HashMap<>();
+
+    static {
+        for (java.util.Map.Entry<String, String> entry : HONOR_TYPE_NAME_MAP.entrySet()) {
+            HONOR_NAME_TYPE_MAP.put(entry.getValue(), entry.getKey());
+        }
+    }
+
+    /**
+     * 荣誉类型编码转中文名称
+     */
+    private String honorTypeToName(String honorType) {
+        if (!StringUtils.hasText(honorType)) return honorType;
+        String name = HONOR_TYPE_NAME_MAP.get(honorType);
+        return name != null ? name : honorType;
+    }
+
+    /**
+     * 中文名称转荣誉类型编码（用于筛选）
+     */
+    private String honorNameToType(String honorName) {
+        if (!StringUtils.hasText(honorName)) return honorName;
+        String type = HONOR_NAME_TYPE_MAP.get(honorName);
+        return type != null ? type : honorName;
+    }
+
     @Autowired
     private EnterpriseMapper enterpriseMapper;
 
@@ -97,8 +150,10 @@ public class EnterpriseService {
 
         // 企业荣誉筛选：通过 enterprise_honor_record 表反查匹配的企业
         if (StringUtils.hasText(queryDTO.getEnterpriseHonor())) {
+            // 前端传中文名称，转为英文编码后查询
+            String honorType = honorNameToType(queryDTO.getEnterpriseHonor());
             LambdaQueryWrapper<EnterpriseHonorRecord> honorWrapper = new LambdaQueryWrapper<>();
-            honorWrapper.eq(EnterpriseHonorRecord::getHonorType, queryDTO.getEnterpriseHonor());
+            honorWrapper.eq(EnterpriseHonorRecord::getHonorType, honorType);
             java.util.List<EnterpriseHonorRecord> honorRecords = enterpriseHonorRecordMapper.selectList(honorWrapper);
             if (honorRecords.isEmpty()) {
                 // 没有匹配的企业荣誉，返回空结果
@@ -159,6 +214,7 @@ public class EnterpriseService {
                             .map(EnterpriseHonorRecord::getHonorType)
                             .filter(StringUtils::hasText)
                             .distinct()
+                            .map(this::honorTypeToName)
                             .collect(java.util.stream.Collectors.joining("/"));
                     enterprise.setEnterpriseHonor(honorText);
                 }
@@ -204,6 +260,7 @@ public class EnterpriseService {
                         .map(EnterpriseHonorRecord::getHonorType)
                         .filter(StringUtils::hasText)
                         .distinct()
+                        .map(this::honorTypeToName)
                         .collect(java.util.stream.Collectors.joining("/"));
                 enterprise.setEnterpriseHonor(honorText);
             }

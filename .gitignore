@@ -81,3 +81,20 @@ need/
 
 # 敏感文件
 token.txt
+
+# 临时/生成的文件
+generate-*.js
+*.bak
+~$*.docx
+~$*.xlsx
+~$*.pptx
+*.docx.bak
+*.xlsx.bak
+*.pptx.bak
+
+# 不提交的非项目文件（根目录或中文文件名的临时文档）
+*.docx
+*.xlsx
+*.pptx
+*.pdf
+"~$*"

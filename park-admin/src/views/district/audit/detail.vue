@@ -1006,8 +1006,9 @@ export default {
 
     // 确认审核
     async confirmAudit() {
-      if (!this.auditForm.finalResult) {
-        this.$message.warning('请选择审核结果')
+      const action = parseInt(this.auditForm.finalResult)
+      if (!action || (action !== 1 && action !== 2)) {
+        this.$message.warning('请选择审核结果（通过或驳回）')
         return
       }
       if (!this.auditForm.finalOpinion) {
@@ -1017,11 +1018,10 @@ export default {
       
       this.submitting = true
       try {
-        // 提交审核前先保存安全生产评分到 scoreDetail（含 districtSafety 快照供市级端展示）
         await this.saveSafetyScore()
         const response = await submitAudit({
           evaluationId: this.evaluationInfo.id,
-          action: parseInt(this.auditForm.finalResult),
+          action: action,
           opinion: this.auditForm.finalOpinion
         })
         if (response.code === 200) {

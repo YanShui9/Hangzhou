@@ -447,6 +447,12 @@ public class EvaluationService {
         // 清空驳回类别（重新提交后不再保留旧驳回标记）
         record.setRejectCategories(null);
         evaluationMapper.updateById(record);
+        
+        // 删除旧的审核记录（重新提交后允许重新审核）
+        LambdaQueryWrapper<AuditRecord> auditWrapper = new LambdaQueryWrapper<>();
+        auditWrapper.eq(AuditRecord::getEvaluationId, id);
+        auditMapper.delete(auditWrapper);
+        
         log.info("评价记录已提交：id={}", id);
     }
 

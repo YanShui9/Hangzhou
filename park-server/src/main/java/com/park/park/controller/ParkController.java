@@ -122,7 +122,29 @@ public class ParkController {
     @PostMapping
     @ApiOperation(value = "新增园区", notes = "创建新的园区信息")
     public R<Void> savePark(@Valid @RequestBody ParkSaveDTO saveDTO, HttpServletRequest request) {
-        checkLogin(request); // 登录校验：任意角色可新增园区，但需登录
+        checkLogin(request);
+
+        Object roleTypeObj = request.getAttribute("roleType");
+        Integer roleType = (roleTypeObj instanceof Integer) ? (Integer) roleTypeObj : null;
+        Object userIdObj = request.getAttribute("userId");
+        Long userId = null;
+        if (userIdObj instanceof Integer) {
+            userId = ((Integer) userIdObj).longValue();
+        } else if (userIdObj instanceof Long) {
+            userId = (Long) userIdObj;
+        }
+
+        if (roleType != null && roleType == 2 && userId != null) {
+            SysUser user = authService.getUserById(userId);
+            if (user != null && user.getDistrictId() != null) {
+                DistrictInfo district = districtMapper.selectById(user.getDistrictId());
+                if (district != null) {
+                    saveDTO.setDistrictId(district.getId());
+                    saveDTO.setDistrictName(district.getDistrictName());
+                }
+            }
+        }
+
         parkService.savePark(saveDTO);
         return R.ok();
     }
