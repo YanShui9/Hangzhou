@@ -1,431 +1,215 @@
 # 杭州市小微园区评价数据分析平台
 
-> 用于杭州市小微园区的基础信息管理、入驻企业统计、年度绩效评价、多级审核流程和数据驾驶舱展示。
+面向小微园区年度评价场景的前后端分离管理系统，围绕园区数据采集、区县初审、市级终审、绩效分档和统计展示，提供市级、区县、园区三级角色协作流程。
 
-## 一、技术栈
+> 本项目为计算机科学与技术专业课程团队项目，用于学习、答辩和技术交流，不代表杭州市相关部门的正式生产系统。仓库展示的是团队项目整体成果，不表示任一成员独立完成全部模块。
 
-| 层级 | 技术 | 版本 |
-|------|------|------|
-| 前端 | Vue 2.6 + Element UI 2.15 + Vuex 3 + Vue Router 3 + ECharts | Vue 2 |
-| 后端 | Spring Boot 2.7.18 + MyBatis-Plus 3.5.5 + JWT + Hutool + EasyExcel | Java 8 |
-| 数据库 | MySQL 8.0（utf8mb4） | 8.0+ |
-| 接口文档 | springdoc-openapi-ui 1.7.0 + Swagger Annotations | - |
-| 构建 | Maven 3.6.3（后端）/ Vue CLI 5（前端） | - |
+## 项目概览
 
-**端口约定**：前端 `8081`，后端 `8080`，数据库 `3306`
+传统园区评价存在材料分散、跨层级流转不便和统计口径难统一等问题。本项目将评价过程拆分为园区填报、区县审核与上报、市级审核和结果展示，并通过角色和数据范围限制不同用户能够访问的内容。
 
-## 二、快速开始
+### 核心功能
 
-### 环境要求
-- JDK 8+
-- Maven 3.6.3
+- **三级角色与数据范围**：市级查看全市数据，区县查看本区县数据，园区查看本园区数据。
+- **年度评价填报**：支持分模块填写评价信息、上传材料、保存草稿和提交审核。
+- **分级审核流转**：支持区县初审、区县上报、市级终审、驳回修改和审核历史追踪。
+- **评价结果管理**：汇总评价得分，展示 A/B/C/D 绩效分档，并支持列表查询与导出。
+- **数据仓库与批量处理**：提供多类 Excel 模板的下载、导入、预览和结果查询。
+- **数据驾驶舱**：通过 ECharts 展示园区概况、评价统计和相关指标。
+- **系统设置**：管理市级、区县和园区账号，以及园区、企业等基础信息。
+
+## 项目截图
+
+### 数据驾驶舱
+
+![数据驾驶舱](docs/images/dashboard.png)
+
+### 评价审核
+
+![评价审核](docs/images/audit.png)
+
+### 绩效结果
+
+![绩效结果](docs/images/result.png)
+
+## 核心业务流程
+
+当前版本在区县审核通过与市级终审之间增加了“上报市级”步骤：
+
+```text
+园区保存草稿（0）
+      │ 提交
+      ▼
+待区县审核（1）
+      │ 区县通过
+      ▼
+区县审核通过（2）
+      │ 区县上报
+      ▼
+已上报市级（5）
+      ├──────── 市级通过 ────────> 通过（3）
+      └──────── 市级驳回 ────────> 驳回（4）
+
+区县审核也可驳回至状态（4）；驳回记录修改后可重新提交。
+```
+
+| 状态值 | 含义 | 主要可执行操作 |
+|---:|---|---|
+| 0 | 草稿 | 编辑、提交 |
+| 1 | 待区县审核 | 区县通过或驳回 |
+| 2 | 区县审核通过 | 区县上报市级 |
+| 5 | 已上报市级 | 市级通过或驳回 |
+| 3 | 通过 | 查看结果 |
+| 4 | 驳回 | 修改并重新提交 |
+
+评价审核不仅修改主记录状态，也会保存审核人、审核动作、意见和时间，供审核历史查询与页面展示。
+
+## 角色与权限
+
+| 角色 | `role_type` | 数据范围 | 主要功能 |
+|---|---:|---|---|
+| 市级管理员 | 1 | 全市 | 数据驾驶舱、园区与企业管理、市级终审、评价结果、系统设置 |
+| 区县管理员 | 2 | 本区县 | 数据看板、园区与企业管理、区县初审、上报市级、评价结果 |
+| 园区管理员 | 3 | 本园区 | 园区资料、入驻企业、年度评价填报、评价结果 |
+
+前端路由通过角色信息控制菜单和页面入口；后端接口结合 `role_type`、`district_id` 和 `park_id` 校验数据范围。前端限制只用于改善交互，实际权限仍以后端校验为准。
+
+## 技术栈
+
+| 层级 | 技术 |
+|---|---|
+| 前端 | Vue 2.6、Vue Router 3、Vuex 3、Element UI 2.15、Axios、ECharts 5 |
+| 后端 | Java 8、Spring Boot 2.7.18、MyBatis-Plus 3.5.5、JWT、Spring Validation |
+| 数据处理 | Apache POI、EasyExcel、文件上传与预览 |
+| 数据库 | MySQL 8.0、18 张业务表、逻辑删除与常用字段索引 |
+| 接口文档 | springdoc-openapi-ui、Swagger Annotations |
+| 构建工具 | Maven、Vue CLI 5、npm |
+
+## 系统架构
+
+```text
+浏览器
+  │
+  │ HTTP / JSON
+  ▼
+Vue 2 + Element UI
+  │ Axios / Bearer Token
+  ▼
+Spring Boot REST API
+  ├── Controller：参数接收、权限入口、统一响应
+  ├── Service：评价流转、审核记录、导入解析等业务逻辑
+  ├── Mapper：MyBatis-Plus 数据访问
+  └── Filter / Exception：JWT 校验与统一异常处理
+  │
+  ▼
+MySQL 8.0
+```
+
+后端接口统一使用 `/api` 前缀，业务响应采用 `code`、`message`、`data`、`timestamp` 结构。评价、审核、园区、企业、系统设置和数据驾驶舱按业务模块组织。
+
+## 目录结构
+
+```text
+Hangzhou/
+├── park-admin/                    # Vue 2 前端
+│   └── src/
+│       ├── api/                   # 接口封装
+│       ├── components/            # 公共组件
+│       ├── router/                # 三级角色路由
+│       ├── store/                 # Vuex 状态
+│       ├── utils/                 # Axios 等公共工具
+│       └── views/                 # admin / district / park 页面
+├── park-server/                   # Spring Boot 后端
+│   ├── src/main/java/com/park/
+│   │   ├── auth/                  # 登录与 JWT
+│   │   ├── audit/                 # 审核记录
+│   │   ├── evaluation/            # 评价填报与状态流转
+│   │   ├── park/                  # 园区管理
+│   │   ├── enterprise/            # 企业管理
+│   │   ├── dashboard/             # 统计接口
+│   │   ├── system/                # 用户与数据仓库
+│   │   └── common/                # 响应、异常、过滤器
+│   ├── src/main/resources/
+│   │   ├── application.yml
+│   │   ├── application-dev.yml.example
+│   │   └── templates/             # Excel 模板
+│   └── sql/complete_schema.sql     # 完整建表与初始化脚本
+├── docs/                           # 项目文档与演示资源
+└── README.md
+```
+
+## 快速开始
+
+### 1. 环境要求
+
+- JDK 8 或更高版本
+- Maven 3.6+
 - Node.js 14+
-- MySQL 8.0
+- MySQL 8.0+
 
-### 1. 数据库初始化
-```sql
-CREATE DATABASE park_evaluation DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
-```
-执行脚本：`park-server/sql/complete_schema.sql`（含全部 18 张表 + 初始化数据）
+### 2. 初始化数据库
 
-### 2. 后端配置
-```bash
-cd park-server
-# 复制开发环境配置示例
-cp src/main/resources/application-dev.yml.example src/main/resources/application-dev.yml
-# 编辑 application-dev.yml 填入你的 MySQL 密码和 JWT 密钥
+执行 [完整数据库脚本](park-server/sql/complete_schema.sql)。脚本会创建 `park_evaluation` 数据库、18 张业务表及课程演示所需的初始化数据。
+
+### 3. 配置后端
+
+复制配置示例：
+
+```text
+park-server/src/main/resources/application-dev.yml.example
 ```
 
-### 3. 启动后端
+将副本命名为 `application-dev.yml`，再填写本机数据库连接信息和 JWT 密钥。真实密码和密钥不要提交到 Git。
+
+### 4. 启动后端
+
 ```bash
 cd park-server
 mvn spring-boot:run
-# 或：D:\IDEA\apache-maven-3.6.3\bin\mvn.cmd spring-boot:run
 ```
 
-### 4. 启动前端
+后端默认地址：`http://localhost:8080`
+
+接口文档：`http://localhost:8080/swagger-ui.html`
+
+### 5. 启动前端
+
 ```bash
 cd park-admin
 npm install
 npm run serve
 ```
 
-### 5. 访问
-- 前端：http://localhost:8081
-- 后端 API：http://localhost:8080
-- Swagger 文档：http://localhost:8080/swagger-ui.html
+前端默认地址：`http://localhost:8081`
 
-### 测试账号
-| 角色 | 用户名 | 密码 | role_type |
-|------|--------|------|-----------|
-| 市级管理员 | admin | 123456 | 1 |
-| 区县管理员 | district | 123456 | 2 |
-| 园区管理员 | park | 123456 | 3 |
+### 6. 本地演示账号
 
-## 三、角色权限体系（三级数据隔离）
+| 角色 | 用户名 | 初始密码 |
+|---|---|---|
+| 市级管理员 | `admin` | `123456` |
+| 区县管理员 | `district` | `123456` |
+| 园区管理员 | `park` | `123456` |
 
-| role_type | 角色 | 数据范围 | 默认首页 | 主要职责 |
-|-----------|------|----------|----------|----------|
-| 1 | 市级管理员 | 全市数据 | `/admin/park` | 终审、数据驾驶舱、系统设置、数据仓库 |
-| 2 | 区县管理员 | 本区县数据 | `/district/park` | 初审、区县园区管理 |
-| 3 | 园区管理员 | 本园区数据 | `/park/mine` | 填报评价、维护企业信息 |
+这些账号和密码仅用于本地课程演示。部署到任何共享环境前，必须更换初始密码、数据库凭据和 JWT 密钥，并限制上传目录及跨域来源。
 
-**数据隔离机制**：通过 `district_id`、`park_id`、`role_type` 三个字段实现三级数据隔离。Service 层的 `checkAndFilterByRole` 方法根据用户角色自动添加查询条件。
+## 可重点查看的实现
 
-## 四、核心业务流程
+- [评价状态流转与结果同步](park-server/src/main/java/com/park/evaluation/service/EvaluationService.java)
+- [区县上报和市级终审接口](park-server/src/main/java/com/park/evaluation/controller/EvaluationController.java)
+- [审核记录服务](park-server/src/main/java/com/park/audit/service/AuditService.java)
+- [市级审核详情页](park-admin/src/views/admin/audit/detail.vue)
+- [数据仓库导入服务](park-server/src/main/java/com/park/system/service/DataWarehouseService.java)
+- [数据库结构](park-server/sql/complete_schema.sql)
 
-### 4.1 评价填报流程（园区端）
-园区管理员在 `/park/evaluation/add?year=YYYY` 页面按 8 个步骤填报：
+## 当前边界
 
-```
-① 基础指标      → 确认已知晓（单选）
-② 产业发展      → 导入 Excel 企业列表（模板下载）
-③ 企业培育      → 上传附件（可选项目名称）
-④ 科技创新      → 上传人才附件 + 院所合作附件
-⑤ 服务能力      → 7 类服务材料上传
-⑥ 效益产出      → 上传附件
-⑦ 安全生产      → 系统自动打分（5 项扣分指标）
-⑧ 其他          → 承诺函 + 附件
-```
+- 项目以课程演示和业务流程验证为目标，尚未进行生产环境上线验证。
+- 文档中的并发量、响应时间等需求指标不作为已完成的性能测试结果。
+- 仓库包含课程演示数据；使用真实数据前应补充脱敏、备份、权限审计和安全测试。
+- 当前自动化测试覆盖有限，功能正确性仍需要结合接口测试和页面流程验证。
 
-### 4.2 审核流程
-```
-园区提交（status: 0 → 1）
-    ↓
-区县审核（通过: 1 → 2 / 驳回: 1 → 4）
-    ↓
-市级审核（通过: 2 → 3 / 驳回: 2 → 4）
-    ↓
-驳回后园区可修改重新提交（status: 4 → 1）
-```
+## 版本说明
 
-### 评价状态枚举（evaluation_record.status）
-| status | 含义 | 可修改？ |
-|--------|------|----------|
-| 0 | 草稿 | ✅ |
-| 1 | 待区县审 | ❌ |
-| 2 | 待市局审 | ❌ |
-| 3 | 通过 | ❌ |
-| 4 | 驳回 | ✅（可修改重新提交）|
-
-## 五、数据库表结构（共 18 张表）
-
-### 基础架构表
-| 表名 | 说明 | 对应功能 |
-|------|------|----------|
-| `sys_user` | 系统用户表（用户名、密码、角色、所属区县/园区） | 登录、权限管理 |
-| `district_info` | 区县信息表（杭州 13 个区县） | 区县管理 |
-
-### 园区管理表
-| 表名 | 说明 | 对应功能 |
-|------|------|----------|
-| `park_info` | 园区基础信息表（名称、面积、主导产业、荣誉统计等） | 园区列表、园区详情 |
-| `park_document` | 园区行文文件表 | 园区文件上传 |
-| `park_operation` | 园区季度运营数据表 | 运营数据管理 |
-
-### 企业管理表
-| 表名 | 说明 | 对应功能 |
-|------|------|----------|
-| `enterprise_info` | 入驻企业信息表（名称、信用代码、行业、地址等） | 企业列表、企业详情 |
-| `enterprise_honor_record` | 企业荣誉记录表（高企、专精特新等，按年度） | 数据仓库导入 |
-
-### 评价体系表（核心）
-| 表名 | 说明 | 对应功能 |
-|------|------|----------|
-| `evaluation_record` | 评价主表（园区ID、年度、状态、总分、分档） | 评价列表、审核 |
-| `park_evaluation_score` | 评分汇总表（各维度得分） | 数据驾驶舱、评分展示 |
-| `evaluation_enterprise` | 产业发展企业关联表（导入的企业列表） | 评价 → 产业发展模块 |
-| `evaluation_file` | 评价附件表（所有上传文件的元数据） | 文件上传、预览 |
-| `tech_innovation` | 科技创新记录表（A/B/C/D 类人才） | 评价 → 科技创新模块 |
-| `tech_project` | 院所合作项目表 | 评价 → 科技创新模块 |
-| `cultivation_record` | 企业培育记录表 | 评价 → 企业培育模块 |
-
-### 审核流程表
-| 表名 | 说明 | 对应功能 |
-|------|------|----------|
-| `audit_record` | 审核记录表（审核人、动作、意见） | 审核详情页历史记录 |
-
-### 数据仓库表
-| 表名 | 说明 | 对应功能 |
-|------|------|----------|
-| `data_warehouse` | 数据仓库元数据表（文件名、类型、年度） | 数据仓库管理 |
-| `park_tax_record` | 园区税收记录表（营收、税收，按类型分类） | 亩均营收/税收计算 |
-| `unreported_park_record` | 未上报运营园区记录表 | 监控园区上报情况 |
-
-### 表关系说明
-```
-sys_user（用户）
-   ├─ role_type=1（市级）── 管理所有
-   ├─ role_type=2（区县）── district_info ── park_info
-   └─ role_type=3（园区）── park_info
-                              ├─ enterprise_info（入驻企业）
-                              ├─ evaluation_record（年度评价）
-                              │     ├─ evaluation_enterprise（企业列表）
-                              │     ├─ tech_innovation（科技人才）
-                              │     ├─ tech_project（院所合作）
-                              │     ├─ cultivation_record（企业培育）
-                              │     ├─ evaluation_file（附件）
-                              │     └─ audit_record（审核记录）
-                              └─ park_evaluation_score（评分）
-```
-
-## 六、后端架构
-
-### 分层结构（每个业务模块统一五层）
-```
-com.park/
-├── ParkServerApplication.java    # 启动类
-├── common/                        # 公共模块
-│   ├── result/                    # R（统一响应）、ResultCode、PageQuery、PageResult
-│   ├── exception/                 # BusinessException、GlobalExceptionHandler
-│   ├── filter/                    # JwtAuthenticationFilter（JWT 鉴权）
-│   ├── util/                      # JwtUtil
-│   └── entity/                    # BaseEntity（id、createTime、updateTime）
-├── config/                        # 配置类
-│   ├── CorsConfig                 # 跨域
-│   ├── MybatisPlusConfig          # 分页插件
-│   ├── JacksonConfig              # 日期序列化（yyyy-MM-dd HH:mm:ss）
-│   ├── MyMetaObjectHandler        # 自动填充 createTime/updateTime
-│   ├── SwaggerConfig              # 接口文档
-│   └── WebMvcConfig               # 静态资源、拦截器
-├── auth/                          # 认证模块（登录、JWT）
-├── park/                          # 园区管理模块
-├── enterprise/                    # 企业管理模块
-├── evaluation/                    # 评价管理模块（含文件上传、Excel 解析）
-├── audit/                         # 审核模块
-├── dashboard/                     # 数据驾驶舱模块
-├── system/                        # 系统管理（用户、区县、数据仓库、菜单）
-└── operation/                     # 运营数据模块
-```
-
-### 业务模块标准结构
-每个模块都遵循 Controller → Service → Mapper → Entity/DTO 的分层：
-- **Controller**：接收请求，调用 Service，返回 `R<T>`
-- **Service**：业务逻辑，调用 Mapper 操作数据库
-- **Mapper**：继承 `BaseMapper<Entity>`，自动拥有 CRUD
-- **Entity**：对应数据库表（`@TableName`）
-- **DTO**：前后端数据传输（查询条件、保存数据、返回结果）
-
-### API 规范
-- 基础路径：`/api`
-- 统一响应：`{ code: 200, message: "操作成功", data: {}, timestamp: ... }`
-- 分页响应：`{ total, records, pageNum, pageSize, pages }`
-
-| 模块 | 路径 |
-|------|------|
-| 认证 | `/api/auth/*` |
-| 园区 | `/api/parks` |
-| 企业 | `/api/enterprises` |
-| 评价 | `/api/evaluations` |
-| 审核 | `/api/audits` |
-| 文件 | `/api/files/*` |
-| 数据看板 | `/api/dashboard/*` |
-| 用户管理 | `/api/users` |
-| 数据仓库 | `/api/data-warehouse/*` |
-
-## 七、前端架构
-
-### 目录结构
-```
-park-admin/src/
-├── api/                    # API 接口定义（按模块拆分）
-├── components/             # 公共组件（FilePreview 文件预览）
-├── layout/                 # 布局（Sidebar、Navbar、AppMain）
-├── router/index.js         # 路由配置（按角色区分）
-├── store/modules/user.js   # Vuex 用户状态
-├── utils/request.js        # axios 封装（含 401 拦截）
-└── views/
-    ├── login/              # 登录页
-    ├── admin/              # 市级管理员页面
-    │   ├── dashboard/      # 数据驾驶舱 + 大屏
-    │   ├── park/           # 园区列表/详情
-    │   ├── enterprise/     # 企业列表/详情
-    │   ├── audit/          # 审核列表/详情
-    │   ├── result/         # 评价结果
-    │   └── system/         # 系统设置（用户、数据仓库）
-    ├── district/           # 区县管理员页面
-    │   ├── dashboard/      # 数据看板
-    │   ├── park/           # 园区管理（含表单）
-    │   ├── enterprise/     # 企业管理
-    │   ├── audit/          # 审核
-    │   └── result/         # 评价结果
-    └── park/               # 园区管理员页面
-        ├── dashboard/      # 数据看板
-        ├── mine/           # 我的园区
-        ├── enterprise/     # 企业管理
-        └── evaluation/     # 评价列表/新增/修改
-```
-
-### 路由按角色区分
-- 市级 → `/admin/*`
-- 区县 → `/district/*`
-- 园区 → `/park/*`
-
-路由 meta 中的 `roles` 数组控制访问权限，如 `roles: [1]` 表示仅市级可访问。
-
-## 八、关键功能说明
-
-### 8.1 Excel 导入导出
-- **导入**：使用 EasyExcel 解析，模板文件位于 `park-server/src/main/resources/templates/`
-- **导出**：使用 Apache POI 生成 Excel
-- **模板下载**：`/api/files/download/template/{templateKey}`
-- **产业发展数据导入**：`/api/files/upload/industry-development`（解析后存入 `evaluation_enterprise` 和 `enterprise_info`）
-
-### 8.2 文件预览
-- 使用 LuckyExcel 库（npm 包，非 CDN）预览 Excel 文件
-- 后端 `/api/common/download` 接口返回文件 blob 流
-- FilePreview 组件支持图片、PDF、Word、Excel 预览，含下载和关闭按钮
-
-### 8.3 数据仓库
-- 7 种 Excel 模板：园区总营税收、主导产业/企业类型营税收、企业荣誉新增/累计、园区星级、未上报园区名单
-- 导入规则：同 `fileType + year` 先删旧数据再插新数据，防止重复
-- 导入后自动同步到 `park_info` 的统计字段（`above_scale_count`、`high_tech_count` 等）
-- 评价审核数据优先于数据仓库导入数据
-
-### 8.4 数据驾驶舱
-- 市级端大屏：`/admin/big-screen`（独立路由，新窗口打开）
-- 统计数据：园区总数、参评企业数、各档位园区数、亩均税收排名
-- 使用 ECharts 渲染图表
-
-### 8.5 安全生产评分
-汇总 5 项指标自动打分：
-1. 未落实通则（-2 分）
-2. 未签责任书（-2 分）
-3. 未落实培训（-2 分）
-4. 消防设施问题（-2 分）
-5. 被通报（-2 分）
-
-### 8.6 企业荣誉展示
-8 类核心荣誉：国家高新技术企业、专精特新小巨人、省专精特新中小企业、省级隐形冠军、单项冠军、上市企业、创新型中小企业、省科技型中小企业。前端列表最多显示 3 个标签，超出显示 `+N more`，hover 显示完整列表。
-
-## 九、开发约定
-
-### 命名规范
-- 数据库：下划线命名（`park_name`），Java 自动驼峰转换（`parkName`）
-- 前端组件文件：kebab-case（`park-detail.vue`）
-- 前端组件名：PascalCase（`ParkDetail`）
-- API 文件：kebab-case（`enterprise-info.js`）
-
-### 后端约定
-- 统一响应类 `R<T>`，禁止直接返回 Map
-- 业务异常用 `BusinessException`，全局异常处理器统一捕获
-- 非数据库字段用 `@TableField(exist = false)` 标注
-- `LocalDateTime` 序列化为 `yyyy-MM-dd HH:mm:ss`（无 `T` 分隔符）
-- 市级管理员权限校验用 `checkCityAdmin` 私有方法
-- 文件存储用 `Files.copy()` 而非 `MultipartFile.transferTo()`（路径解析不稳定）
-
-### 前端约定
-- 列表页统一使用 `page-list-flex` 全局 CSS 类（搜索区固定、表格滚动、分页固定）
-- Vue 2 中 `Set`/`Map` 不响应式，用普通对象 + `this.$set()`
-- 审核详情页通过 `?mode=audit`（审核模式）或 `?mode=view`（查看模式）区分
-- 评价查看模式通过 `?view=1` 参数区分，已读分类用绿色标记
-
-### 配置文件
-- `application.yml`：公共配置（端口、MyBatis-Plus、Jackson）
-- `application-dev.yml`：开发环境（数据库密码、JWT 密钥）— **不提交 Git**
-- `application-dev.yml.example`：配置示例 — 提交 Git
-- `application-prod.yml`：生产环境 — **不提交 Git**
-
-## 十、项目结构总览
-
-```
-Hangzhou/
-├── park-admin/                          # 前端 Vue 项目
-│   ├── src/
-│   │   ├── api/                         # API 接口
-│   │   ├── components/                  # 公共组件
-│   │   ├── layout/                      # 布局
-│   │   ├── router/                      # 路由
-│   │   ├── store/                       # Vuex
-│   │   ├── utils/                       # 工具
-│   │   └── views/                       # 页面（admin/district/park）
-│   ├── .env.development                 # 开发环境变量
-│   ├── .env.production                  # 生产环境变量
-│   └── vue.config.js                    # Vue CLI 配置
-│
-├── park-server/                         # 后端 Spring Boot 项目
-│   ├── src/main/java/com/park/
-│   │   ├── ParkServerApplication.java   # 启动类
-│   │   ├── auth/                        # 认证
-│   │   ├── park/                        # 园区
-│   │   ├── enterprise/                  # 企业
-│   │   ├── evaluation/                  # 评价
-│   │   ├── audit/                       # 审核
-│   │   ├── dashboard/                   # 数据驾驶舱
-│   │   ├── system/                      # 系统管理
-│   │   ├── operation/                   # 运营数据
-│   │   ├── common/                      # 公共模块
-│   │   └── config/                      # 配置
-│   ├── src/main/resources/
-│   │   ├── application.yml              # 主配置
-│   │   ├── application-dev.yml.example  # 开发配置示例
-│   │   ├── sql/                         # SQL 脚本
-│   │   └── templates/                   # Excel 导入模板
-│   └── pom.xml                          # Maven 依赖
-│
-├── sql/                                 # 项目 SQL 脚本
-├── template/                            # 模板文件
-├── docs/                                # 设计文档
-├── .gitignore                           # Git 忽略配置
-├── CLAUDE.md                            # AI 协作指引
-└── README.md                            # 项目说明（本文件）
-```
-
-## 十一、部署
-
-### 前端
-```bash
-cd park-admin
-npm run build
-# 将 dist/ 部署到 Nginx 等 Web 服务器
-```
-
-### 后端
-```bash
-cd park-server
-mvn clean package -DskipTests
-java -jar target/park-server-1.0.0.jar
-```
-
-### Nginx 配置示例
-```nginx
-server {
-    listen 80;
-    server_name your-domain.com;
-
-    # 前端
-    location / {
-        root /path/to/park-admin/dist;
-        try_files $uri $uri/ /index.html;
-    }
-
-    # 后端 API 代理
-    location /api/ {
-        proxy_pass http://localhost:8080;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-    }
-}
-```
-
-## 十二、常见问题
-
-### Q: 后端启动失败，端口 8080 被占用？
-A: 残留 Java 进程未关闭。用 `taskkill /F /PID <PID>` 结束占用进程后重启。
-
-### Q: 前端登录后 401 不断跳转？
-A: `request.js` 已用 `isRedirecting` 标志位防止多次跳转。如仍出现，检查 JWT 密钥是否一致。
-
-### Q: Excel 导入提示"表头不匹配"？
-A: 必须使用系统下载的标准模板（`/api/files/download/template/industry_development`），勿用其他模板。
-
-### Q: 数据库字段和实体类不对应？
-A: MyBatis-Plus 自动驼峰转换。非数据库字段必须加 `@TableField(exist = false)`，否则报 "can not find lambda cache"。
-
-### Q: 模板文件预览 404？
-A: 模板文件需放在 `park-server/src/main/resources/templates/` 目录下。
-
-## 十三、版本历史
-
-- **2026-06**：完善区县端审核评价体系、园区端评价功能、数据驾驶舱大屏、数据仓库导入
-- **2026-06-25**：初始版本提交，包含基础架构和核心业务功能
+- `2026-06-11`：默认分支早期版本，包含基础三级角色和评价审核流程。
+- `2026-06-27`：完善园区端评价、区县审核与上报、市级终审记录、驳回后重新提交、数据驾驶舱和数据仓库等功能。
+- `2026-09-06`：同步当前版本到默认分支，更新项目定位、业务流程、截图和运行说明。
